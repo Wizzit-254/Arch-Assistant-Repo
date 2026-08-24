@@ -1,6 +1,7 @@
 @echo off
 setlocal
 title Arch Assistant Installer
+mode con: cols=70 lines=30
 color 0F
 
 echo.
@@ -8,57 +9,88 @@ echo  ============================================================
 echo              ARCH ASSISTANT INSTALLER
 echo  ============================================================
 echo.
-echo  This will download and install Arch Assistant to:
-echo    C:\Program Files\Arch Assistant
+echo   This will download and install Arch Assistant to:
+echo     C:\Program Files\Arch Assistant
 echo.
-echo  Requirements:
-echo    - Internet connection
-echo    - ~300 MB free disk space
-echo    - Python 3.10+ (for AI features)
+echo   Requirements:
+echo     - Internet connection
+echo     - ~300 MB free disk space
+echo     - Python 3.10+ (for AI features)
 echo.
 echo  ============================================================
 echo.
 
-choice /C YN /M "Proceed with installation"
+choice /C YN /M "  Proceed with installation? [Y/N]"
 if errorlevel 2 goto :cancelled
+
+echo.
+echo  [1/4] Connecting to GitHub...
+echo.
 
 set "REPO_URL=https://github.com/Wizzit-254/Arch-Assistant-Repo/releases/latest/download/Arch-Assistant-App.zip"
 set "INSTALL_DIR=C:\Program Files\Arch Assistant"
 set "TEMP_DIR=%TEMP%\arch-assistant-setup"
 
-echo.
-echo [1/4] Downloading from GitHub...
-echo.
-
 if exist "%TEMP_DIR%" rmdir /s /q "%TEMP_DIR%" 2>nul
 mkdir "%TEMP_DIR%" 2>nul
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$ErrorActionPreference = 'Stop'; " ^
   "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; " ^
   "$url = '%REPO_URL%'; " ^
   "$out = '%TEMP_DIR%\Arch-Assistant-App.zip'; " ^
-  "Write-Host 'Connecting to GitHub...'; " ^
+  "Write-Host '  Connecting to GitHub...'; " ^
+  "Write-Host ''; " ^
   "try { " ^
-  "  $wc = New-Object System.Net.WebClient; " ^
-  "  $wc.Headers.Add('User-Agent', 'ArchAssistant-Installer/1.0'); " ^
-  "  $wc.DownloadFile($url, $out); " ^
-  "  $size = (Get-Item $out).Length; " ^
-  "  Write-Host ('Downloaded: ' + [math]::Round($size/1MB,1) + ' MB'); " ^
+  "  $req = [System.Net.HttpWebRequest]::Create($url); " ^
+  "  $req.UserAgent = 'ArchAssistant-Installer/1.0'; " ^
+  "  $req.AllowAutoRedirect = $true; " ^
+  "  $resp = $req.GetResponse(); " ^
+  "  $total = $resp.ContentLength; " ^
+  "  $rs = $resp.GetResponseStream(); " ^
+  "  $fs = [System.IO.File]::Create($out); " ^
+  "  $buf = New-Object byte[] 65536; " ^
+  "  $got = 0; " ^
+  "  $lastPct = -1; " ^
+  "  while (($n = $rs.Read($buf, 0, $buf.Length)) -gt 0) { " ^
+  "    $fs.Write($buf, 0, $n); " ^
+  "    $got += $n; " ^
+  "    if ($total -gt 0) { " ^
+  "      $pct = [math]::Floor($got / $total * 100); " ^
+  "      if ($pct -ne $lastPct) { " ^
+  "        $mb = [math]::Round($got / 1MB, 1); " ^
+  "        $totalMb = [math]::Round($total / 1MB, 1); " ^
+  "        $bar = '[' + ('#' * [math]::Min($pct, 100)) + ('-' * [math]::Max(100 - $pct, 0)) + ']'; " ^
+  "        Write-Host ('`r  Downloading: ' + $bar + ' ' + $pct + '%% (' + $mb + ' / ' + $totalMb + ' MB)') -NoNewline; " ^
+  "        $lastPct = $pct; " ^
+  "      } " ^
+  "    } else { " ^
+  "      $mb = [math]::Round($got / 1MB, 1); " ^
+  "      Write-Host ('`r  Downloading: ' + $mb + ' MB') -NoNewline; " ^
+  "    } " ^
+  "  } " ^
+  "  $fs.Close(); $rs.Close(); $resp.Close(); " ^
+  "  Write-Host ''; " ^
+  "  Write-Host ''; " ^
+  "  Write-Host ('  Downloaded: ' + [math]::Round((Get-Item $out).Length / 1MB, 1) + ' MB'); " ^
   "} catch { " ^
-  "  Write-Host ('ERROR: ' + $_.Exception.Message); " ^
+  "  Write-Host ''; " ^
+  "  Write-Host ('  ERROR: ' + $_.Exception.Message); " ^
   "  exit 1; " ^
   "}"
 
 if errorlevel 1 (
     echo.
-    echo  ERROR: Download failed. Check your internet connection.
+    echo  ----------------------------------------------------------
+    echo   Download failed. Check your internet connection.
+    echo  ----------------------------------------------------------
     echo.
     pause
     goto :cleanup
 )
 
 echo.
-echo [2/4] Extracting files...
+echo  [2/4] Extracting files...
 echo.
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
@@ -66,41 +98,45 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$zip = '%TEMP_DIR%\Arch-Assistant-App.zip'; " ^
   "$extract = '%TEMP_DIR%\app'; " ^
   "if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }; " ^
+  "Write-Host '  Extracting...'; " ^
   "[System.IO.Compression.ZipFile]::ExtractToDirectory($zip, $extract); " ^
-  "if (-not (Test-Path '$TEMP_DIR%\app\Arch Assistant')) { " ^
-  "  Write-Host 'ERROR: Archive does not contain Arch Assistant folder'; " ^
+  "if (-not (Test-Path '%TEMP_DIR%\app\Arch Assistant')) { " ^
+  "  Write-Host '  ERROR: Archive missing Arch Assistant folder'; " ^
   "  exit 1; " ^
   "} " ^
-  "Write-Host 'Extraction complete.'"
+  "Write-Host '  Extraction complete.'"
 
 if errorlevel 1 (
     echo.
-    echo  ERROR: Archive is corrupted or missing files.
-    echo  Try downloading again.
+    echo  ----------------------------------------------------------
+    echo   Archive is corrupted. Try downloading again.
+    echo  ----------------------------------------------------------
     echo.
     pause
     goto :cleanup
 )
 
 echo.
-echo [3/4] Installing to %INSTALL_DIR%...
+echo  [3/4] Installing to %INSTALL_DIR%...
 echo.
 
 if exist "%INSTALL_DIR%" rmdir /s /q "%INSTALL_DIR%" 2>nul
 mkdir "%INSTALL_DIR%" 2>nul
 
-robocopy "%TEMP_DIR%\app\Arch Assistant" "%INSTALL_DIR%" /E /NFL /NDL /NJH /NJS /NC /NS
+robocopy "%TEMP_DIR%\app\Arch Assistant" "%INSTALL_DIR%" /E /NFL /NDL /NJH /NJS /NC /NS >nul 2>&1
 if errorlevel 8 (
-    echo.
-    echo  ERROR: Could not write to %INSTALL_DIR%
-    echo  Right-click this file and select "Run as administrator"
+    echo  ----------------------------------------------------------
+    echo   Could not write to %INSTALL_DIR%
+    echo   Right-click install.bat and "Run as administrator"
+    echo  ----------------------------------------------------------
     echo.
     pause
     goto :cleanup
 )
+echo  Install complete.
 
 echo.
-echo [4/4] Creating shortcuts...
+echo  [4/4] Creating shortcuts...
 echo.
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
@@ -118,20 +154,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$sc2.WorkingDirectory = '%INSTALL_DIR%'; " ^
   "$sc2.Description = 'Arch AI Assistant'; " ^
   "$sc2.Save(); " ^
-  "Write-Host 'Shortcuts created.'"
+  "Write-Host '  Shortcuts created.'"
 
 echo.
 echo  ============================================================
 echo            INSTALLATION COMPLETE
 echo  ============================================================
 echo.
-echo  Installed to: %INSTALL_DIR%
-echo  Desktop shortcut created.
+echo   Installed to: %INSTALL_DIR%
+echo   Desktop shortcut created.
 echo.
-echo  First launch will download AI models (~2 GB) automatically.
+echo   First launch will download AI models (~2 GB) automatically.
 echo.
 
-choice /C YN /M "Launch Arch Assistant now"
+choice /C YN /M "  Launch Arch Assistant now? [Y/N]"
 if errorlevel 2 goto :cleanup
 
 start "" "%INSTALL_DIR%\Arch.exe"
