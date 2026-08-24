@@ -11,7 +11,7 @@ namespace ArchInstaller
 {
     class Program
     {
-        static string RepoOwner = "YOUR_GITHUB_USERNAME";
+        static string RepoOwner = "Wizzit-254";
         static string RepoName = "Arch-Assistant-Repo";
         static string AppZipName = "Arch-Assistant-App.zip";
         static string InstallDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Arch Assistant");
