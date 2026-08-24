@@ -6,7 +6,7 @@ A portable offline AI desktop assistant with 3 persona models powered by Ollama.
 
 ## Quick Install
 
-1. **Download** `ArchAssistant-Installer.exe` from this repo
+1. **Download** `install.bat` from this repo
 2. **Run** the installer — it downloads the full app automatically
 3. **Launch** Arch Assistant from your desktop
 4. **Wait** for AI models to download on first launch (~2 GB)
