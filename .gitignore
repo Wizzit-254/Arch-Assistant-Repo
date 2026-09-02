@@ -1,8 +1,6 @@
-__pycache__/
-*.pyc
-*.pyo
-.env
-*.zip
-chats.json
-arch-assistant/
-Arch-Assistant-App.zip
+﻿node_modules/
+*.log
+.DS_Store
+app-extracted/
+Thumbs.db
+*.tmp
