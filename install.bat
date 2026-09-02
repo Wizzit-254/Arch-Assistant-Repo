@@ -17,6 +17,20 @@ echo.
 echo  ============================================================
 echo.
 
+choice /C YN /M "  Run system check first? [Y/N]"
+if errorlevel 2 goto :skip_check
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$cpu = Get-CimInstance Win32_Processor | Select-Object -First 1; " ^
+  "Write-Host ('  CPU: ' + $cpu.Name); " ^
+  "Write-Host ('  Cores: ' + $cpu.NumberOfCores + ' | Threads: ' + $cpu.NumberOfLogicalProcessors); " ^
+  "$ram = [math]::Round((Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum / 1GB, 1); " ^
+  "Write-Host ('  RAM: ' + $ram + ' GB'); " ^
+  "if ($ram -ge 8) { Write-Host '  OK: 8+ GB RAM for smooth AI operation.'; } else { Write-Host '  WARNING: Less than 8 GB RAM. AI will be slower.'; }"
+echo.
+echo.
+
+:skip_check
 choice /C YN /M "  Proceed with installation? [Y/N]"
 if errorlevel 2 goto :cancelled
 

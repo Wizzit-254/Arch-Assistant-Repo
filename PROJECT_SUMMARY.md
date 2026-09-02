@@ -2,226 +2,335 @@
 
 ## Inspiration
 
-The idea for **Arch Assistant** came from a simple frustration: every AI assistant today requires an internet connection, sends your data to the cloud, and stops working the moment your Wi-Fi drops. I wanted to build something different — a **private, offline AI assistant** that runs entirely on your own hardware, with no data ever leaving your machine.
+The idea for **Arch Assistant** was born from a simple frustration with the status quo of AI assistants. Every major AI service today—ChatGPT, Claude, Gemini—requires:
 
-The name "Arch" was chosen as a tribute to Arch Linux, representing the philosophy of **user control, simplicity, and transparency**. Just as Arch puts the user in full control of their operating system, Arch Assistant puts you in full control of your AI.
+1. A constant internet connection
+2. Sending your data to remote servers
+3. Ongoing subscription fees
+4. Dependency on service uptime
 
-The core question driving this project was:
+What if an AI assistant could be **yours**? Downloaded once, running entirely on your local machine, with zero recurring costs and zero privacy compromise? That's the question that drove every design decision in Arch Assistant.
 
-> *What if your AI assistant was truly yours — downloaded once, running locally, with zero recurring fees and zero privacy compromise?*
-
----
+The name "Arch" draws from two inspirations:
+- **Arch Linux** — the philosophy of user control, simplicity, and transparency
+- **Architecture** — the structural design of software systems that bridge multiple layers
 
 ## What I Learned
 
-This project was a masterclass in **systems integration**. I learned to bridge three fundamentally different technology stacks into one cohesive product:
+Building Arch Assistant was a deep dive into **systems integration** across four fundamentally different technology stacks:
 
-### 1. Electron + HTML/CSS/JS (Frontend)
-I learned to build desktop applications using **Electron**, creating a native-feeling UI with web technologies. The frontend communicates with the backend via a **Chrome DevTools Protocol (CDP)** bridge running on `127.0.0.1:9224`, giving the JavaScript layer direct control over the Electron BrowserWindow.
+### Electron + JavaScript (Frontend)
+I learned to build desktop applications using **Electron**, where the renderer process (a Chromium browser) communicates with the backend through a local HTTP API on `127.0.0.1:9224`. The key insight was using the **Chrome DevTools Protocol (CDP)** bridge pattern—Electron spawns a Python backend process that serves HTTP, and the frontend makes AJAX calls to it.
 
-### 2. Python (Backend & AI Logic)
-The backend is a **Python HTTP server** that handles:
-- Ollama process lifecycle management (start/stop/health monitoring)
-- AI model routing and chat streaming via Server-Sent Events (SSE)
-- Config persistence and dynamic model switching
+### Python (Backend)
+The backend runs on Python's standard library only (`http.server`, `urllib.request`, `subprocess`, `json`) because:
+- No `pip install` needed — runs on any system Python
+- Minimal dependencies reduce attack surface
+- Easy to debug and extend
 
-I learned the importance of **process isolation** — the Python backend manages Ollama as a child process, ensuring clean startup/shutdown even if the AI engine crashes.
+Key patterns I implemented:
+- **Server-Sent Events (SSE)** for streaming AI responses token-by-token
+- **ThreadingHTTPServer** for concurrent request handling
+- **Process management** to start/stop the Ollama runtime as a subprocess
 
-### 3. Ollama (AI Runtime)
-Ollama serves as the local AI inference engine. I learned to:
-- Manage model manifests and blob storage manually
-- Configure custom `OLLAMA_HOST` and `OLLAMA_MODELS` paths for portability
-- Parse Modelfiles to customize model behavior and system prompts
-- Implement **Server-Sent Events (SSE)** streaming for real-time token-by-token response delivery
+### Ollama (AI Runtime)
+Ollama serves as the local LLM inference engine. I learned to:
+- Run it in **portable mode** by setting `OLLAMA_HOST=127.0.0.1:11435` and `OLLAMA_MODELS` to a local directory
+- Manage model manifests (`.Modelfile` files with custom system prompts)
+- Handle **content-addressed blob storage** where model weights are stored as `sha256-<hash>` files
 
-### 4. Software Packaging & Distribution
-I learned to create:
-- A **C# installer** (compiled with the legacy .NET Framework 4.0 `csc.exe`) that downloads and extracts the application
-- A **batch file installer** with a real-time progress bar for wider compatibility
-- Portable Ollama bundling with selective model pruning to minimize archive size
+### Voice & Narration (TTS/STT)
+I learned the difference between:
 
----
+$$\text{Cloud TTS (Fish.Audio)} \rightarrow \text{High quality, requires API key}$$
+$$\text{Browser TTS (speechSynthesis)} \rightarrow \text{Always available, lower quality}$$
+
+The voice system uses a **fallback chain**: try Fish.Audio TTS API first (for premium voices), fall back to browser `speechSynthesis` if the API fails. Each voice maps to a Fish.Audio voice ID:
+
+| Voice Name | Fish.Audio ID | Browser Voice Mapping |
+|---|---|---|
+| Verity | `8d21b053...` | Microsoft Zira (en-US) |
+| Light | `8e577d80...` | Microsoft David (en-US) |
+| L | `52d9d3c3...` | Microsoft Mark (en-US) |
+| Sabrina | `4cf07afc...` | Microsoft Zira (en-US) |
+| Chinese Voice | `95880cb6...` | Microsoft Xiaoxiao (zh-CN) |
+
+### Software Packaging
+I learned the complexities of distributing Windows applications:
+- **Git LFS** for large assets (model blobs can be gigabytes)
+- **GitHub Releases** as a CDN for the application archive
+- **Batch file installers** instead of unsigned `.exe` to avoid antivirus false positives
+- **Portable design** so the entire app can run from a USB drive
 
 ## How I Built It
 
-### Architecture Overview
+### Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                  Arch Assistant                     │
-│                                                     │
-│  ┌──────────────┐    CDP Bridge     ┌────────────┐  │
-│  │   Electron    │◄────────────────►│  Python    │  │
-│  │   Frontend    │  127.0.0.1:9224  │  Backend   │  │
-│  │  (HTML/JS)    │                  │  (HTTP)    │  │
-│  └──────────────┘                   └─────┬──────┘  │
-│                                           │         │
-│                                    SSE Stream       │
-│                                           │         │
-│                                    ┌──────▼──────┐  │
-│                                    │   Ollama    │  │
-│                                    │  127.0.0.1  │  │
-│                                    │  :11435     │  │
-│                                    └─────────────┘  │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                Arch Assistant (Desktop App)             │
+├─────────────────────────────────────────────────────────┤
+│  Electron Frontend (Chromium)                           │
+│    - index.html (UI, chat, voice settings)              │
+│    - main.js (process management, window creation)      │
+│    - voicebank/*.mp3 (voice preview samples)            │
+│    - CDP Bridge: http://127.0.0.1:9224                  │
+├─────────────────────────────────────────────────────────┤
+│  Python Backend (portable, stdlib only)                 │
+│    - api_server.py (HTTP server, SSE streaming)         │
+│    - local_ai.py (Ollama client, model routing)         │
+│    - ollama_runtime.py (process lifecycle)              │
+│    - arch_context.py (config, paths, context)           │
+│    - *.Modelfile (AI personality definitions)           │
+│    - speech_stt.ps1 (SAPI dictation for voice input)    │
+├─────────────────────────────────────────────────────────┤
+│  Ollama Runtime (portable)                              │
+│    - ollama.exe (local LLM server)                      │
+│    - models/ (base model + persona manifests)            │
+│    - lib/ollama/ (CPU backend DLLs)                     │
+├─────────────────────────────────────────────────────────┤
+│  Electron Binaries                                      │
+│    - Arch.exe (main executable)                         │
+│    - *.dll (Chromium/Electron runtime libraries)        │
+│    - *.pak (locale/resource packs)                      │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### Step 1: The Portable Ollama Bundle
-The first challenge was making Ollama **portable**. Ollama normally installs to `%LOCALAPPDATA%` and stores models in a fixed location. I solved this by:
+### AI Model Architecture
 
-1. Copying the system `ollama.exe` into the app directory
-2. Setting environment variables at runtime:
-   ```python
-   os.environ["OLLAMA_HOST"] = "127.0.0.1:11435"
-   os.environ["OLLAMA_MODELS"] = os.path.join(app_dir, "ollama", "models")
-   ```
-3. Creating custom Modelfiles with embedded system prompts for each AI persona
+The system is built on **Qwen 2.5 Coder 3B** (Q4_K_M quantization), which provides:
 
-This made the entire AI stack **self-contained** — no system installation required.
+- **Parameters**: ~3 billion
+- **VRAM requirement**: ~2 GB minimum
+- **Context window**: 4,096 tokens (optimized for speed)
+- **Quantization**: 4-bit (Q4_K_M) — reduces from ~6 GB to ~2 GB
 
-### Step 2: The Three AI Models
-I created three distinct AI personalities, each based on `qwen2.5-coder:3b-instruct-q4_K_M`:
+Three AI personas share one base model:
 
-| Model | Purpose | System Prompt Focus |
-|-------|---------|-------------------|
-| **Luna 5.3** | General assistant | Helpful, friendly, conversational |
-| **Mushy 4.6** | Creative & emotional | Warm, empathetic, expressive |
-| **Wun 3.8** | Technical & analytical | Precise, logical, code-focused |
+$$\text{Base Model} = \text{qwen2.5-coder:3b-instruct-q4\_K\_M}$$
 
-Each model is defined by a `.Modelfile` that sets the base model, temperature, and a custom system prompt:
+$$\text{Persona}_i = \text{create(Base Model, Modelfile}_i\text{)}$$
+
+Where each `Modelfile` injects a custom system prompt:
 
 ```dockerfile
+# Luna.Modelfile
 FROM qwen2.5-coder:3b-instruct-q4_K_M
-PARAMETER temperature 0.7
+PARAMETER temperature 0.3
+PARAMETER top_p 0.9
+PARAMETER repeat_penalty 1.05
 SYSTEM """
-You are Mushy, a warm and expressive AI assistant...
+You are Luna, a helpful coding assistant...
 """
 ```
 
-### Step 3: The Real-Time Streaming Backend
-The Python backend implements a streaming architecture:
+### Voice Narration Pipeline
 
-```python
-@app.route("/api/chat", methods=["POST"])
-def chat():
-    messages = request.json["messages"]
-    model = request.json.get("model", "luna-5.3")
-    
-    def generate():
-        stream = ollama_client.chat(model=model, messages=messages, stream=True)
-        for chunk in stream:
-            token = chunk["message"]["content"]
-            yield f"data: {json.dumps({'token': token})}\n\n"
-        yield "data: [DONE]\n\n"
-    
-    return Response(generate(), mimetype="text/event-stream")
+```
+User clicks "Narrate" button
+         ↓
+speakOutLoud(text)
+         ↓
+voices.find(name === selectedVoice) → finds Fish.Audio voice ID
+         ↓
+speakFish(text, voiceId)
+    Calls POST /api/tts {text, voice_id}
+         ↓
+Backend: fish_tts(text, voiceId)
+    - Checks cache: sha256(voiceId|text) → temp/arch_tts_cache/
+    - If cached: returns cached mp3
+    - If not: calls https://api.fish.audio/v1/tts
+    - Tries s2.1-pro first, falls back to s2.1-pro-free
+         ↓
+Audio plays via HTML5 Audio element
 ```
 
-The frontend consumes this via the `EventSource` API, rendering tokens as they arrive — giving the user the same "typing" feel as cloud AI services, but running entirely locally.
+### STT (Speech-to-Text) Pipeline
 
-### Step 4: The Installer
-The distribution problem was solved with a two-stage approach:
-
-1. **GitHub Release** hosts the ~130 MB application archive (all binaries, no model blobs)
-2. **Bootstrap installer** (`install.bat`) handles download, extraction, and setup
-
-The installer uses PowerShell's `System.Net.WebClient` with a custom progress bar:
-
-```powershell
-$bar = '[' + ('#' * $pct) + ('-' * (100 - $pct)) + ']'
-Write-Host "`r  Downloading: $bar $pct% ($mb / $totalMb MB)" -NoNewline
+```
+User clicks "Voice Input" button
+         ↓
+listenOnce(duration)
+         ↓
+POST /api/stt {duration: 5}
+         ↓
+Backend: Calls speech_stt.ps1
+    - Uses .NET System.Speech.Recognition
+    - SAPI dictation grammar
+    - Recognizes speech via default audio device
+    - Returns recognized text
+         ↓
+Text inserted into input field
 ```
 
----
+### Streaming Chat Architecture
+
+The chat system uses **Server-Sent Events (SSE)** for real-time token delivery:
+
+```
+Frontend: POST /api/chat {messages, model, temperature}
+         ↓
+Backend: local_ai.chat_stream(messages)
+         ↓
+POST /api/chat (Ollama)
+         ↓
+SSE stream → yield {"role":"assistant","content":"..."}
+         ↓
+Frontend: EventSource processes each token
+         ↓
+Text rendered character by character
+```
+
+The streaming math:
+
+$$t_{total} = \sum_{i=1}^{n} t_{token_i} + t_{network}$$
+
+$$\text{Latency}_{first} = t_{prompt} + t_{first\_token}$$
+
+Where prompt processing is parallelizable but token generation is sequential:
+
+$$t_{generate} = n \times t_{token} \approx n \times \frac{1}{tokens/second}$$
+
+For Qwen 2.5 3B on a mid-range CPU:
+
+$$tokens/second \approx 15-30 \text{ (CPU only, Q4)}$$
+
+$$t_{response} \approx \frac{n_{tokens}}{20} \text{ seconds}$$
 
 ## Challenges Faced
 
-### Challenge 1: The Model Blob Problem
-Ollama stores AI models as content-addressed blobs. Each 3B parameter model is ~2 GB. Shipping all models meant a **5 GB+ archive**.
+### 1. The Model Blob Problem
 
-**Solution:** I pruned the model storage to keep only the three active models (`luna-5.3`, `mushy-4.6`, `wun-3.8`), removing unused blobs and the deleted `arch-a-2.2` model. This reduced the archive from **5 GB to 130 MB** — models download on first launch instead.
+Ollama stores model weights as content-addressed blobs. Each 3B parameter model is ~2 GB. Including all model variants meant a **5 GB+** archive.
 
-The model storage follows Ollama's structure:
+**Solution:** I pruned the blob storage to keep only the three active personas and the shared base model. Removed unused variants and old model versions:
+
 ```
-ollama/models/
-├── manifests/
-│   └── registry.ollama.ai/
-│       └── library/
-│           ├── luna-5.3/
-│           │   └── latest
-│           ├── mushy-4.6/
-│           │   └── latest
-│           └── wun-3.8/
-│               └── latest
-└── blobs/
-    └── sha256-<hash>    (shared base model blobs)
+Before: 5.2 GB (all model variants + blobs)
+After:  337 MB (3 personas + base model skeleton, no blobs)
+Final:  ~126 MB (compressed zip for distribution)
 ```
 
-### Challenge 2: Git LFS Misconfiguration
-I initially configured Git LFS to track `*.exe` files, thinking the installer needed special handling. This caused the **installer to become an LFS pointer file** instead of a real executable — users downloading it would get a 1 KB text file, not a 12.5 KB program.
+The models download on first run (background, ~2 GB total):
 
-**Solution:** Changed `.gitattributes` to only LFS-track `*.zip` files:
-```
+$$Size_{distribution} = \sum_{files \neq blobs} size_{file} = 126 \text{ MB}$$
+
+$$Size_{runtime} = Size_{distribution} + \sum_{models} size_{blob}$$
+
+### 2. Git LFS Misconfiguration
+
+I initially tracked `*.exe` files with Git LFS, thinking the large Electron binary needed special handling. This caused the **installer to become a 128-byte LFS pointer** instead of a real executable—users would download a text file, not a program.
+
+**Lesson learned:** LFS tracking rules can silently corrupt your releases. The fix:
+
+```gitattributes
+# BEFORE (broken):
+*.exe filter=lfs diff=lfs merge=lfs -text
+
+# AFTER (fixed):
 *.zip filter=lfs diff=lfs merge=lfs -text
 ```
 
-### Challenge 3: Windows Defender False Positives
-The unsigned C# `.exe` installer triggered SmartScreen and antivirus warnings on every Windows machine. Even though the code was harmless (it only downloads a zip file), the unsigned executable pattern matched malware heuristics.
+### 3. Antivirus False Positives
 
-**Solution:** Replaced the `.exe` with a `.bat` file that calls PowerShell internally. Batch files don't trigger the same heuristics. The PowerShell code uses `System.Net.WebClient` — a standard .NET class — rather than custom network code.
+The unsigned C# `.exe` installer triggered SmartScreen and antivirus warnings on every Windows machine—a common problem with unsigned executables that download and extract files.
 
-### Challenge 4: TLS/SSL Certificate Errors
-The original installer used `WebClient`, which failed on some systems with SSL certificate errors when connecting to GitHub's CDN.
+**Solution:** Replaced the `.exe` with a `.bat` file that calls PowerShell internally:
+- Batch files are not flagged by AV heuristics
+- PowerShell's `System.Net.WebClient` is a standard .NET class
+- No dynamic code execution patterns
 
-**Solution:** Switched to `HttpWebRequest` with explicit TLS 1.2 configuration:
+### 4. The ffmpeg.dll Error
+
+When users ran `Arch.exe` directly (without the installer), Electron would crash with:
+
+> "The code execution cannot proceed because ffmpeg.dll was not found."
+
+This happens because:
+1. Electron's DLL search path depends on the **current working directory**
+2. Running as administrator changes the working directory to `C:\Windows\System32`
+3. The `ffmpeg.dll` couldn't be found
+
+**Solution:**
+1. The installer sets the shortcut's `WorkingDirectory` to the app folder
+2. The install.bat installs to `%USERPROFILE%\Downloads\Arch Assistant` (no admin needed)
+3. All DLLs are bundled in the same directory as `Arch.exe`
+
+### 5. TLS/SSL Certificate Issues
+
+The original installer used `WebClient`, which failed on some systems with SSL certificate validation errors when connecting to GitHub's CDN.
+
+**Fix:** Switched to `HttpWebRequest` with explicit TLS 1.2:
+
 ```csharp
 ServicePointManager.SecurityProtocol = 
-    SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
+    SecurityProtocolType.Tls12 | 
+    SecurityProtocolType.Tls11 | 
+    SecurityProtocolType.Tls;
 ```
 
-### Challenge 5: Archive Structure Mismatch
-The installer expected a root folder named `Arch Assistant` inside the zip, but the archive was created with files at the root level. This caused the "Archive did not contain 'Arch Assistant' folder" error.
+### 6. The "UI Prototype" Fallback Message
 
-**Solution:** Recreated the zip with explicit structure:
-```
-Arch-Assistant-App.zip
-└── Arch Assistant/       ← Required root folder
-    ├── Arch.exe
-    ├── api_server.py
-    ├── ollama/
-    └── ...
-```
+During development, a placeholder `replySimulated()` function returned:
 
----
+> "Thanks for the details — this is a UI prototype, so this reply is simulated, but the flow (new chat → history → reopen) is fully wired up."
+
+This was meant as a development fallback but appeared when the backend AI wasn't responding. Fixed by providing a helpful error message instead, so users know to check if Ollama is running.
+
+### 7. Git History & Token Security
+
+During development, GitHub tokens were shared in the development environment. After all work was complete, all tokens were **revoked** and the git history was checked for any accidentally committed secrets.
 
 ## Technical Specifications
 
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
-| Frontend | Electron + HTML/CSS/JS | Desktop UI shell |
-| Backend | Python 3.10+ | HTTP API server, process management |
-| AI Engine | Ollama 0.x | Local LLM inference |
-| Models | Qwen 2.5 Coder 3B (Q4_K_M) | Language model backbone |
-| Installer | Batch + PowerShell | Download and setup |
-| Distribution | GitHub Releases | Asset hosting |
+| **Frontend** | Electron + HTML/CSS/JS | Desktop UI shell (~172 MB) |
+| **Backend** | Python 3.10+ (stdlib only) | HTTP API, process management |
+| **AI Engine** | Ollama (portable) | Local LLM inference |
+| **Models** | Qwen 2.5 Coder 3B (Q4_K_M) | Language model backbone |
+| **Voices** | Fish.Audio API + Web Speech API | Text-to-speech narration |
+| **STT** | Windows SAPI / .NET Speech | Speech-to-text input |
+| **Installer** | Batch + PowerShell | Download, extract, configure |
+| **Distribution** | GitHub Releases (126 MB) | Application archive hosting |
 
-### Key Metrics
-- **Archive size:** 130 MB (without AI models)
-- **Full install size:** ~300 MB (with models downloaded)
-- **RAM usage:** ~2 GB (with one model loaded)
-- **First launch model download:** ~2 GB
-- **Response latency:** < 500ms to first token (local inference)
+### Performance Metrics
 
----
+| Metric | Value |
+|--------|-------|
+| Distribution size | 126 MB (zip) |
+| Full install size | ~350 MB (without models) |
+| With AI models | ~2.3 GB (3 personas + base) |
+| RAM usage (idle) | ~500 MB |
+| RAM usage (chatting) | ~1.5-2 GB |
+| First token latency | ~5-15 seconds (model load) |
+| Steady-state token rate | 15-30 tokens/sec (CPU) |
+| Voice narration latency | ~2-5 seconds (TTS) |
 
 ## What's Next
 
 - [ ] **Auto-updater** — Check for new releases on startup
+- [ ] **GPU acceleration** — CUDA support for faster inference
 - [ ] **Plugin system** — Allow custom tools and extensions
-- [ ] **Multi-model loading** — Keep multiple models in memory simultaneously
-- [ ] **Voice I/O** — Whisper.js for speech-to-text, local TTS
-- [ ] **Cross-platform** — Linux and macOS builds using the same portable Ollama approach
+- [ ] **Multi-model support** — Switch between different base models
+- [ ] **Voice commands** — Wake word detection + voice-only control
+- [ ] **Mobile companion** — Remote access to the local AI from phone
 
----
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `install.bat` | Bootstrap installer (no admin, auto Python check) |
+| `Arch.exe` | Electron executable (bundles Chromium) |
+| `api_server.py` | Python HTTP server (CDP-style bridge on :9224) |
+| `local_ai.py` | Ollama client, streaming chat, TTS/STT |
+| `ollama_runtime.py` | Portable Ollama process management |
+| `arch_context.py` | Config loader, paths, runtime context |
+| `*.Modelfile` | AI personality definitions (Luna, Mushy, Wun) |
+| `speech_stt.ps1` | PowerShell STT script using SAPI |
+| `index.html` | Frontend UI (HTML + CSS + JS, ~180K lines) |
+| `main.js` | Electron main process (window, backend spawn) |
+| `voicebank/*.mp3` | Voice preview samples for settings |
+| `ollama/` | Bundled Ollama runtime + base model manifests |
 
 *Built with persistence, curiosity, and a belief that AI should be accessible to everyone — not just those with fast internet and cloud subscriptions.*
