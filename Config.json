@@ -1,0 +1,12 @@
+{
+  "api_port": 9224,
+  "ollama_port": 11435,
+  "default_model": "luna-5.3",
+  "profile": {
+    "name": "User",
+    "nickname": "Roy",
+    "language": "en",
+    "theme": "dark",
+    "voice": "Verity"
+  }
+}
