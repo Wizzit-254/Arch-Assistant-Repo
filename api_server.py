@@ -557,6 +557,22 @@ def ensure_ollama():
         return None
 
 
+def _ollama_health_loop():
+    """Background thread: periodically check ollama liveness and restart if dead.
+
+    This prevents the 'backend disconnecting' issue — if ollama crashes or
+    gets killed (e.g. by OOM), the server will restart it automatically."""
+    while True:
+        time.sleep(15)
+        try:
+            host = ollama_runtime.get_active_host()
+            if not ollama_runtime._is_reachable(host):
+                print("[health] ollama unreachable, restarting...", flush=True)
+                ollama_runtime.ensure_ollama()
+        except Exception:
+            pass
+
+
 def main():
     print(f"Arch Api Server starting on http://{API_HOST}:{API_PORT}", flush=True)
     srv = Server((API_HOST, API_PORT), Handler)
@@ -572,6 +588,7 @@ def main():
             pass
         time.sleep(0.1)
     threading.Thread(target=ensure_ollama, daemon=True).start()
+    threading.Thread(target=_ollama_health_loop, daemon=True).start()
     try:
         serve_thread.join()
     except KeyboardInterrupt:

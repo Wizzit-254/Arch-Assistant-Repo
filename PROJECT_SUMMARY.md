@@ -326,7 +326,7 @@ During development, GitHub tokens were shared in the development environment. Af
 | `local_ai.py` | Ollama client, streaming chat, TTS/STT |
 | `ollama_runtime.py` | Portable Ollama process management |
 | `arch_context.py` | Config loader, paths, runtime context |
-| `*.Modelfile` | AI personality definitions (Terra 5.3, Chen Instruct 3, Kyuu 3.8) |
+| `*.Modelfile` | AI personality definitions (Terra 5.3, Chen Instruct 3, Fable 5.1) |
 | `speech_stt.ps1` | PowerShell STT script using SAPI (deprecated, replaced by Web Speech API) |
 | `index.html` | Frontend UI (HTML + CSS + JS, ~180K lines) |
 | `main.js` | Electron main process (window, backend spawn) |

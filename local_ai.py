@@ -3,7 +3,7 @@ Local AI bridge: ollama HTTP client used by Api_server.
 
 All heavy lifting talks to the portable ollama runtime on 127.0.0.1:11435.
 Personality model names (luna-5.3, mushy-4.6, wun-3.8) map to display names
-(Terra 5.3, Chen Instruct 3, Kyuu 3.8) and ollama model names (created via the .Modelfile files).
+(Terra 5.3, Chen Instruct 3, Fable 5.1) and ollama model names (created via the .Modelfile files).
 """
 import os
 import re
@@ -27,12 +27,12 @@ MODEL_OVERRIDES = {
     "mushy-4.6": "mushy-4.6",
     "Chen Instruct 3": "mushy-4.6",
     "wun-3.8": "wun-3.8",
-    "Kyuu 3.8": "wun-3.8",
+    "Fable 5.1": "wun-3.8",
 }
 MODEL_DISPLAY = {
     "luna-5.3": "Terra 5.3",
     "mushy-4.6": "Chen Instruct 3",
-    "wun-3.8": "Kyuu 3.8",
+    "wun-3.8": "Fable 5.1",
 }
 
 AFRICAN_LANGUAGE_NAMES = {
@@ -139,17 +139,33 @@ def display_model(name):
 
 
 def _post(path, payload, stream=False, timeout=120):
+    """POST to ollama with one retry on connection error.
+
+    If the first attempt fails because ollama isn't ready yet, we wait
+    briefly and retry once before raising."""
     url = OLLAMA_BASE + path
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
         url, data=data, method="POST",
         headers={"Content-Type": "application/json"},
     )
-    return urllib.request.urlopen(req, timeout=timeout)  # raises on HTTP error
+    try:
+        return urllib.request.urlopen(req, timeout=timeout)  # raises on HTTP error
+    except (urllib.error.URLError, ConnectionError, OSError):
+        import time as _time
+        _time.sleep(1.5)
+        try:
+            return urllib.request.urlopen(req, timeout=timeout)
+        except Exception:
+            raise
 
 
 def _read_stream(resp):
-    """Yield parsed JSON objects from an ollama streaming response (SSE)."""
+    """Yield parsed JSON objects from an ollama streaming response (SSE).
+
+    Robust against truncated/corrupted lines — invalid JSON is skipped, not
+    accumulated forever (which caused the 'gibberish' bug when the backend
+    went offline mid-stream)."""
     decoder = json.JSONDecoder()
     buf = ""
     for raw in resp:
@@ -157,24 +173,36 @@ def _read_stream(resp):
             line = raw.decode("utf-8", "replace").strip()
         except Exception:
             line = ""
+        if not line:
+            continue
         if line.startswith("data:"):
             line = line[5:].strip()
         if not line:
             continue
         # ollama streams JSON blobs, one per line
         try:
-            yield json.loads(line)
+            obj = json.loads(line)
+            if isinstance(obj, dict):
+                yield obj
+            continue
         except json.JSONDecodeError:
-            # accumulate partial; try to decode greedily
-            buf += line
-            while buf:
-                try:
-                    obj, idx = decoder.raw_decode(buf)
-                    buf = buf[idx:].lstrip()
+            pass
+        # accumulate partial; try to decode greedily — but limit buffer size
+        buf += line
+        if len(buf) > 65536:
+            buf = buf[-32768:]  # discard oldest half if buffer too large
+        decoded_any = False
+        while buf:
+            try:
+                obj, idx = decoder.raw_decode(buf)
+                buf = buf[idx:].lstrip()
+                if isinstance(obj, dict):
                     yield obj
-                    break
-                except json.JSONDecodeError:
-                    break
+                decoded_any = True
+            except json.JSONDecodeError:
+                break
+        if not decoded_any and not buf:
+            continue
 
 
 def list_models():
@@ -464,15 +492,38 @@ def chat_stream(messages, model=None, temperature=0.3, top_p=0.9, top_k=20,
                 count = len([ln for ln in block.splitlines() if ln[:2].replace(" ", "").rstrip(".").isdigit()])
                 yield {"role": "search", "content": f"searched web: {count} results"}
                 messages = [{"role": "system", "content": block}] + list(messages)
-    resp = _post("/api/chat", payload, stream=True)
-    for chunk in _read_stream(resp):
-        if "message" in chunk and chunk["message"].get("content"):
-            yield {"role": "assistant", "content": chunk["message"]["content"]}
-        elif "done" in chunk and chunk.get("done"):
-            break
-        elif "error" in chunk:
-            yield {"role": "error", "content": chunk.get("error", "unknown error")}
-            break
+    try:
+        resp = _post("/api/chat", payload, stream=True)
+    except urllib.error.URLError as e:
+        yield {"role": "error", "content": "The local AI backend is offline. Please ensure the app is fully started (Ollama is loading its models). Try again in a moment."}
+        return
+    except Exception as e:
+        yield {"role": "error", "content": "Failed to connect to the local AI backend: " + str(e)}
+        return
+    try:
+        for chunk in _read_stream(resp):
+            if not isinstance(chunk, dict):
+                continue
+            if "message" in chunk and chunk["message"].get("content"):
+                yield {"role": "assistant", "content": chunk["message"]["content"]}
+            elif "done" in chunk and chunk.get("done"):
+                break
+            elif "error" in chunk:
+                yield {"role": "error", "content": chunk.get("error", "unknown error")}
+                break
+            else:
+                content = chunk.get("content", "")
+                if content and content.strip():
+                    yield {"role": "assistant", "content": content}
+    except (urllib.error.URLError, ConnectionError, OSError) as e:
+        yield {"role": "error", "content": "Connection to the AI backend was lost. The backend may be shutting down or out of memory. Please restart Arch Assistant."}
+    except Exception as e:
+        yield {"role": "error", "content": "An unexpected error occurred while streaming: " + str(e)}
+    finally:
+        try:
+            resp.close()
+        except Exception:
+            pass
 
 
 def edit_stream(file_text, instruction, model=None):

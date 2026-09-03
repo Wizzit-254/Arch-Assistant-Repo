@@ -34,9 +34,10 @@ That's it. No Python setup, no Ollama install — the installer handles everythi
 |-------|-----------|-------|
 | **Terra 5.3** | Fast, code-first assistant | Fast |
 | **Chen Instruct 3** | Deep reasoning, multi-step problems | Medium |
-| **Kyuu 3.8** | Large codebases, long-context refactors | Medium |
+| **Fable 5.1** | Large codebases, long-context refactors | Medium |
 
-All models share one base: **Fable 5.1** (Qwen 2.5 Coder 3B, quantized Q4_K_S). The models are included in the release zip for fully offline operation.
+All models share one base: **qwen2.5-coder:3b-instruct-q4_K_S**. The models are included
+in the release zip for fully offline operation.
 
 ## Features
 

@@ -1,0 +1,4124 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob: data:; connect-src http://127.0.0.1:9224 blob: wss://speech.platform.google.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0a0c;
+    --panel: #131316;
+    --panel-2: #1a1a1e;
+    --panel-3: #202024;
+    --border: #232328;
+    --border-soft: #1c1c20;
+    --text: #f2f1ee;
+    --text-dim: #8d8d96;
+    --text-faint: #57575f;
+    --accent: #8ea2ff;
+    --accent-dim: #4b5a9c;
+    --accent-glow: rgba(142,162,255,0.35);
+    --danger: #e0715f;
+    --danger-glow: rgba(224,113,95,0.2);
+    --radius-lg: 20px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+    --ease: cubic-bezier(.16,.8,.24,1);
+    --checker-color: rgba(255,255,255,0.035);
+    --checker-size: 26px;
+    --t: .5s;
+  }
+
+  html[data-theme="light"]{
+    --bg: #f7f6f3;
+    --panel: #ffffff;
+    --panel-2: #f0efe9;
+    --panel-3: #e8e6de;
+    --border: #e4e2da;
+    --border-soft: #ebe9e2;
+    --text: #232320;
+    --text-dim: #6b6a63;
+    --text-faint: #a3a199;
+    --accent: #5b6ee8;
+    --accent-dim: #c2c9f7;
+    --accent-glow: rgba(91,110,232,0.25);
+    --danger: #c85a48;
+    --danger-glow: rgba(200,90,72,0.15);
+    --checker-color: rgba(0,0,0,0.035);
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+
+  html{ color-scheme: dark; }
+  html[data-theme="light"]{ color-scheme: light; }
+
+  html,body{
+    height:100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* smooth color transition for every element during theme swap */
+  body, .app, .sidebar, .main, .composer, .voice-modal, .chip, .nav-item,
+  .history-item, .archived-btn, .topbar-icon, .model-pill, .tool-btn,
+  .send-btn, .voice-card, .panel-view, .panel-header, .search-overlay,
+  .search-box, .search-result, .agent-card, .msg-bubble, .archive-row,
+  .model-dropdown, .model-option{
+    transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease),
+                color var(--t) var(--ease), box-shadow var(--t) var(--ease);
+  }
+
+  ::selection{ background: var(--accent-glow); color:#fff; }
+
+  /* theme transition reveal circle */
+  .theme-veil{
+    position:fixed;
+    inset:0;
+    z-index: 200;
+    pointer-events:none;
+    border-radius:50%;
+    transform: scale(0);
+    opacity: 0;
+  }
+  .theme-veil.animating{
+    animation: veilExpand .65s var(--ease) forwards;
+  }
+  @keyframes veilExpand{
+    0%{ transform: scale(0); opacity: 1; }
+    38%{ transform: scale(1); opacity: 1; }
+    100%{ transform: scale(1.35); opacity: 0; }
+  }
+
+  .app{
+    position:relative;
+    height:100vh;
+    width:100vw;
+    display:flex;
+    background:
+      radial-gradient(ellipse 900px 500px at 68% 38%, rgba(142,162,255,0.05), transparent 60%),
+      var(--bg);
+  }
+
+  .app::before{
+    content:"";
+    position:absolute; inset:0;
+    pointer-events:none;
+    z-index: 1;
+    background-image:
+      linear-gradient(45deg, var(--checker-color) 25%, transparent 25%, transparent 75%, var(--checker-color) 75%, var(--checker-color)),
+      linear-gradient(45deg, var(--checker-color) 25%, transparent 25%, transparent 75%, var(--checker-color) 75%, var(--checker-color));
+    background-size: var(--checker-size) var(--checker-size);
+    background-position: 0 0, calc(var(--checker-size)/2) calc(var(--checker-size)/2);
+    transition: background-image var(--t) var(--ease);
+  }
+
+  .app::after{
+    content:"";
+    position:absolute; inset:0;
+    pointer-events:none;
+    opacity:0.03;
+    z-index: 1;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ===================== SIDEBAR ===================== */
+  .sidebar{
+    width: 268px;
+    min-width: 268px;
+    height:100%;
+    border-right: 1px solid var(--border-soft);
+    display:flex;
+    flex-direction:column;
+    padding: 18px 14px;
+    position:relative;
+    z-index: 5;
+    animation: slideIn .6s var(--ease) both;
+    transition: width .32s var(--ease), min-width .32s var(--ease), padding .32s var(--ease), border-color var(--t) var(--ease);
+  }
+
+  .sidebar.collapsed{
+    width: 0;
+    min-width: 0;
+    padding-left:0;
+    padding-right:0;
+    border-right-color: transparent;
+    overflow: hidden;
+  }
+
+  @keyframes slideIn{
+    from{ opacity:0; transform: translateX(-14px); }
+    to{ opacity:1; transform: translateX(0); }
+  }
+
+  .sidebar-inner{
+    width: 240px;
+    display:flex;
+    flex-direction:column;
+    height:100%;
+    flex-shrink:0;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding: 6px 8px 22px 8px;
+  }
+
+  .brand-mark{
+    width:30px; height:30px;
+    flex-shrink:0;
+    border-radius: 9px;
+    overflow:hidden;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+  }
+
+  .brand-mark img{ width:100%; height:100%; display:block; object-fit:cover; }
+
+  .brand-mark.fallback::after{
+    content:"A";
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size: 15px;
+    color: var(--accent);
+  }
+
+  .brand-name{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size: 18.5px;
+    letter-spacing: -0.01em;
+    flex:1;
+    white-space:nowrap;
+  }
+
+  .brand-collapse{
+    width:26px; height:26px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius: 7px;
+    color: var(--text-faint);
+    cursor:pointer;
+    transition: background .18s var(--ease), color .18s var(--ease), transform .18s var(--ease);
+    flex-shrink:0;
+  }
+  .brand-collapse:hover{ background: var(--panel-2); color: var(--text-dim); }
+  .brand-collapse:active{ transform: scale(0.88); }
+  .brand-collapse svg{ width:15px; height:15px; }
+
+  .nav-group{
+    display:flex;
+    flex-direction:column;
+    gap: 2px;
+    margin-bottom: 6px;
+  }
+
+  .nav-item{
+    display:flex;
+    align-items:center;
+    gap: 11px;
+    padding: 9px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-dim);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: background .16s var(--ease), color .16s var(--ease), transform .16s var(--ease);
+    user-select:none;
+  }
+
+  .nav-item svg{
+    width: 17px; height: 17px;
+    flex-shrink:0;
+    opacity: 0.85;
+    transition: opacity .16s var(--ease), transform .3s var(--ease);
+  }
+
+  .nav-item:hover{ background: var(--panel-2); color: var(--text); }
+  .nav-item:hover svg{ opacity:1; }
+  .nav-item:active{ transform: scale(0.98); }
+
+  .nav-item.primary{
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  .nav-item.primary:hover{ background: var(--panel-3); border-color: #2c2c32; }
+  .nav-item.primary svg{ opacity:1; color: var(--accent); }
+
+  .nav-item.active-view{
+    background: linear-gradient(180deg, rgba(142,162,255,0.10), rgba(142,162,255,0.04));
+    color: var(--text);
+  }
+  .nav-item.active-view::before{
+    content:"";
+    position:absolute;
+    left:0; top:50%; transform: translateY(-50%);
+    width:3px; height:16px;
+    background: var(--accent);
+    border-radius: 0 2px 2px 0;
+  }
+
+  .section-label{
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 4px 10px 8px;
+  }
+
+  .history-list{
+    display:flex;
+    flex-direction:column;
+    gap:1px;
+    overflow-y:auto;
+    flex:1;
+  }
+
+  .history-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor:pointer;
+    position: relative;
+    overflow:hidden;
+    transition: background .16s var(--ease), color .16s var(--ease), transform .15s var(--ease);
+    white-space:nowrap;
+    text-overflow:ellipsis;
+  }
+
+  .history-item span.label{ overflow:hidden; text-overflow:ellipsis; flex:1; }
+
+  .history-item .hi-actions{
+    display:flex; align-items:center; gap:2px; flex-shrink:0;
+    opacity:0; transform: translateX(4px);
+    transition: opacity .16s var(--ease), transform .16s var(--ease);
+  }
+  .history-item:hover .hi-actions{ opacity:1; transform: translateX(0); }
+  .history-item .hi-btn{
+    width:22px; height:22px; border-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--text-faint); cursor:pointer; position:relative; overflow:hidden;
+    transition: background .14s var(--ease), color .14s var(--ease);
+  }
+  .history-item .hi-btn svg{ width:12.5px; height:12.5px; }
+  .history-item .hi-btn:hover{ background: var(--panel-3); color: var(--accent); }
+  .history-item .hi-btn.danger:hover{ color: var(--danger); background: var(--danger-glow); }
+
+  .history-item.current{
+    background: var(--panel-2);
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .history-item:hover{ background: var(--panel-2); color: var(--text); }
+  .history-item:active{ transform: scale(0.975); }
+
+  .history-item .dot{
+    width:5px; height:5px;
+    border-radius:50%;
+    background: var(--text-faint);
+    flex-shrink:0;
+    transition: background .16s var(--ease), box-shadow .16s var(--ease);
+  }
+  .history-item.current .dot{
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+
+  .sidebar-footer{
+    padding-top: 10px;
+    border-top: 1px solid var(--border-soft);
+    margin-top: 8px;
+  }
+
+  .archived-btn{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 9px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor:pointer;
+    position:relative;
+    overflow:hidden;
+    transition: background .16s var(--ease), color .16s var(--ease), transform .15s var(--ease);
+  }
+  .archived-btn:hover{ background: var(--panel-2); color: var(--text); }
+  .archived-btn:active{ transform: scale(0.98); }
+  .archived-btn .left{ display:flex; align-items:center; gap:9px; }
+  .archived-btn svg{ width:15px; height:15px; opacity:0.8; }
+  .archived-btn .count{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-faint);
+    background: var(--panel-2);
+    padding: 2px 6px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+
+  /* click ripple */
+  .rippler{ position:relative; overflow:hidden; }
+  .ripple{
+    position:absolute;
+    border-radius:50%;
+    background: var(--accent-glow);
+    transform: scale(0);
+    animation: rippleAnim .55s var(--ease) forwards;
+    pointer-events:none;
+  }
+  @keyframes rippleAnim{ to{ transform: scale(2.6); opacity:0; } }
+
+  /* ===================== MAIN ===================== */
+  .main{
+    flex:1;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    z-index:2;
+    min-width:0;
+  }
+
+  .topbar{
+    height: 52px;
+    display:flex;
+    align-items:center;
+    gap: 4px;
+    padding: 0 22px;
+    flex-shrink:0;
+  }
+
+  .topbar-spacer{ flex:1; }
+
+  .topbar-icon{
+    width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius: 8px;
+    color: var(--text-dim);
+    cursor:pointer;
+    transition: background .16s var(--ease), color .16s var(--ease);
+    position:relative;
+  }
+  .topbar-icon:hover{ background: var(--panel-2); color: var(--text); }
+  .topbar-icon:active{ transform: scale(0.92); }
+  .topbar-icon svg{ width:17px; height:17px; }
+
+  #settingsBtn svg{ transition: transform .5s var(--ease); }
+  #settingsBtn:hover svg{ transform: rotate(60deg); }
+
+  #themeToggle{ position:relative; overflow:hidden; }
+  #themeToggle svg{
+    position:absolute;
+    transition: opacity .4s var(--ease), transform .5s var(--ease);
+  }
+  .icon-sun{ opacity:0; transform: rotate(-110deg) scale(0.4); }
+  .icon-moon{ opacity:1; transform: rotate(0) scale(1); }
+  html[data-theme="light"] .icon-sun{ opacity:1; transform: rotate(0) scale(1); }
+  html[data-theme="light"] .icon-moon{ opacity:0; transform: rotate(110deg) scale(0.4); }
+
+  /* ===================== VIEW STACK ===================== */
+  .view-stack{
+    flex:1;
+    position:relative;
+    overflow:hidden;
+  }
+
+  .panel-view{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    opacity:0;
+    transform: translateY(10px);
+    pointer-events:none;
+    transition: opacity .32s var(--ease), transform .32s var(--ease);
+  }
+  .panel-view.visible{
+    opacity:1;
+    transform: translateY(0);
+    pointer-events:auto;
+  }
+
+  /* ---- Home content ---- */
+  .content{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding: 0 24px 90px;
+    position:relative;
+    overflow-y:auto;
+  }
+
+  .hero{ text-align:center; margin-bottom: 46px; }
+
+  .hero-eyebrow{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin-bottom: 18px;
+    text-transform: uppercase;
+  }
+
+  .hero-eyebrow .pulse{
+    width:6px; height:6px;
+    border-radius:50%;
+    background: var(--accent);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  .hero-eyebrow .eyebrow-sep{ color: var(--border); }
+  .hero-eyebrow .eyebrow-time{ color: var(--text-faint); font-variant-numeric: tabular-nums; }
+
+  @keyframes pulse{
+    0%{ box-shadow: 0 0 0 0 rgba(142,162,255,0.5); }
+    70%{ box-shadow: 0 0 0 7px rgba(142,162,255,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(142,162,255,0); }
+  }
+
+  .hero h1{
+    font-family:'Fraunces', serif;
+    font-weight: 500;
+    font-size: clamp(34px, 4.4vw, 52px);
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    padding: 0 0.08em 0.06em 0;
+    overflow: visible;
+  }
+
+  .hero h1 em{
+    font-style: normal;
+    font-weight:500;
+    background: linear-gradient(100deg, var(--text) 30%, var(--accent) 90%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    padding-right: 0.12em;
+    margin-right: -0.12em;
+    display: inline-block;
+  }
+
+  .hero h1.swapping{ animation: heroSwap .5s var(--ease); }
+  @keyframes heroSwap{
+    0%{ opacity:1; transform: translateY(0); filter: blur(0); }
+    35%{ opacity:0; transform: translateY(-6px); filter: blur(3px); }
+    36%{ opacity:0; transform: translateY(6px); filter: blur(3px); }
+    100%{ opacity:1; transform: translateY(0); filter: blur(0); }
+  }
+
+  .hero-refresh{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:20px; height:20px; border-radius:6px; flex-shrink:0;
+    color: var(--text-faint); cursor:pointer; margin-left:2px;
+    transition: background .16s var(--ease), color .16s var(--ease), transform .4s var(--ease);
+  }
+  .hero-refresh:hover{ background: var(--panel-2); color: var(--text-dim); }
+  .hero-refresh:active svg{ transform: rotate(160deg); }
+  .hero-refresh svg{ width:11px; height:11px; transition: transform .4s var(--ease); }
+
+  .hero p{ margin-top: 12px; font-size: 14.5px; color: var(--text-dim); max-width: 480px; margin-left:auto; margin-right:auto; line-height:1.5; }
+
+  .chips{
+    display:flex;
+    gap: 10px;
+    margin-bottom: 34px;
+    flex-wrap: wrap;
+    justify-content:center;
+    max-width: 640px;
+  }
+
+  .chip{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding: 9px 15px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor:pointer;
+    transition: transform .2s var(--ease), border-color .2s var(--ease), background .2s var(--ease), box-shadow .2s var(--ease), color .2s var(--ease);
+    position: relative;
+    overflow: hidden;
+  }
+  .chip svg{ width:14px; height:14px; opacity:0.75; flex-shrink:0; }
+  .chip:hover{
+    border-color: var(--accent-dim);
+    color: var(--text);
+    background: var(--panel-2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px -8px rgba(0,0,0,0.5);
+  }
+  .chip:hover svg{ opacity:1; color: var(--accent); }
+
+  .composer-wrap{ width: 100%; max-width: 700px; position: relative; }
+
+  .composer{
+    position:relative;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 4px;
+    transition: border-color .3s var(--ease), box-shadow .3s var(--ease);
+    box-shadow: 0 20px 50px -20px rgba(0,0,0,0.6);
+  }
+
+  .composer::after{
+    content:"";
+    position:absolute;
+    inset:-1px;
+    border-radius: inherit;
+    padding:1px;
+    background: linear-gradient(120deg, var(--accent), transparent 40%, transparent 60%, var(--accent));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity:0;
+    transition: opacity .4s var(--ease);
+    pointer-events:none;
+    background-size: 250% 250%;
+  }
+
+  .composer.focused{
+    border-color: transparent;
+    box-shadow: 0 20px 60px -18px rgba(0,0,0,0.7), 0 0 0 1px var(--accent-dim);
+  }
+  .composer.focused::after{ opacity: 1; animation: gradientMove 3.5s linear infinite; }
+  @keyframes gradientMove{ 0%{ background-position: 0% 50%; } 100%{ background-position: 200% 50%; } }
+
+  .composer-input{
+    width:100%;
+    min-height: 56px;
+    max-height: 200px;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    padding: 14px 16px 6px;
+    line-height: 1.5;
+  }
+  .composer-input::placeholder{ color: var(--text-faint); }
+
+  .composer-bar{ display:flex; align-items:center; justify-content: space-between; padding: 6px 8px 8px; }
+  .composer-left, .composer-right{ display:flex; align-items:center; gap: 6px; }
+
+  .tool-btn{
+    width: 32px; height: 32px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius: 9px;
+    color: var(--text-dim);
+    cursor:pointer;
+    transition: background .16s var(--ease), color .16s var(--ease), transform .16s var(--ease);
+    flex-shrink:0;
+  }
+  .tool-btn svg{ width: 16.5px; height: 16.5px; }
+  .tool-btn:hover{ background: var(--panel-2); color: var(--text); }
+  .tool-btn:active{ transform: scale(0.92); }
+
+  /* ---- Microphone / voice input animation ---- */
+  .mic-btn{ position:relative; }
+  .mic-ring{
+    position:absolute;
+    inset: -2px;
+    border-radius: 50%;
+    border: 1.5px solid var(--danger);
+    opacity: 0;
+    transform: scale(0.6);
+    pointer-events:none;
+  }
+  .mic-icon{ transition: opacity .18s var(--ease), transform .18s var(--ease); }
+  .mic-wave{
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    gap: 2.5px;
+    pointer-events:none;
+  }
+  .mic-wave span{
+    width: 2.5px;
+    border-radius: 2px;
+    background: var(--danger);
+    height: 5px;
+    animation: micBounce 0.9s ease-in-out infinite;
+  }
+  .mic-wave span:nth-child(1){ animation-delay: -0.6s; }
+  .mic-wave span:nth-child(2){ animation-delay: -0.4s; }
+  .mic-wave span:nth-child(3){ animation-delay: -0.2s; }
+  .mic-wave span:nth-child(4){ animation-delay: -0.5s; }
+  .mic-wave span:nth-child(5){ animation-delay: -0.3s; }
+  @keyframes micBounce{
+    0%, 100%{ height: 4px; }
+    50%{ height: 15px; }
+  }
+
+  .mic-btn.recording{ color: var(--danger); background: var(--danger-glow); }
+  .mic-btn.recording .mic-icon{ opacity:0; transform: scale(0.5); }
+  .mic-btn.recording .mic-wave{ display:none; }
+  .mic-btn.recording .mic-ring{
+    opacity: 1;
+    animation: micPulse 1.6s var(--ease) infinite;
+  }
+  .mic-orb{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; }
+  .mic-btn.recording .mic-orb{ display:flex; }
+  .mic-orb .thinking-orb{ width:30px; height:30px; }
+  @keyframes micPulse{
+    0%{ transform: scale(0.85); opacity: 0.9; }
+    70%{ transform: scale(1.5); opacity: 0; }
+    100%{ transform: scale(1.5); opacity: 0; }
+  }
+
+  .model-picker{ position:relative; }
+
+  .model-pill{
+    display:flex; align-items:center; gap: 6px;
+    padding: 7px 11px 7px 12px;
+    border-radius: 999px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-dim);
+    cursor:pointer;
+    transition: background .16s var(--ease), border-color .16s var(--ease), color .16s var(--ease);
+  }
+  .model-pill:hover{ background: var(--panel-3); border-color: #2c2c32; color: var(--text); }
+  .model-pill svg.chev{ width:12px; height:12px; opacity:0.7; transition: transform .22s var(--ease); }
+  .model-pill.open svg.chev{ transform: rotate(180deg); }
+  .model-pill .dot{ width:5px; height:5px; border-radius:50%; background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); }
+
+  .model-dropdown{
+    position:absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    width: 268px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 24px 60px -18px rgba(0,0,0,0.55);
+    padding: 6px;
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+    pointer-events:none;
+    transition: opacity .18s var(--ease), transform .18s var(--ease);
+    z-index: 20;
+  }
+  .model-dropdown.open{ opacity:1; transform: translateY(0) scale(1); pointer-events:auto; }
+
+  .model-option{
+    display:flex; align-items:center; gap: 11px;
+    padding: 9px 10px;
+    border-radius: 9px;
+    cursor:pointer;
+    position:relative; overflow:hidden;
+    transition: background .14s var(--ease);
+  }
+  .model-option:hover{ background: var(--panel-2); }
+  .model-option .mo-dot{
+    width:7px; height:7px; border-radius:50%; flex-shrink:0; margin-top:5px;
+    background: var(--text-faint);
+  }
+  .model-option.selected .mo-dot{ background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); }
+  .model-option .mo-info{ flex:1; min-width:0; }
+  .model-option .mo-name{ font-size: 13px; font-weight:600; color: var(--text); }
+  .model-option .mo-desc{ font-size: 11px; color: var(--text-faint); margin-top:1px; line-height:1.35; }
+  .model-option .mo-check{ width:14px; height:14px; color: var(--accent); flex-shrink:0; opacity:0; transform: scale(0.6); transition: opacity .16s var(--ease), transform .16s var(--ease); }
+  .model-option.selected .mo-check{ opacity:1; transform: scale(1); }
+
+  .send-btn{
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--text-faint);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    transition: all .2s var(--ease);
+    flex-shrink:0;
+  }
+  .send-btn svg{ width:15px; height:15px; transition: transform .2s var(--ease); }
+  .send-btn.active{ background: var(--text); color: var(--bg); }
+  .send-btn.active:hover{ background: var(--accent); transform: scale(1.06); }
+  .send-btn.active:active{ transform: scale(0.94); }
+
+  .composer-hint{ text-align:center; font-size: 11.5px; color: var(--text-faint); margin-top: 14px; }
+
+  /* ---- Generic panel header (used by chat/library/archive/agent) ---- */
+  .panel-header{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    padding: 14px 26px;
+    border-bottom: 1px solid var(--border-soft);
+    flex-shrink:0;
+  }
+  .panel-back{
+    width:32px; height:32px;
+    border-radius:9px;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--text-dim);
+    cursor:pointer;
+    transition: background .16s var(--ease), color .16s var(--ease);
+    flex-shrink:0;
+  }
+  .panel-back:hover{ background: var(--panel-2); color: var(--text); }
+  .panel-back svg{ width:16px; height:16px; }
+  .panel-title{ font-family:'Fraunces', serif; font-weight:600; font-size:17px; }
+  .panel-sub{ font-size:12.5px; color: var(--text-dim); margin-top:1px; display:flex; align-items:center; gap:5px; }
+
+  /* ---- Chat conversation view ---- */
+  .chat-scroll{ flex:1; overflow-y:auto; padding: 26px 0 10px; }
+  .chat-messages{ max-width: 700px; margin: 0 auto; padding: 0 24px; display:flex; flex-direction:column; gap: 20px; }
+
+  .msg-row{ display:flex; gap:12px; animation: msgIn .4s var(--ease) both; align-items:flex-start; }
+  @keyframes msgIn{ from{ opacity:0; transform: translateY(8px);} to{opacity:1; transform:translateY(0);} }
+
+  .msg-row.user{ flex-direction:row-reverse; }
+  .msg-content{ display:flex; align-items:flex-start; gap:10px; }
+  .msg-row.user .msg-content{ flex-direction:row-reverse; }
+  .msg-orb{ width:28px; height:28px; flex-shrink:0; margin-top:2px; }
+  .msg-row.user .msg-orb{ display:none; }
+
+  .msg-bubble{
+    max-width: 78%;
+    padding: 11px 15px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.55;
+    background: var(--panel);
+    border: 1px solid var(--border);
+  }
+  .msg-row.user .msg-bubble{ background: var(--panel-2); border-color: var(--border); border-bottom-right-radius: 5px; }
+  .msg-row.assistant .msg-bubble{ border-bottom-left-radius: 5px; }
+
+  .msg-bubble-wrap{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .msg-name{ font-size: 11px; font-weight: 600; letter-spacing: 0.2px; color: var(--text-dim); padding: 0 4px; }
+  .msg-row.user .msg-name{ text-align: right; }
+  .msg-row.assistant .msg-name{ color: var(--accent); }
+
+  .chat-composer-dock{ padding: 14px 24px 22px; flex-shrink:0; }
+  .chat-composer-dock .composer-wrap{ max-width: 700px; margin: 0 auto; }
+
+  /* ---- Library / Archive list views ---- */
+  .list-scroll{ flex:1; overflow-y:auto; padding: 22px 26px 40px; }
+  .list-grid{ max-width: 760px; margin:0 auto; display:flex; flex-direction:column; gap:8px; }
+
+  .lib-card{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    cursor:pointer;
+    transition: transform .18s var(--ease), border-color .18s var(--ease), background .18s var(--ease);
+    position:relative;
+    overflow:hidden;
+  }
+  .lib-card:hover{ transform: translateY(-2px); border-color: var(--accent-dim); background: var(--panel-2); }
+  .lib-card:active{ transform: translateY(-2px) scale(0.99); }
+
+  .lib-icon{
+    width: 38px; height:38px; border-radius: 10px; flex-shrink:0;
+    background: var(--panel-2); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; color: var(--accent);
+  }
+  .lib-icon svg{ width:17px; height:17px; }
+  .lib-info{ flex:1; min-width:0; }
+  .lib-name{ font-size: 13.5px; font-weight:600; margin-bottom:2px; }
+  .lib-meta{ font-size:11.5px; color: var(--text-faint); }
+
+  .archive-row{
+    display:flex; align-items:center; gap:14px;
+    padding: 13px 16px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .archive-row .lib-info{ cursor:pointer; }
+  .archive-actions{ display:flex; gap:6px; flex-shrink:0; }
+  .archive-action-btn{
+    width:32px; height:32px; border-radius:9px;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--text-dim); cursor:pointer;
+    transition: background .16s var(--ease), color .16s var(--ease), transform .15s var(--ease);
+    position:relative; overflow:hidden;
+  }
+  .archive-action-btn svg{ width:15px; height:15px; }
+  .archive-action-btn:hover{ background: var(--panel-2); color: var(--accent); }
+  .archive-action-btn.danger:hover{ color: var(--danger); background: var(--danger-glow); }
+  .archive-action-btn:active{ transform: scale(0.9); }
+
+  .empty-state{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding: 60px 20px; color: var(--text-dim); gap:10px;
+  }
+  .empty-state svg{ width:34px; height:34px; opacity:0.4; margin-bottom:6px; }
+  .empty-state .es-title{ font-weight:600; color: var(--text); font-size:14px; }
+  .empty-state .es-sub{ font-size:12.5px; max-width:280px; }
+
+  /* ---- Agent view ---- */
+  .agent-hero{
+    padding: 30px 26px 10px;
+    max-width: 760px;
+    margin: 0 auto;
+    width:100%;
+  }
+  .agent-hero h2{
+    font-family:'Fraunces', serif; font-weight:600; font-size:24px; letter-spacing:-0.01em; margin-bottom:6px;
+  }
+  .agent-hero p{ font-size:13.5px; color: var(--text-dim); max-width: 520px; line-height:1.5; }
+
+  .agent-grid{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;
+    max-width: 760px; margin: 22px auto 0; padding: 0 26px;
+  }
+  .agent-card{
+    padding: 16px; border-radius:14px; border:1px solid var(--border); background: var(--panel);
+    cursor:pointer; transition: transform .18s var(--ease), border-color .18s var(--ease), background .18s var(--ease);
+    position:relative; overflow:hidden;
+  }
+  .agent-card:hover{ transform: translateY(-2px); border-color: var(--accent-dim); background: var(--panel-2); }
+  .agent-card .ac-icon{
+    width:32px; height:32px; border-radius:9px; background: var(--panel-2); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; color: var(--accent); margin-bottom:10px;
+  }
+  .agent-card .ac-icon svg{ width:15px; height:15px; }
+  .agent-card .ac-title{ font-size:13px; font-weight:600; margin-bottom:4px; }
+   .agent-card .ac-desc{ font-size:11.5px; color: var(--text-faint); line-height:1.4; }
+
+  /* ---- Search overlay (Gemini style) ---- */
+  .search-overlay{
+    position:fixed; inset:0; z-index: 60;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(6px);
+    display:flex; align-items:flex-start; justify-content:center;
+    padding-top: 10vh;
+    opacity:0; pointer-events:none;
+    transition: opacity .25s var(--ease);
+  }
+  html[data-theme="light"] .search-overlay{ background: rgba(30,28,20,0.2); }
+  .search-overlay.open{ opacity:1; pointer-events:auto; }
+
+  .search-box{
+    width: min(560px, 90vw);
+    max-height: 66vh;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 40px 90px -30px rgba(0,0,0,0.7);
+    display:flex; flex-direction:column;
+    transform: translateY(-14px) scale(0.97);
+    opacity:0;
+    transition: transform .34s var(--ease), opacity .28s var(--ease);
+  }
+  .search-overlay.open .search-box{ transform: translateY(0) scale(1); opacity:1; }
+
+  .search-input-row{
+    display:flex; align-items:center; gap:12px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .search-input-row svg{ width:18px; height:18px; color: var(--text-faint); flex-shrink:0; }
+  .search-input-row input{
+    flex:1; background:none; border:none; outline:none;
+    font-size: 15px; color: var(--text); font-family:'Inter',sans-serif;
+  }
+  .search-input-row input::placeholder{ color: var(--text-faint); }
+  .search-kbd{
+    font-family:'JetBrains Mono', monospace; font-size:10.5px; color: var(--text-faint);
+    border: 1px solid var(--border); padding: 2px 6px; border-radius:5px; flex-shrink:0;
+  }
+
+  .search-results{ overflow-y:auto; padding: 8px; }
+  .search-result{
+    display:flex; align-items:center; gap:12px;
+    padding: 10px 12px; border-radius:11px; cursor:pointer;
+    transition: background .14s var(--ease);
+  }
+  .search-result:hover, .search-result.kb-active{ background: var(--panel-2); }
+  .search-result .sr-icon{
+    width:30px; height:30px; border-radius:9px; background: var(--panel-2); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; color: var(--text-dim); flex-shrink:0;
+  }
+  .search-result .sr-icon svg{ width:14px; height:14px; }
+  .search-result .sr-info{ flex:1; min-width:0; }
+  .search-result .sr-title{ font-size:13px; font-weight:500; color: var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .search-result .sr-title mark{ background: var(--accent-glow); color: var(--text); border-radius:3px; }
+  .search-result .sr-meta{ font-size:11px; color: var(--text-faint); margin-top:1px; }
+
+  .search-empty{ padding: 40px 20px; text-align:center; color: var(--text-faint); font-size:13px; }
+
+  /* ===================== VOICE SETTINGS MODAL ===================== */
+  .modal-overlay{
+    position:fixed; inset:0; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px);
+    display:flex; align-items:center; justify-content:center; z-index: 70;
+    opacity:0; pointer-events:none; transition: opacity .28s var(--ease);
+  }
+  html[data-theme="light"] .modal-overlay{ background: rgba(30,28,20,0.25); }
+  .modal-overlay.open{ opacity:1; pointer-events:auto; }
+
+  .voice-modal{
+    width: min(640px, 92vw); max-height: 84vh;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 22px;
+    box-shadow: 0 40px 90px -30px rgba(0,0,0,0.7);
+    display:flex; flex-direction:column;
+    overflow-y:auto;
+    transform: translateY(18px) scale(0.97); opacity:0;
+    transition: transform .38s var(--ease), opacity .3s var(--ease);
+  }
+.voice-modal > *{ flex-shrink: 0; }
+  .modal-overlay.open .voice-modal{ transform: translateY(0) scale(1); opacity:1; }
+
+  .voice-modal-header{ display:flex; align-items:flex-start; justify-content:space-between; padding: 22px 24px 16px; border-bottom: 1px solid var(--border-soft); }
+  .voice-modal-header h2{ font-family:'Fraunces', serif; font-weight:600; font-size: 21px; letter-spacing: -0.01em; margin-bottom: 4px; }
+  .voice-modal-header p{ font-size: 13px; color: var(--text-dim); }
+
+  .modal-close{
+    width:30px; height:30px; border-radius: 8px; display:flex; align-items:center; justify-content:center;
+    color: var(--text-faint); cursor:pointer; transition: background .16s var(--ease), color .16s var(--ease), transform .16s var(--ease); flex-shrink:0;
+  }
+  .modal-close svg{ width:15px; height:15px; }
+  .modal-close:hover{ background: var(--panel-2); color: var(--text); }
+  .modal-close:active{ transform: scale(0.9) rotate(90deg); }
+
+  .voice-preview-bar{ display:flex; align-items:center; gap: 14px; padding: 16px 24px; border-bottom: 1px solid var(--border-soft); }
+  .voice-preview-play{
+    width: 42px; height:42px; border-radius:50%; background: var(--text); color: var(--bg);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+    transition: background .18s var(--ease), transform .16s var(--ease);
+  }
+  .voice-preview-play:hover{ background: var(--accent); }
+  .voice-preview-play:active{ transform: scale(0.92); }
+  .voice-preview-play svg{ width:16px; height:16px; }
+
+  .voice-preview-bars{ display:flex; align-items:center; gap: 3px; height: 26px; flex:1; }
+  .voice-preview-bars span{ width: 3px; border-radius: 2px; background: var(--border); height: 20%; transition: background .2s var(--ease); }
+  .voice-preview-bars.playing span{ background: var(--accent); animation: barBounce 1.1s ease-in-out infinite; }
+  .voice-preview-bars span:nth-child(1){ animation-delay: 0.0s; }
+  .voice-preview-bars span:nth-child(2){ animation-delay: 0.08s; }
+  .voice-preview-bars span:nth-child(3){ animation-delay: 0.16s; }
+  .voice-preview-bars span:nth-child(4){ animation-delay: 0.24s; }
+  .voice-preview-bars span:nth-child(5){ animation-delay: 0.32s; }
+  .voice-preview-bars span:nth-child(6){ animation-delay: 0.4s; }
+  .voice-preview-bars span:nth-child(7){ animation-delay: 0.32s; }
+  .voice-preview-bars span:nth-child(8){ animation-delay: 0.24s; }
+  .voice-preview-bars span:nth-child(9){ animation-delay: 0.16s; }
+  .voice-preview-bars span:nth-child(10){ animation-delay: 0.08s; }
+  .voice-preview-bars span:nth-child(11){ animation-delay: 0.0s; }
+  .voice-preview-bars span:nth-child(12){ animation-delay: 0.12s; }
+  @keyframes barBounce{ 0%, 100%{ height: 20%; } 50%{ height: 90%; } }
+
+  .voice-preview-label{ font-size: 12.5px; color: var(--text-dim); flex-shrink:0; }
+  .voice-preview-label b{ color: var(--text); font-weight:600; }
+
+  .voice-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 18px 24px; overflow-y:auto; }
+
+  .voice-card{
+    display:flex; align-items:center; gap: 12px; padding: 12px 14px; border-radius: 16px;
+    border: 1.5px solid var(--border); background: var(--panel-2); cursor:pointer; position:relative;
+    transition: border-color .2s var(--ease), background .2s var(--ease), transform .15s var(--ease);
+  }
+  .voice-card:hover{ transform: translateY(-2px); border-color: var(--accent-dim); }
+  .voice-card:active{ transform: translateY(-2px) scale(0.98); }
+  .voice-card.selected{ border-color: var(--accent); background: linear-gradient(135deg, rgba(142,162,255,0.12), rgba(142,162,255,0.03)); }
+
+  .voice-bubble{
+    width: 42px; height:42px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces', serif; font-weight:600; font-size: 15px; color: #fff; position:relative;
+  }
+  .voice-bubble::after{ content:""; position:absolute; inset:-3px; border-radius:50%; border: 1.5px solid transparent; transition: border-color .2s var(--ease); }
+  .voice-card.selected .voice-bubble::after{ border-color: var(--accent); }
+
+  .voice-info{ flex:1; min-width:0; }
+  .voice-name{ font-size: 13.5px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .voice-desc{ font-size: 11.5px; color: var(--text-dim); line-height: 1.35; }
+
+  .voice-check{
+    width: 20px; height:20px; border-radius:50%; background: var(--accent);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    opacity:0; transform: scale(0.5); transition: opacity .2s var(--ease), transform .2s var(--ease);
+  }
+  .voice-card.selected .voice-check{ opacity:1; transform: scale(1); }
+  .voice-check svg{ width:11px; height:11px; color:#fff; }
+
+   .voice-modal-footer{ display:flex; align-items:center; justify-content:space-between; padding: 16px 24px 20px; border-top: 1px solid var(--border-soft); }
+   .footer-hint{ font-size: 12px; color: var(--text-faint); }
+   .voice-profile-set{ display:flex; gap:12px; padding: 12px 24px; }
+   .vp-field{ display:flex; flex-direction:column; gap:4px; flex:1; }
+   .vp-field label{ font-size:11px; text-transform:uppercase; letter-spacing:.04em; color: var(--text-faint); }
+   .vp-field input{ padding:8px 10px; border:1px solid var(--border-soft); border-radius:8px; background:var(--bg-panel); color:var(--text-bright); font-size:13px; }
+   .vp-field select{ padding:8px 10px; border:1px solid var(--border-soft); border-radius:8px; background:var(--bg-panel); color:var(--text-bright); font-size:13px; }
+
+
+  .voice-save-btn{
+    padding: 9px 18px; border-radius: 999px; background: var(--text); color: var(--bg);
+    font-size: 13px; font-weight: 600; cursor:pointer; transition: background .18s var(--ease), transform .16s var(--ease);
+  }
+  .voice-save-btn:hover{ background: var(--accent); }
+  .voice-save-btn:active{ transform: scale(0.96); }
+
+  /* ---- Agent task modal ---- */
+  .agent-task-modal{ width: min(520px, 92vw); }
+  .agent-task-body{ padding: 18px 24px; }
+  .agent-task-input{
+    width:100%; min-height: 96px; resize: vertical;
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 14px;
+    padding: 13px 15px; color: var(--text); font-family:'Inter',sans-serif; font-size: 14px;
+    line-height: 1.5; outline: none;
+    transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+  }
+  .agent-task-input::placeholder{ color: var(--text-faint); }
+  .agent-task-input:focus{ border-color: var(--accent-dim); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+  ::-webkit-scrollbar{ width:8px; height:8px; }
+  ::-webkit-scrollbar-track{ background: transparent; }
+  ::-webkit-scrollbar-thumb{ background: var(--border); border-radius: 8px; }
+  ::-webkit-scrollbar-thumb:hover{ background: var(--panel-3); }
+
+  /* ===================== THINKING ORB (canvas, ported 1:1 from orbs.jakubantalik.com) ===================== */
+  .orb-wrap{
+    width:64px; height:64px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .thinking-orb{ position:relative; width:64px; height:64px; flex-shrink:0; display:block; }
+  .msg-orb{
+    transition: transform .7s var(--ease), margin-top .7s var(--ease);
+  }
+  .msg-orb.composing-down{
+    transform: translateY(14px) scale(0.92);
+  }
+
+  /* ===================== NARRATION BUTTON (standalone, off the bubble) ===================== */
+  .msg-row{ flex-wrap: wrap; }
+  .msg-actions{
+    flex-basis: 100%;
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap: 4px;
+    padding-top: 4px;
+  }
+  .msg-action-btn{
+    width:26px; height:26px; border-radius:8px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--text-faint); cursor:pointer;
+    transition: background .16s var(--ease), color .16s var(--ease);
+  }
+  .msg-action-btn svg{ width:13px; height:13px; }
+  .msg-action-btn:hover{ background: var(--panel-2); color: var(--accent); }
+  .msg-action-btn.speaking{ color: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
+  .narrate-btn{
+    width:26px; height:26px; border-radius:8px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--text-faint); cursor:pointer;
+    transition: background .16s var(--ease), color .16s var(--ease);
+  }
+  .narrate-btn svg{ width:13px; height:13px; }
+  .narrate-btn:hover{ background: var(--panel-2); color: var(--accent); }
+  .narrate-btn.speaking{ color: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
+
+  .listen-btn{
+    width:26px; height:26px; border-radius:8px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--text-faint); cursor:pointer;
+    transition: background .16s var(--ease), color .16s var(--ease);
+  }
+  .listen-btn svg{ width:13px; height:13px; }
+  .listen-btn:hover{ background: var(--panel-2); color: var(--accent); }
+  .listen-btn.listening{ color: var(--accent); }
+
+  .copy-msg-btn{
+    width:26px; height:26px; border-radius:8px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--text-faint); cursor:pointer;
+    transition: background .16s var(--ease), color .16s var(--ease);
+  }
+  .copy-msg-btn svg{ width:13px; height:13px; }
+  .copy-msg-btn:hover{ background: var(--panel-2); color: var(--accent); }
+  .copy-msg-btn.copied{ color: var(--accent); }
+
+  .model-quick{
+    display:flex; align-items:center; gap:3px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 2px 4px; flex-shrink:0;
+    transition: background .16s var(--ease), border-color .16s var(--ease);
+  }
+  .model-quick .mq-model{
+    font-size:10.5px; font-weight:600; color: var(--text-dim);
+    padding: 2px 6px; border-radius:6px; cursor:pointer;
+    transition: background .16s var(--ease), color .16s var(--ease);
+  }
+  .model-quick .mq-model:hover{ background: var(--panel-3); color: var(--text); }
+  .model-quick .mq-model.selected{ background: var(--accent-glow); color: var(--accent); }
+
+  .copy-input-btn{
+    width:26px; height:26px; border-radius:8px; flex-shrink:0;
+    display:none; align-items:center; justify-content:center;
+    color: var(--text-faint); cursor:pointer;
+    transition: background .16s var(--ease), color .16s var(--ease);
+  }
+  .copy-input-btn svg{ width:13px; height:13px; }
+  .copy-input-btn:hover{ background: var(--panel-2); color: var(--accent); }
+  .copy-input-btn.copied{ color: var(--accent); }
+
+  /* ===================== CODE BLOCKS (Gemini-style) ===================== */
+  .code-block{
+    margin: 8px 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--panel-2);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .code-block:first-child{ margin-top: 2px; }
+  .code-block:last-child{ margin-bottom: 0; }
+  .code-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 5px 8px 5px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-3);
+  }
+  .code-lang{
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .code-copy{
+    display:flex; align-items:center; gap:5px;
+    padding: 4px 9px;
+    border-radius: 7px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dim);
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--border);
+    transition: background .14s var(--ease), color .14s var(--ease), border-color .14s var(--ease);
+  }
+  .code-copy:hover{ background: var(--panel); color: var(--text); border-color: var(--accent-dim); }
+  .code-copy.copied{ color: var(--accent); border-color: var(--accent-dim); }
+  .code-copy svg{ width:11px; height:11px; }
+  .code-download{
+    display:flex; align-items:center; justify-content:center;
+    padding:4px 8px; border-radius:7px; font-size:11px; font-weight:600;
+    color: var(--text-faint); cursor:pointer; background:transparent; border:1px solid var(--border);
+    transition: background .14s var(--ease), color .14s var(--ease), border-color .14s var(--ease);
+  }
+  .code-download:hover{ background: var(--panel); color: var(--accent); border-color: var(--accent-dim); }
+  .code-download svg{ width:12px; height:12px; }
+  .code-block pre{
+    margin: 0;
+    padding: 12px 14px;
+    overflow-x: auto;
+  }
+  .code-block code{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    white-space: pre;
+    color: var(--text);
+  }
+
+  .msg-par{ margin: 0 0 8px; }
+  .msg-par:last-child{ margin-bottom: 0; }
+
+  /* ===================== ATTACH ===================== */
+  .attach-chips{ display:flex; flex-wrap:wrap; gap:6px; padding: 4px 14px 0; }
+  .attach-chip{
+    display:flex; align-items:center; gap:6px; max-width:100%;
+    padding:4px 10px; border-radius:999px;
+    background: var(--panel-2); border:1px solid var(--border);
+    font-size:11.5px; color: var(--text-dim);
+  }
+  .attach-chip .ac-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:220px; }
+  .attach-chip .ac-x{ display:flex; color:var(--text-faint); cursor:pointer; flex-shrink:0; }
+  .attach-chip .ac-x:hover{ color: var(--danger); }
+  .attach-chip svg{ width:11px; height:11px; }
+
+  .attach-menu{
+    position:fixed; z-index:80; min-width:150px;
+    background: var(--panel); border:1px solid var(--border); border-radius:12px;
+    padding:5px; box-shadow: 0 18px 50px -14px rgba(0,0,0,0.55);
+    opacity:0; pointer-events:none; transform: translateY(4px);
+    transition: opacity .18s var(--ease), transform .18s var(--ease);
+  }
+  .attach-menu.open{ opacity:1; pointer-events:auto; transform: translateY(0); }
+  .attach-option{
+    display:flex; align-items:center; gap:9px;
+    padding:8px 12px; border-radius:8px; font-size:12.5px;
+    color: var(--text-dim); cursor:pointer;
+    transition: background .14s var(--ease), color .14s var(--ease);
+  }
+  .attach-option:hover{ background: var(--panel-2); color: var(--text); }
+  .attach-option svg{ width:14px; height:14px; }
+
+  /* ===================== DEEP SEARCH TOGGLE ===================== */
+  .tool-btn.search-on{ background: var(--accent-glow); color: var(--accent); }
+  .tool-btn.search-on:hover{ color: var(--accent); }
+  .search-mode-hint{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:11px; color: var(--accent); margin-left:4px;
+  }
+   .search-mode-hint svg{ width:12px; height:12px; }
+
+   /* ===================== CODEBASE TOGGLE ===================== */
+   .codebase-toggle-btn.search-on{ background: var(--accent-glow); color: var(--accent); }
+   .codebase-toggle-btn.search-on:hover{ color: var(--accent); }
+
+   /* ===================== MESSAGE LINKS ===================== */
+   .msg-link{
+     color: var(--accent);
+     text-decoration: underline;
+     cursor: pointer;
+   }
+   .msg-link:hover{
+     background: var(--accent-glow);
+     border-radius: 3px;
+   }
+
+  /* brand logo */
+  .brand-mark img{ object-fit:cover; }
+
+  @media (prefers-reduced-motion: reduce){ *{ animation: none !important; transition: none !important; } }
+
+  @media (max-width: 860px){
+    .sidebar{ position:absolute; left:0; top:0; height:100%; background:var(--bg); box-shadow: 20px 0 40px rgba(0,0,0,0.3);}
+    .agent-grid{ grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px){ .voice-grid{ grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="theme-veil" id="themeVeil"></div>
+
+<div class="app">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-inner">
+      <div class="brand">
+        <div class="brand-mark" id="brandMark">
+          <img src="Arch.png" alt="Arch logo" onerror="this.style.display='none'; this.parentElement.classList.add('fallback');">
+        </div>
+        <div class="brand-name">Arch</div>
+        <div class="brand-collapse" id="collapseBtn" title="Collapse sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <rect x="3.5" y="4.5" width="17" height="15" rx="3.5"/>
+            <path d="M9.5 4.5 V19.5"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-item primary rippler" id="newChatBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          New chat
+        </div>
+        <div class="nav-item rippler" id="searchChatsBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+          Search chats
+        </div>
+        <div class="nav-item rippler" id="libraryBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3.5" y="4" width="7.5" height="16" rx="2"/>
+            <rect x="13" y="4" width="7.5" height="9.5" rx="2"/>
+            <rect x="13" y="16" width="7.5" height="4" rx="2"/>
+          </svg>
+          Library
+        </div>
+        <div class="nav-item rippler" id="agentBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9l6-5 6 5v10a1 1 0 01-1 1h-3v-6H10v6H7a1 1 0 01-1-1z"/>
+            <path d="M14.5 4.5l3 2.6"/>
+          </svg>
+          Agent
+        </div>
+      </div>
+
+      <div class="section-label">History</div>
+      <div class="history-list" id="historyList"><!-- populated by JS --></div>
+
+      <div class="sidebar-footer">
+        <div class="archived-btn rippler" id="archivedBtn">
+          <div class="left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3.5" y="5" width="17" height="4" rx="1.2"/>
+              <path d="M5 9v9a1.5 1.5 0 001.5 1.5h11A1.5 1.5 0 0019 18V9"/>
+              <path d="M10 13h4"/>
+            </svg>
+            Archived
+          </div>
+          <span class="count" id="archivedCount">2</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-icon" id="menuBtn" title="Toggle sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M4 7h16M4 12h16M4 17h16"/>
+        </svg>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-icon" id="themeToggle" title="Toggle theme">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4.2"/>
+          <path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 14.5A8.5 8.5 0 019.5 4 8.5 8.5 0 1020 14.5z"/>
+        </svg>
+      </div>
+      <div class="topbar-icon" id="settingsBtn" title="Voice settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 8.4a3.6 3.6 0 100 7.2 3.6 3.6 0 000-7.2z"/>
+          <path d="M12 2.5v2.4M12 19.1v2.4M4.35 6.35l1.7 1.7M17.95 15.95l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.35 17.65l1.7-1.7M17.95 8.05l1.7-1.7"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="view-stack">
+
+      <!-- HOME -->
+      <div class="panel-view visible" id="view-home">
+        <div class="content">
+          <div class="hero">
+            <div class="hero-eyebrow" id="heroEyebrow"><span class="pulse"></span> Arch is ready <span class="eyebrow-sep">·</span> <span class="eyebrow-time" id="eyebrowTime"></span></div>
+            <h1 id="heroHeading">What can I help with, {{name}}? <span class="hero-refresh rippler" id="heroRefresh" title="New prompt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0115.4-6.36M21 12a9 9 0 01-15.4 6.36"/><path d="M3 3v6h6M21 21v-6h-6"/></svg></span></h1>
+            <p id="heroSub">Start typing below to begin a new conversation.</p>
+          </div>
+
+          <div class="chips">
+            <div class="chip rippler">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+              Debug my shader
+            </div>
+            <div class="chip rippler">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V6a2 2 0 012-2h9l5 5v10.5a2 2 0 01-2 2H6a2 2 0 01-2-2z"/><path d="M14 4v5h5"/></svg>
+              Refactor a file
+            </div>
+            <div class="chip rippler">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M4 12c1.8-4 5-6 8-6s6.2 2 8 6c-1.8 4-5 6-8 6s-6.2-2-8-6z"/></svg>
+              Review particle physics
+            </div>
+            <div class="chip rippler">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.2 6.8H21l-5.6 4.1 2.2 6.8L12 15.6l-5.6 4.1 2.2-6.8L3 8.8h6.8z"/></svg>
+              Brainstorm ideas
+            </div>
+          </div>
+
+          <div class="composer-wrap">
+            <div class="composer" id="composer">
+              <textarea class="composer-input" id="input" placeholder="Ask Arch" rows="1"></textarea>
+              <div class="attach-chips" id="attachChips"></div>
+              <div class="composer-bar">
+                <div class="composer-left">
+                   <div class="tool-btn attach-btn" id="attachBtn" title="Attach files or folder">
+                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                       <path d="M8.5 11.5l6.2-6.2a3.5 3.5 0 015 5L9.9 20a4.2 4.2 0 01-6-6L14.6 3.4"/>
+                     </svg>
+                   </div>
+                    <div class="tool-btn codebase-toggle-btn" id="codebaseToggle" title="Codebase context: off">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </div>
+                    <div class="tool-btn open-app-btn" id="openAppBtn" title="Open app or website">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 01-2-2h6"/><path d="M15.5 3.5l5 5M10 12h8"/></svg>
+                    </div>
+                   </div>
+                <div class="composer-right">
+                  <div class="tool-btn search-toggle-btn" id="searchToggle" title="Deep web search: off">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="8.5"/>
+                      <path d="M3.5 12h17M12 3.5c2.8 2.6 4.2 5.4 4.2 8.5s-1.4 5.9-4.2 8.5c-2.8-2.6-4.2-5.4-4.2-8.5s1.4-5.9 4.2-8.5z"/>
+                    </svg>
+                  </div>
+                  <div class="model-picker">
+                    <div class="model-pill rippler" id="modelPill">
+                      <span class="dot"></span>
+                      <span id="modelPillLabel">Luna 5.3</span>
+                      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                    <div class="model-dropdown" id="modelDropdown"></div>
+                  </div>
+                  <div class="tool-btn mic-btn" id="micBtn" title="Voice input">
+                    <span class="mic-ring"></span>
+                    <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="3" width="6" height="11" rx="3"/>
+                      <path d="M5 11a7 7 0 0014 0M12 18v3"/>
+                    </svg>
+                    <span class="mic-wave">
+                      <span></span><span></span><span></span><span></span><span></span>
+                    </span>
+                    <span class="mic-orb"></span>
+                  </div>
+                  <div class="send-btn" id="sendBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 19V5M5 12l7-7 7 7"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="composer-hint">Arch can make mistakes. Verify important information.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHAT CONVERSATION -->
+      <div class="panel-view" id="view-chat">
+        <div class="panel-header">
+          <div class="panel-back rippler" id="chatBackBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </div>
+          <div>
+            <div class="panel-title" id="chatTitle">Conversation</div>
+            <div class="panel-sub" id="chatSub">Continuing this chat</div>
+          </div>
+        </div>
+        <div class="chat-scroll">
+          <div class="chat-messages" id="chatMessages"></div>
+        </div>
+        <div class="chat-composer-dock">
+          <div class="composer-wrap">
+            <div class="composer" id="composer2">
+              <textarea class="composer-input" id="input2" placeholder="Reply to Arch" rows="1"></textarea>
+              <div class="attach-chips" id="attachChips2"></div>
+              <div class="composer-bar">
+                <div class="composer-left">
+                   <div class="tool-btn attach-btn" id="attachBtn2" title="Attach files or folder">
+                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 11.5l6.2-6.2a3.5 3.5 0 015 5L9.9 20a4.2 4.2 0 01-6-6L14.6 3.4"/></svg>
+                   </div>
+                   <div class="tool-btn copy-input-btn" id="copyInputBtn2" title="Copy prompt">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>
+                    </div>
+                    <div class="tool-btn codebase-toggle-btn" id="codebaseToggle2" title="Codebase context: off">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </div>
+                   <div class="tool-btn mic-btn" id="micBtn2" title="Voice input">
+                    <span class="mic-ring"></span>
+                    <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="3" width="6" height="11" rx="3"/>
+                      <path d="M5 11a7 7 0 0014 0M12 18v3"/>
+                    </svg>
+                    <span class="mic-wave">
+                      <span></span><span></span><span></span><span></span><span></span>
+                    </span>
+                    <span class="mic-orb"></span>
+                  </div>
+                </div>
+                <div class="composer-right">
+                  <div class="tool-btn search-toggle-btn" id="searchToggle2" title="Deep web search: off">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="8.5"/>
+                      <path d="M3.5 12h17M12 3.5c2.8 2.6 4.2 5.4 4.2 8.5s-1.4 5.9-4.2 8.5c-2.8-2.6-4.2-5.4-4.2-8.5s1.4-5.9 4.2-8.5z"/>
+                    </svg>
+                  </div>
+                  <div class="send-btn" id="sendBtn2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIBRARY -->
+      <div class="panel-view" id="view-library">
+        <div class="panel-header">
+          <div class="panel-back rippler" id="libraryBackBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </div>
+          <div>
+            <div class="panel-title">Library</div>
+            <div class="panel-sub">All of your past conversations in one place</div>
+          </div>
+        </div>
+        <div class="list-scroll">
+          <div class="list-grid" id="libraryGrid"></div>
+        </div>
+      </div>
+
+      <!-- ARCHIVED -->
+      <div class="panel-view" id="view-archive">
+        <div class="panel-header">
+          <div class="panel-back rippler" id="archiveBackBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </div>
+          <div>
+            <div class="panel-title">Archived chats</div>
+            <div class="panel-sub">Restore a chat to your history, or delete it for good</div>
+          </div>
+        </div>
+        <div class="list-scroll">
+          <div class="list-grid" id="archiveGrid"></div>
+        </div>
+      </div>
+
+      <!-- AGENT -->
+      <div class="panel-view" id="view-agent">
+        <div class="panel-header">
+          <div class="panel-back rippler" id="agentBackBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </div>
+          <div>
+            <div class="panel-title">Agent</div>
+            <div class="panel-sub">Heavy-duty coding tasks, run end to end</div>
+          </div>
+        </div>
+        <div class="list-scroll" style="padding:0;">
+          <div class="agent-hero">
+            <h2>Hand off a real coding task</h2>
+            <p>Agent mode reads your repo, plans the change, edits files, runs tests, and reports back — built for multi-file refactors and features, not one-line snippets.</p>
+          </div>
+          <div class="agent-grid">
+            <div class="agent-card rippler" data-agent="Fix a bug" data-placeholder="Paste the stack trace, or describe what's failing and where…">
+              <div class="ac-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V6a2 2 0 012-2h9l5 5v10.5a2 2 0 01-2 2H6a2 2 0 01-2-2z"/><path d="M14 4v5h5"/></svg></div>
+              <div class="ac-title">Fix a bug</div>
+              <div class="ac-desc">Point at a stack trace or failing test and let the agent trace it back to source.</div>
+            </div>
+            <div class="agent-card rippler" data-agent="Ship a feature" data-placeholder="Describe the feature you want built…">
+              <div class="ac-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/></svg></div>
+              <div class="ac-title">Ship a feature</div>
+              <div class="ac-desc">Describe the feature; the agent plans, edits across files, and opens a PR.</div>
+            </div>
+            <div class="agent-card rippler" data-agent="Refactor" data-placeholder="What module or pattern should the agent restructure?">
+              <div class="ac-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+              <div class="ac-title">Refactor</div>
+              <div class="ac-desc">Restructure a module or migrate a pattern across the whole codebase safely.</div>
+            </div>
+           </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+</div>
+
+<!-- ===================== SEARCH OVERLAY ===================== -->
+<div class="search-overlay" id="searchOverlay">
+  <div class="search-box">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Search your chats..." autocomplete="off">
+      <span class="search-kbd">Esc</span>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+</div>
+
+<!-- ===================== AGENT TASK MODAL ===================== -->
+<div class="modal-overlay" id="agentModalOverlay">
+  <div class="voice-modal agent-task-modal" id="agentTaskModal">
+    <div class="voice-modal-header">
+      <div>
+        <h2 id="agentModalTitle">Fix a bug</h2>
+        <p>What would you like the agent to do?</p>
+      </div>
+      <div class="modal-close rippler" id="agentModalClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </div>
+    </div>
+    <div class="agent-task-body">
+      <textarea id="agentTaskInput" class="agent-task-input" rows="4" placeholder="Describe the task…"></textarea>
+    </div>
+    <div class="voice-modal-footer">
+      <div class="footer-hint">The agent will plan, edit, and report back.</div>
+      <div class="voice-save-btn rippler" id="agentTaskGo">Start task</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== VOICE SETTINGS MODAL ===================== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="voice-modal" id="voiceModal">
+    <div class="voice-modal-header">
+      <div>
+        <h2>Settings</h2>
+        <p>Choose how Arch sounds, and what it calls you.</p>
+      </div>
+      <div class="modal-close rippler" id="modalClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </div>
+    </div>
+
+    <div class="voice-preview-bar">
+      <div class="voice-preview-play rippler" id="previewPlay">
+        <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
+        <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+      </div>
+      <div class="voice-preview-bars" id="previewBars">
+        <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <div class="voice-preview-label">Previewing <b id="previewName">Verity</b></div>
+    </div>
+
+    <div class="voice-grid" id="voiceGrid"></div>
+
+    <div class="voice-profile-set">
+      <div class="vp-field">
+        <label for="nicknameInput">Call me</label>
+        <input type="text" id="nicknameInput" placeholder="User" maxlength="32">
+      </div>
+        <div class="vp-field">
+          <label for="languageSelect">Language</label>
+          <select id="languageSelect">
+            <option value="en">English</option>
+            <option value="sw">Swahili</option>
+            <option value="ha">Hausa</option>
+            <option value="yo">Yoruba</option>
+            <option value="zu">Zulu</option>
+            <option value="ig">Igbo</option>
+            <option value="am">Amharic</option>
+            <option value="fr">French</option>
+          </select>
+        </div>
+    </div>
+
+    <div class="voice-modal-footer">
+      <div class="footer-hint">Selected voice applies to all spoken responses.</div>
+      <div class="voice-save-btn rippler" id="voiceSave">Save preference</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ATTACH INPUTS + MENU ===================== -->
+<input type="file" id="attachFiles" multiple hidden>
+<input type="file" id="attachFolder" webkitdirectory hidden>
+<div class="attach-menu" id="attachMenu">
+  <div class="attach-option" data-kind="files">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V6a2 2 0 012-2h9l5 5v10.5a2 2 0 01-2 2H6a2 2 0 01-2-2z"/><path d="M14 4v5h5"/></svg>
+    Files
+  </div>
+  <div class="attach-option" data-kind="folder">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5a2 2 0 012-2h4.2l2.3 2.4h6.5a2 2 0 012 2v8.6a2 2 0 01-2 2h-13a2 2 0 01-2-2z"/></svg>
+    Folder
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   DATA
+========================================================= */
+let chats = [
+  { id:'c1', title:'Particle physics tuning', preview:'Let\'s get the velocity clamp fixed on the spiral arms.', archived:false,
+    messages:[
+      {role:'user', text:'The particles in the spiral arms are jittering when they get close to the core.'},
+      {role:'assistant', text:'That\'s almost always a velocity clamp issue near the singularity. Can you share how you\'re integrating position each frame?'},
+      {role:'user', text:'Simple Euler integration, dt from pygame clock.'},
+      {role:'assistant', text:'Euler at variable dt is the culprit — switch to a fixed timestep accumulator and clamp max velocity right before the position update, not after.'}
+    ]},
+  { id:'c2', title:'MediaPipe hand tracking fix', preview:'Landmarks are lagging behind the actual hand position.', archived:false,
+    messages:[
+      {role:'user', text:'Hand landmarks lag about 200ms behind my actual hand movement.'},
+      {role:'assistant', text:'That\'s typically the model\'s inference time plus a frame buffer. Try dropping to the lite model variant and disabling the smoothing filter to see if latency improves.'}
+    ]},
+  { id:'c3', title:'ASCII shader experiments', preview:'Testing character density mapping against luminance.', archived:false,
+    messages:[
+      {role:'user', text:'What\'s a good way to map luminance to ASCII character density?'},
+      {role:'assistant', text:'Build a ramp string ordered by visual weight — something like " .:-=+*#%@" — then index into it using normalized luminance per cell.'}
+    ]},
+  { id:'c4', title:'Black hole zoom reveal', preview:'Want the event horizon to sharpen as you zoom in.', archived:false,
+    messages:[
+      {role:'user', text:'I want the black hole to reveal more ASCII detail the closer the camera gets.'},
+      {role:'assistant', text:'Tie your character density ramp to camera distance — interpolate from a sparse ramp at far zoom to a dense one up close, and swap in finer detail layers past a threshold.'}
+    ]},
+  { id:'c5', title:'Galaxy spiral math', preview:'Logarithmic spiral formula for arm placement.', archived:false,
+    messages:[
+      {role:'user', text:'What\'s the formula for a logarithmic spiral for the galaxy arms?'},
+      {role:'assistant', text:'r = a · e^(b·θ) — tune b for how tightly the arms wind, and offset θ per arm by 2π/n for n arms.'}
+    ]},
+  { id:'c6', title:'Old renderer prototype', preview:'First pass before the OpenGL rewrite.', archived:true,
+    messages:[
+      {role:'user', text:'Should I use software rendering for the first prototype?'},
+      {role:'assistant', text:'For a prototype, yes — get the math right in software first, then port the hot path to OpenGL once the visual is proven.'}
+    ]},
+  { id:'c7', title:'Star texture atlas', preview:'Batching star sprites into a single atlas.', archived:true,
+    messages:[
+      {role:'user', text:'Best way to batch thousands of star sprites?'},
+      {role:'assistant', text:'Pack them into a texture atlas and draw with instanced rendering — one draw call for the whole starfield instead of thousands.'}
+    ]},
+];
+
+let currentChatId = null;
+let sidebarCollapsed = false;
+
+/* =========================================================
+   BACKEND (local AI bridge) + PERSISTENCE + VOICE
+========================================================= */
+const API_BASE = 'http://127.0.0.1:9224';
+const API_TOKEN = new URLSearchParams(location.search).get('token') || '';
+function apiHeaders(extra){
+  const h = Object.assign({}, extra || {});
+  if(API_TOKEN) h['Authorization'] = 'Bearer ' + API_TOKEN;
+  return h;
+}
+function apiFetch(path, opts){
+  opts = opts || {};
+  opts.headers = apiHeaders(opts.headers);
+  return fetch(API_BASE + path, opts);
+}
+
+async function askArch(messages, onChunk, onDone, onError, opts){
+  opts = opts || {};
+  let resp;
+  try {
+    resp = await apiFetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: selectedModel, messages, temperature: 0.3, top_p: 0.9, top_k: 20, codebase_context: codebaseMode, ...(opts.search ? { search: true } : {}) }),
+      signal: opts.signal || null,
+    });
+  } catch(e){ if(e.name === 'AbortError') return; onError(e); return; }
+  if(!resp.ok || !resp.body){ onError(new Error('backend unavailable')); return; }
+  const reader = resp.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  let currentEvent = '';
+  try {
+    while(true){
+      if(opts.signal && opts.signal.aborted) return;
+      const { done, value } = await reader.read();
+      if(done) break;
+      buf += dec.decode(value, { stream: true });
+      let idx;
+      while((idx = buf.indexOf('\n')) !== -1){
+        const line = buf.slice(0, idx).trim();
+        buf = buf.slice(idx + 1);
+        if(!line) continue;
+        if(line.startsWith('event:')){ currentEvent = line.slice(6).trim(); continue; }
+        if(!line.startsWith('data:')) continue;
+        const payload = line.slice(5).trim();
+        if(!payload || payload === 'null') continue;
+        try {
+          const obj = JSON.parse(payload);
+          if(currentEvent === 'system_action' && obj.action === 'open'){
+            if(opts.onSystemAction) opts.onSystemAction(obj);
+            currentEvent = '';
+          } else if(obj && obj.content){
+            if(obj.role === 'search'){ if(opts.onSearch) opts.onSearch(obj.content); }
+            else onChunk(obj.content);
+          }
+        } catch(e){}
+      }
+    }
+  } catch(e){ if(e.name === 'AbortError') return; onError(e); return; }
+  onDone();
+}
+
+  function replySimulated(chat){
+    return "I'm not getting a response from the local AI backend. Please ensure Ollama is running and the model is loaded.";
+  }
+
+function stripThinking(s){
+  return String(s || '').replace(/<\s*\/?\s*thinking\s*>/gi, '');
+}
+
+/* =========================================================
+   THINKING-ORB ENGINE
+   Ported 1:1 from https://orbs.jakubantalik.com/ (canvas).
+   composing = ribbon, searching = globe, breathing = ring.
+   Drawing is strictly grayscale; theme inverts the gray level.
+========================================================= */
+const ORB_MODES = { working:'orbits', searching:'globe', solving:'rubik', listening:'wave', connecting:'web', weaving:'braid', composing:'ribbon', breathing:'ring', shaping:'morph' };
+const ORB_PRESETS = {
+  orbits:{ 64:{speed:1.885,count:1,size:1}, 20:{speed:3.9,count:.238,size:2.4} },
+  globe:{ 64:{speed:2.015,count:.42,size:1.15,extra:{scanMul:4.08,dimBase:.45}}, 20:{speed:2.665,count:.105,size:1.75,extra:{scanMul:4.335,dimBase:.45}} },
+  rubik:{ 64:{speed:1.82,count:.35,size:1.05}, 20:{speed:1.95,count:.088,size:1.9} },
+  wave:{ 64:{speed:4.388,count:.341,size:1}, 20:{speed:3.998,count:.105,size:1.6} },
+  web:{ 64:{speed:3.315,count:1.35,size:.95}, 20:{speed:6.63,count:.25,size:1.52} },
+  braid:{ 64:{speed:1.625,count:.5,size:1}, 20:{speed:2.75,count:.1125,size:1.36} },
+  ribbon:{ 64:{speed:2.34,count:.25,size:.85,extra:{spin:0,bandMul:3.9,wobMul:1}}, 20:{speed:3.12,count:.051,size:1.073,extra:{spin:0,bandMul:4.94,wobMul:1}} },
+  ring:{ 64:{speed:3.24,count:.25,size:.956,extra:{spin:0,bandMul:3.627,wobMul:.368}}, 20:{speed:3.78,count:.028,size:1.622,extra:{spin:0,bandMul:3.968,wobMul:.565}} },
+  morph:{ 64:{speed:2.405,count:.702,size:.395,extra:{spread:1.45}}, 20:{speed:2.08,count:.53,size:1.011,extra:{spread:1.45}} }
+};
+const ORB_DEFAULTS = {
+  globe:{latRings:17,lonDensity:44,rBase:.6,rDepth:1.7,rBoost:1,inkFar:.62,inkSpan:.54,rsPow:.6,rMin:.3},
+  orbits:{orbitN:12,ghostN:40,ghostR:.9,ghostA:.5,particles:3,partR:1.2,partRDepth:1.6,rsPow:.6,rMin:.3},
+  rubik:{latRings:15,lonDensity:40,moveCount:14,rBase:.6,rDepth:1.7,rActive:.3,inkFar:.62,inkSpan:.54,rsPow:.6,rMin:.3},
+  wave:{rings:15,lonDensity:40,rBase:.6,rDepth:1.7,rsPow:.6,rMin:.3},
+  web:{nodeN:30,thr:.72,signals:5,nodeR:1.4,nodeRDepth:1.8,lineW:.8,rsPow:.6,rMin:.3},
+  braid:{strandN:52,turns:3,ghostN:150,rBase:1.2,rDepth:1.8,rsPow:.6,rMin:.3},
+  ribbon:{lanes:5,segs:88,ghostN:150,rBase:1.1,rDepth:1.7,rsPow:.6,rMin:.3},
+  ring:{lanes:5,segs:88,ghostN:0,faceOn:1,rBase:1.1,rDepth:1.7,rsPow:.6,rMin:.3},
+  morph:{rDot:.021,iconD:1,rMin:.25}
+};
+function orbHash(e,t){const n=Math.sin(e*12.9898+t*78.233)*43758.5453;return n-Math.floor(n);}
+function orbNoise(e,t){const n=Math.floor(e),r=Math.floor(t);let l=e-n,o=t-r;l=l*l*(3-2*l);o=o*o*(3-2*o);const u=orbHash(n,r),i=orbHash(n+1,r),s=orbHash(n,r+1),f=orbHash(n+1,r+1);return u+(i-u)*l+(s-u)*o+(u-i-s+f)*l*o;}
+function orbFibSphere(e,t){const n=Math.PI*(3-Math.sqrt(5)),r=1-2*(e+.5)/t,l=Math.sqrt(1-r*r),o=e*n;return[l*Math.cos(o),r,l*Math.sin(o)];}
+function orbAngle(e,t){return Math.atan2(Math.sin(e-t),Math.cos(e-t));}
+function orbLerp(e,t,n){return e+(t-e)*n;}
+function orbFrac(e){return e-Math.floor(e);}
+function orbSmooth(e){return e*e*(3-2*e);}
+function orbProjector(e,t,n,r,l){const o=Math.sin(t),u=Math.cos(t),i=Math.sin(e),s=Math.cos(e);return(f,v,h)=>{const p=f*s+h*i,y=-f*i+h*s,g=v*u-y*o,w=v*o+y*u;return[n+p*l,r-g*l,w];};}
+function orbScale(e,t){return Math.pow(e/300,t);}
+function orbCull(dots,lines,rMin){const out=[];for(const d of dots){(d.a??1)<.02||(d.r=Math.max(rMin,d.r),out.push(d));}out.sort((a,b)=>a.z-b.z);return{dots:out,lines:lines.filter(l=>(l.a??1)>=.02)};}
+function orbDrawDots(ctx,dots,dark){for(const d of dots){const a=d.a??1,u=Math.min(1,Math.max(0,d.white)),i=Math.round((dark?1-u:u)*255);ctx.fillStyle='rgba('+i+','+i+','+i+','+a+')';ctx.beginPath();ctx.arc(d.x,d.y,d.r,0,Math.PI*2);ctx.fill();}}
+function orbDrawLines(ctx,lines,dark){for(const r of lines){const a=r.a??1,o=Math.min(1,Math.max(0,r.white)),u=Math.round((dark?1-o:o)*255);ctx.strokeStyle='rgba('+u+','+u+','+u+','+a+')';ctx.lineWidth=r.w;ctx.beginPath();ctx.moveTo(r.x1,r.y1);ctx.lineTo(r.x2,r.y2);ctx.stroke();}}
+function orbRender(ctx,res,dark){res.lines.length&&orbDrawLines(ctx,res.lines,dark);orbDrawDots(ctx,res.dots,dark);}
+
+function orbDrawOrbits(e,t,n){
+  const r=e/2,l=e/2,o=e/2*.82,u=orbProjector(t*.12,.3,r,l,1),i=orbScale(e,n.rsPow??.6),s=[],f=n.orbitN??12,v=n.ghostN??40,h=n.particles??3;
+  for(let p=0;p<f;p++){
+    const y=orbHash(p,1.7),g=orbHash(p,5.2),w=orbHash(p,8.9),C=o*(.45+.52*y),c=y*2*Math.PI,a=Math.acos(2*g-1),d=Math.sin(a)*Math.cos(c),m=Math.cos(a),k=Math.sin(a)*Math.sin(c);
+    let S=-m,x=d;const E=0,L=Math.max(1e-6,Math.sqrt(S*S+x*x));
+    S/=L;x/=L;
+    const N=m*E-k*x,D=k*S-d*E,I=d*x-m*S,pe=(.25+.55*w)*(w>.5?1:-1);
+    for(let se=0;se<v;se++){
+      const Y=se/v*2*Math.PI,[Z,Ce,_]=u((S*Math.cos(Y)+N*Math.sin(Y))*C,(x*Math.cos(Y)+D*Math.sin(Y))*C,(E*Math.cos(Y)+I*Math.sin(Y))*C),z=(_/C+1)/2;
+      s.push({x:Z,y:Ce,z:_,r:(n.ghostR??.9)*i,white:.72,a:(n.ghostA??.5)*(.4+.6*z)});
+    }
+    for(let se=0;se<h;se++){
+      const Y=t*pe+se/h*2*Math.PI+g*6,[Z,Ce,_]=u((S*Math.cos(Y)+N*Math.sin(Y))*C,(x*Math.cos(Y)+D*Math.sin(Y))*C,(E*Math.cos(Y)+I*Math.sin(Y))*C),z=(_/C+1)/2;
+      s.push({x:Z,y:Ce,z:_,r:((n.partR??1.2)+(n.partRDepth??1.6)*z)*i,white:.3-.22*z});
+    }
+  }
+  return orbCull(s,[],n.rMin);
+}
+function orbDrawGlobe(e,t,n){
+  const l=e/2,o=e/2,u=e/2*.82,i=.4+.06*Math.sin(t*.35),s=orbProjector(t*.5,i,l,o,u),f=t*(.5+(1.7-.5)*(n.scanMul??1)),v=orbScale(e,n.rsPow??.6),h=n.dimBase??1,p=[],y=n.latRings??17,g=n.lonDensity??44;
+  for(let w=0;w<=y;w++){
+    const C=-Math.PI/2+w/y*Math.PI,c=Math.cos(C),a=Math.sin(C),d=Math.max(1,Math.round(Math.abs(c)*g));
+    for(let m=0;m<d;m++){
+      const k=m/d*2*Math.PI,[S,x,E]=s(c*Math.cos(k),a,c*Math.sin(k)),L=(E+1)/2,N=orbAngle(k+t*.5,f),D=Math.exp(-(N*N)/.18)*Math.max(0,E);
+      p.push({x:S,y:x,z:E,r:((n.rBase??.6)+(n.rDepth??1.7)*L+(n.rBoost??1)*D)*v,white:(n.inkFar??.62)-(n.inkSpan??.54)*L,a:h+(1-h)*Math.min(1,D)});
+    }
+  }
+  return orbCull(p,[],n.rMin);
+}
+function orbRubikMoves(e){const t=[];for(let n=0;n<e;n++){const r=Math.min(2,Math.floor(orbHash(n,2.3)*3)),l=-1+.5*Math.min(3,Math.floor(orbHash(n,5.9)*4)),o=orbHash(n,7.7)<.5?1:-1;t.push({axis:r,lo:l,hi:l+.5,ang:o*Math.PI/2});}return t;}
+function orbRubikSchedule(e,t,n,r){const l=2*t*n+r,o=e%l,u=new Array(t).fill(0);let i=-1;if(o<2*t*n){const s=Math.floor(o/n),f=(o-s*n)/n,h=1-Math.pow(1-Math.min(1,f/.7),3);if(s<t){for(let p=0;p<s;p++)u[p]=1;u[s]=h;i=s;}else{const p=2*t-1-s;for(let y=0;y<p;y++)u[y]=1;u[p]=1-h;i=p;}}return{amount:u,active:i};}
+function orbRubikApply(e,t,n){let[r,l,o]=e,u=false;for(let i=0;i<t.length;i++){if(n.amount[i]<=0)continue;const s=t[i],f=s.axis===0?r:s.axis===1?l:o;if(f<s.lo||f>=s.hi)continue;i===n.active&&(u=true);const v=s.ang*n.amount[i],h=Math.cos(v),p=Math.sin(v);if(s.axis===0){const y=l*h-o*p;o=l*p+o*h;l=y;}else if(s.axis===1){const y=r*h+o*p;o=-r*p+o*h;r=y;}else{const y=r*h-l*p;l=r*p+l*h;r=y;}}return[r,l,o,u];}
+function orbDrawRubik(e,t,n){
+  const r=e/2,l=e/2,o=e/2*.82,u=orbProjector(t*.55,.35+.1*Math.sin(t*.9),r,l,o),i=orbScale(e,n.rsPow??.6),s=n.moveCount??14,f=orbRubikMoves(s),v=orbRubikSchedule(t,s,.42,1.2),h=[],p=n.latRings??15,y=n.lonDensity??40;
+  for(let g=0;g<=p;g++){
+    const w=-Math.PI/2+g/p*Math.PI,C=Math.cos(w),c=Math.sin(w),a=Math.max(1,Math.round(Math.abs(C)*y));
+    for(let d=0;d<a;d++){
+      const m=d/a*2*Math.PI,[k,S,x,E]=orbRubikApply([C*Math.cos(m),c,C*Math.sin(m)],f,v),[L,N,D]=u(k,S,x),I=(D+1)/2;
+      h.push({x:L,y:N,z:D,r:((n.rBase??.6)+(n.rDepth??1.7)*I+(E?n.rActive??.3:0))*i,white:(n.inkFar??.62)-(n.inkSpan??.54)*I-(E?.14:0)});
+    }
+  }
+  return orbCull(h,[],n.rMin);
+}
+function orbDrawWave(e,t,n){
+  const r=e/2,l=e/2,o=e/2*.874,u=orbProjector(t*.18,.38,r,l,1),i=orbScale(e,n.rsPow??.6),s=[],f=n.rings??15,v=n.lonDensity??40;
+  for(let h=0;h<=f;h++){
+    const p=-Math.PI/2+h/f*Math.PI,y=Math.cos(p),g=Math.sin(p),w=.62*Math.sin(t*2.1-h*.52)+.38*Math.sin(t*1.27+h*.83),C=o*(.88+.105*w),c=Math.max(1,Math.round(Math.abs(y)*v));
+    for(let a=0;a<c;a++){
+      const d=a/c*2*Math.PI,[m,k,S]=u(y*Math.cos(d)*C,g*C,y*Math.sin(d)*C),x=(S/o+1)/2,E=Math.max(0,w);
+      s.push({x:m,y:k,z:S,r:((n.rBase??.6)+(n.rDepth??1.7)*x)*(1+.4*E)*i,white:.66-.56*x-.1*E});
+    }
+  }
+  return orbCull(s,[],n.rMin);
+}
+function orbDrawWeb(e,t,n){
+  const r=e/2,l=e/2,o=e/2*.8*(n.spread??1),u=orbProjector(t*.12,.32,r,l,o),i=orbScale(e,n.rsPow??.6),s=n.nodeN??30,f=n.thr??.72,v=n.nodeR??1.4,h=n.nodeRDepth??1.8,p=[];
+  for(let C=0;C<s;C++){const c=orbFibSphere(C,s),a=c[0]+.3*(orbNoise(C*.31+9,t*.24)-.5)*2,d=c[1]+.3*(orbNoise(C*.53+27,t*.21)-.5)*2,m=c[2]+.3*(orbNoise(C*.77+55,t*.27)-.5)*2,k=Math.sqrt(a*a+d*d+m*m);p.push([a/k,d/k,m/k]);}
+  const y=[],g=[];
+  for(let C=0;C<s;C++)for(let c=C+1;c<s;c++){
+    const a=p[C][0]-p[c][0],d=p[C][1]-p[c][1],m=p[C][2]-p[c][2],k=Math.sqrt(a*a+d*d+m*m);
+    if(k>=f)continue;
+    const[S,x,E]=u(p[C][0],p[C][1],p[C][2]),[L,N,D]=u(p[c][0],p[c][1],p[c][2]),I=((E+D)/2+1)/2;
+    y.push({x1:S,y1:x,x2:L,y2:N,white:.42,a:(1-k/f)*(.3+.55*I),w:Math.max(.6,(n.lineW??.8)*i)});
+  }
+  for(let C=0;C<s;C++){const[c,a,d]=u(p[C][0],p[C][1],p[C][2]),m=(d+1)/2,k=1+.25*Math.sin(t*1.4+C*2.7);g.push({x:c,y:a,z:d,r:(v+h*m)*k*i,white:.55-.45*m});}
+  const w=n.signals??5;
+  for(let C=0;C<w;C++){
+    const c=Math.floor(t*.55+C*7.31),a=Math.floor(orbHash(c,C*3.1+1.7)*s),d=Math.floor(orbHash(c,C*5.7+4.2)*s);
+    if(a===d)continue;
+    const m=orbFrac(t*.55+C*7.31),k=orbLerp(p[a][0],p[d][0],m),S=orbLerp(p[a][1],p[d][1],m),x=orbLerp(p[a][2],p[d][2],m),E=Math.max(1e-6,Math.sqrt(k*k+S*S+x*x)),[L,N,D]=u(k/E,S/E,x/E),I=(D+1)/2;
+    g.push({x:L,y:N,z:D,r:(v*1.5+h*I)*i,white:.05,a:.5+.5*I});
+  }
+  return orbCull(g,y,n.rMin);
+}
+function orbDrawBraid(e,t,n){
+  const r=e/2,l=e/2,o=e/2*.76,u=orbProjector(t*.4,.3,r,l,1),i=orbScale(e,n.rsPow??.6),s=[],f=n.ghostN??150;
+  for(let p=0;p<f;p++){const y=orbFibSphere(p,f),[g,w,C]=u(y[0]*o,y[1]*o,y[2]*o),c=(C/o+1)/2;s.push({x:g,y:w,z:C,r:.8*i,white:.78,a:.1+.22*c});}
+  const v=n.strandN??52,h=n.turns??3;
+  for(let p=0;p<3;p++){
+    const y=p/3*2*Math.PI;
+    for(let g=0;g<v;g++){
+      const w=(orbFrac(g/v+t*.045)*2-1)*.96,C=Math.sqrt(Math.max(0,1-w*w)),c=Math.min(1,(1-Math.abs(w))/.1),a=w*Math.PI*h+y,d=1+.075*Math.sin(w*Math.PI*h*2+y*2+t*.8),m=C*o*d,[k,S,x]=u(Math.cos(a)*m,w*o*d,Math.sin(a)*m),E=(x/o+1)/2;
+      s.push({x:k,y:S,z:x,r:((n.rBase??1.2)+(n.rDepth??1.8)*E)*i,white:.55-.45*E,a:c*(.45+.55*E)});
+    }
+  }
+  return orbCull(s,[],n.rMin);
+}
+function orbDrawRibbon(e,t,n){
+  const r=e/2,l=e/2,o=e/2*.78,u=n.spin??1,i=.3,s=orbProjector(t*.1*u,i,r,l,1),f=orbScale(e,n.rsPow??.6),v=[],h=n.ghostN??150;
+  for(let I=0;I<h;I++){const pe=orbFibSphere(I,h),[se,Y,Z]=s(pe[0]*o,pe[1]*o,pe[2]*o),Ce=(Z/o+1)/2;v.push({x:se,y:Y,z:Z,r:.8*f,white:.78,a:.1+.22*Ce});}
+  const p=t*.24*u,y=n.faceOn?-i:.55+.3*Math.sin(t*.18)*u,g=Math.cos(p),w=0,C=Math.sin(p),c=-C*Math.sin(y),a=Math.cos(y),d=g*Math.sin(y),m=w*d-C*a,k=C*c-g*d,S=g*a-w*c,x=.23*(n.wobMul??1),E=n.faceOn?o/(1+.85*x):o,L=n.lanes??5,N=n.segs??88,D=Math.max(1,Math.round(L*(n.bandMul??1)));
+  for(let I=0;I<D;I++){
+    const pe=(I-(D-1)/2)*.075,se=Math.abs(I-(D-1)/2)/Math.max(1,(D-1)/2);
+    for(let Y=0;Y<N;Y++){
+      const Z=Y/N*2*Math.PI,Ce=(.16*Math.sin(Z*3-t*1.7+I*.22)+.07*Math.sin(Z*5+t*1.1))*(n.wobMul??1),_=n.faceOn?1+Ce:1,z=n.faceOn?pe:pe+Ce,T=g*Math.cos(Z)+c*Math.sin(Z)+m*z,U=w*Math.cos(Z)+a*Math.sin(Z)+k*z,Q=C*Math.cos(Z)+d*Math.sin(Z)+S*z,rt=Math.sqrt(T*T+U*U+Q*Q),De=E*_,[wn,Ke,_t]=s(T/rt*De,U/rt*De,Q/rt*De),Ml=(_t/o+1)/2;
+      v.push({x:wn,y:Ke,z:_t,r:((n.rBase??1.1)+(n.rDepth??1.7)*Ml)*(1-.25*se)*f,white:.52-.44*Ml+.18*se,a:.4+.6*Ml});
+    }
+  }
+  return orbCull(v,[],n.rMin);
+}
+function orbMorphArclen(e){const t=e.length,n=[];let r=0;for(let l=0;l<t;l++){const o=e[l],u=e[(l+1)%t],i=Math.hypot(u[0]-o[0],u[1]-o[1]);n.push(i);r+=i;}return l=>{let o=l*r,u=0;for(;o>n[u]&&u<t-1;)o-=n[u],u++;const i=e[u],s=e[(u+1)%t],f=n[u]?Math.min(1,o/n[u]):0;return[i[0]+(s[0]-i[0])*f,i[1]+(s[1]-i[1])*f]};}
+const ORB_MORPH_ICONS=(function(){const rp=e=>{const t=-Math.PI/2+e*2*Math.PI;return[Math.cos(t)*.24,Math.sin(t)*.24]};return[rp,orbMorphArclen([[0,-.26],[.24,.16],[-.24,.16]]),orbMorphArclen([[0,-.2],[.2,-.2],[.2,.2],[-.2,.2],[-.2,-.2]])];})();
+function orbDrawMorph(e,t,n){
+  const r=ORB_MORPH_ICONS.length,l=t%(2.3*r),o=Math.floor(l/2.3),u=l-o*2.3,i=u>1.4?orbSmooth((u-1.4)/.9):0,s=n.spread??1,f=ORB_MORPH_ICONS[o],v=ORB_MORPH_ICONS[(o+1)%r],h=160,p=[];
+  for(let S=0;S<h;S++){const x=S/h,E=f(x),L=v(x);p.push([(E[0]+(L[0]-E[0])*i)*s,(E[1]+(L[1]-E[1])*i)*s]);}
+  const y=[];let g=0;
+  for(let S=0;S<h;S++){const x=p[S],E=p[(S+1)%h],L=Math.hypot(E[0]-x[0],E[1]-x[1]);y.push(L);g+=L;}
+  const w=Math.max(6,Math.round(34*(n.iconD??1))),C=(n.rDot??.021)*1.35*s,c=1+.02*Math.sin(u*3.1),a=[],d=e/2;let m=0,k=0;
+  for(let S=0;S<w;S++){const x=S/w*g;for(;k+y[m]<x&&m<h-1;)k+=y[m],m++;const E=p[m],L=p[(m+1)%h],N=y[m]?Math.min(1,(x-k)/y[m]):0,D=(E[0]+(L[0]-E[0])*N)*c,I=(E[1]+(L[1]-E[1])*N)*c;a.push({x:d+D*e,y:d+I*e,z:0,r:Math.max(.35,C*e),white:.1});}
+  return orbCull(a,[],n.rMin);
+}
+const ORB_DRAWS = { orbits:orbDrawOrbits, globe:orbDrawGlobe, rubik:orbDrawRubik, wave:orbDrawWave, web:orbDrawWeb, braid:orbDrawBraid, ribbon:orbDrawRibbon, ring:orbDrawRibbon, morph:orbDrawMorph };
+
+function orbConfig(state, size){
+  const mode = ORB_MODES[state] || 'orbits';
+  const preset = ORB_PRESETS[mode][size <= 40 ? 20 : 64] || ORB_PRESETS[mode][64];
+  let opts = Object.assign({}, ORB_DEFAULTS[mode]);
+  if(preset.count !== 1) opts = orbScaleCounts(opts, preset.count);
+  if(preset.size !== 1) opts = orbScaleSizes(opts, preset.size);
+  if(preset.extra) opts = Object.assign(opts, preset.extra);
+  return { mode, speed: preset.speed, opts };
+}
+function orbScaleCounts(o, t){
+  const n = Object.assign({}, o), r = new Set(), l = Math.sqrt(t);
+  for(const [a,b] of [['latRings','lonDensity'],['rings','lonDensity'],['lanes','segs']]){
+    const i=n[a],s=n[b];
+    if(i!=null&&s!=null&&!r.has(a)&&!r.has(b)){n[a]=Math.max(2,Math.round(i*l));n[b]=Math.max(2,Math.round(s*l));r.add(a);r.add(b);}
+  }
+  for(const k of ['orbitN','ghostN','nodeN','strandN','signals']){const v=n[k];if(v!=null&&v!==0&&!r.has(k))n[k]=Math.max(1,Math.round(v*t));}
+  for(const k of ['iconD']){const v=n[k];if(v!=null)n[k]=Math.max(.02,v*t);}
+  return n;
+}
+function orbScaleSizes(o, t){
+  const n = Object.assign({}, o);
+  for(const k of ['rBase','rDepth','rActive','rDot','ghostR','partR','partRDepth','nodeR','nodeRDepth']){const v=n[k];if(v!=null)n[k]=v*t;}
+  n.rSizeMul = (n.rSizeMul ?? 1) * t;
+  return n;
+}
+
+function startOrb(canvas, state){
+  if(!canvas || canvas.nodeName !== 'CANVAS') return;
+  stopOrb(canvas);
+  const size = 64;
+  const cfg = orbConfig(state, size);
+  const ctx = canvas.getContext('2d');
+  if(!ctx) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.round(size * dpr);
+  canvas.height = Math.round(size * dpr);
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const draw = (time) => {
+    const dark = document.documentElement.getAttribute('data-theme') === 'light' ? false : true;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    orbRender(ctx, ORB_DRAWS[cfg.mode](size, time, cfg.opts), dark);
+  };
+  if(reduced){ draw(0.6); return; }
+  let raf = 0;
+  const loop = () => {
+    draw(performance.now() / 1000 * cfg.speed);
+    raf = requestAnimationFrame(loop);
+  };
+  raf = requestAnimationFrame(loop);
+  canvas._orbStop = () => { cancelAnimationFrame(raf); };
+}
+function stopOrb(canvas){
+  if(canvas && canvas._orbStop){ try{ canvas._orbStop(); }catch(e){} canvas._orbStop = null; }
+}
+function makeOrb(state){
+  const c = document.createElement('canvas');
+  c.className = 'thinking-orb';
+  c.setAttribute('role', 'img');
+  c.setAttribute('aria-label', state || 'Working');
+  startOrb(c, state || 'working');
+  return c;
+}
+
+  function narrateBtn(bubble){
+    const nb = document.createElement('div');
+    nb.className = 'narrate-btn';
+    nb.title = 'Narrate this response';
+    nb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/></svg>';
+    nb.addEventListener('click', () => {
+      const speaking = nb.classList.toggle('speaking');
+      if(speaking){
+        stopNarration();
+        setTimeout(() => { speakOutLoud(bubble.textContent); }, 50);
+        setTimeout(() => nb.classList.remove('speaking'), 9000);
+      } else {
+        stopNarration();
+      }
+     });
+    return nb;
+  }
+
+function copyMsgBtn(bubble){
+  const cb = document.createElement('div');
+  cb.className = 'copy-msg-btn';
+  cb.title = 'Copy response';
+  cb.innerHTML = COPY_SVG;
+  cb.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const text = bubble.textContent;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(() => {
+        cb.classList.add('copied');
+        cb.innerHTML = COPIED_SVG;
+        setTimeout(() => { cb.classList.remove('copied'); cb.innerHTML = COPY_SVG; }, 1600);
+      }, () => fallbackCopy(text, () => { cb.classList.add('copied'); cb.innerHTML = COPIED_SVG; setTimeout(() => { cb.classList.remove('copied'); cb.innerHTML = COPY_SVG; }, 1600); }));
+    } else {
+      fallbackCopy(text, () => { cb.classList.add('copied'); cb.innerHTML = COPIED_SVG; setTimeout(() => { cb.classList.remove('copied'); cb.innerHTML = COPY_SVG; }, 1600); });
+    }
+  });
+  return cb;
+}
+
+    function listenBtn(){
+    const lb = document.createElement('div');
+    lb.className = 'listen-btn';
+    lb.title = 'Voice input';
+    lb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>';
+    lb.addEventListener('click', (e) => {
+      e.stopPropagation();
+      var micBtnEl = document.getElementById('micBtn2');
+      if(!micBtnEl){ micBtnEl = document.getElementById('micBtn'); }
+      if(micBtnEl){ micBtnEl.click(); }
+    });
+    return lb;
+  }
+
+function modelQuickSwitcher(){
+  const wrap = document.createElement('div');
+  wrap.className = 'model-quick';
+  models.forEach(m => {
+    const pill = document.createElement('span');
+    pill.className = 'mq-model' + (m.name === selectedModel ? ' selected' : '');
+    pill.textContent = m.name.split(' ')[0];
+    pill.title = m.name;
+    pill.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectedModel = m.name;
+      modelPillLabel.textContent = m.name;
+      renderModelDropdown();
+      closeModelDropdown();
+      try { localStorage.setItem('arch.model.v1', m.name); } catch(err){}
+      postApi('/api/model', { model: m.name });
+      renderHistory();
+    });
+      wrap.appendChild(pill);
+  });
+  return wrap;
+}
+
+const COPY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>';
+const COPIED_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l6 6L20 6"/></svg>';
+
+function renderMsgHtml(raw){
+  const esc = escapeHtml(stripThinking(raw));
+  const out = [];
+  const re = /```([^\n`]*)(?:\n)?([\s\S]*?)```/g;
+  let last = 0, m;
+  while((m = re.exec(esc)) !== null){
+    if(m.index > last) out.push(plainToHtml(esc.slice(last, m.index)));
+    const lang = m[1].trim();
+    out.push(
+      '<div class="code-block"><div class="code-header">' +
+      '<span class="code-lang">' + (lang ? escapeHtml(lang) : 'code') + '</span>' +
+      '<button class="code-download" title="Download code"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v-a9 9 0 0 0-9-9 9 9 0 0 0-9 9v9"/><path d="M12 18V3m-3 6l3-3 3 3"/></svg></button>' +
+      '<button class="code-copy" title="Copy code">' + COPY_SVG + '<span>Copy</span></button>' +
+      '</div><pre><code>' + m[2] + '</code></pre></div>'
+    );
+    last = m.index + m[0].length;
+  }
+  if(last < esc.length) out.push(plainToHtml(esc.slice(last)));
+  return out.join('');
+}
+
+function plainToHtml(esc){
+  if(!esc) return '';
+   return esc.split(/\n{2,}/).map(p => '<p class="msg-par">' + linkifyAndOpen(p.replace(/\n/g, '<br>')) + '</p>').join('');
+}
+
+function linkifyAndOpen(text){
+  // Convert URLs to clickable links that open apps/websites directly
+  const urlRe = /((?:https?:\/\/|www\.)[^\s]+)/gi;
+  return text.replace(urlRe, (match) => {
+    const url = match.startsWith('http') ? match : 'https://' + match;
+    return `<a href="${url}" class="msg-link" onclick="openTarget('${url}'); return false;">${match}</a>`;
+  });
+}
+
+function openTarget(target){
+  apiFetch('/api/open', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target: target })
+  }).catch(() => {});
+}
+
+function fallbackCopy(text, done){
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    done();
+  } catch(e){}
+}
+
+function attachCodeInteractions(root){
+  root.querySelectorAll('.code-copy').forEach(btn => {
+    if(btn.dataset.bound) return;
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', () => {
+      const pre = btn.closest('.code-block').querySelector('code');
+      const text = pre.textContent;
+      const done = () => {
+        btn.innerHTML = COPIED_SVG + '<span>Copied</span>';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.innerHTML = COPY_SVG + '<span>Copy</span>';
+          btn.classList.remove('copied');
+        }, 1600);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+      } else {
+        fallbackCopy(text, done);
+      }
+    });
+  });
+  root.querySelectorAll('.code-download').forEach(btn => {
+    if(btn.dataset.bound) return;
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', () => {
+      const pre = btn.closest('.code-block').querySelector('code');
+      const lang = btn.closest('.code-block').querySelector('.code-lang').textContent.trim();
+      const text = pre.textContent;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = lang && lang !== 'code' ? lang + '.txt' : 'code.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  });
+}
+
+let activeController = null;
+
+async function askChat(chat, opts){
+  opts = opts || {};
+  // Cancel any in-flight request to prevent stale responses (old prompt bug)
+  if(activeController){
+    try { activeController.abort(); } catch(e){}
+    activeController = null;
+  }
+  activeController = new AbortController();
+
+  // Snapshot ONLY the messages that existed before we add the assistant placeholder
+  const msgs = chat.messages.map(m => ({ role: m.role, content: m.text }));
+  const assistantMsg = { role:'assistant', text:'', _streaming: true, search: !!opts.search };
+  chat.messages.push(assistantMsg);
+  saveChats();
+  openChat(chat.id);
+  const box = document.getElementById('chatMessages');
+  const rows = box.querySelectorAll('.msg-row');
+  const lastRow = rows[rows.length - 1];
+  let orbEl = null;
+  if(lastRow){
+    orbEl = lastRow.querySelector('.msg-orb');
+    // Animate the orb going down while the answer is generated
+    if(orbEl){ orbEl.classList.add('composing-down'); }
+  }
+  const finish = () => {
+    activeController = null;
+    const last = chat.messages[chat.messages.length - 1];
+    if(last && last._streaming) delete last._streaming;
+    if(last && last.text.trim() === '') last.text = replySimulated(chat);
+    else if(last) last.text = stripThinking(last.text);
+    if(orbEl){ stopOrb(orbEl); orbEl.classList.remove('composing-down'); }
+    saveChats();
+    openChat(chat.id);
+  };
+  // Smooth streaming: batch DOM updates via requestAnimationFrame
+  let pendingChunk = '';
+  let rafId = null;
+  const flushChunk = () => {
+    if(pendingChunk && rafId) {
+      const last = chat.messages[chat.messages.length - 1];
+      if(last && last._streaming) last.text += pendingChunk;
+      const r2 = box.querySelectorAll('.msg-row');
+      const lr = r2[r2.length - 1];
+      if(lr){
+        const bubble = lr.querySelector('.msg-bubble');
+        if(bubble){
+          bubble.innerHTML = renderMsgHtml(last ? last.text : '');
+          attachCodeInteractions(bubble);
+        }
+        box.scrollTop = box.scrollHeight;
+      }
+      pendingChunk = '';
+    }
+  };
+   askArch(msgs, (chunk) => {
+    if(activeController && activeController.signal.aborted) return;
+    if(!rafId){
+      rafId = requestAnimationFrame(() => {
+        flushChunk();
+        rafId = null;
+      });
+    }
+    pendingChunk += chunk;
+  }, () => { 
+    if(pendingChunk) flushChunk();
+    if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
+    if(!(activeController && activeController.signal.aborted)) finish(); 
+  }, () => { 
+    if(pendingChunk) flushChunk();
+    if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
+    if(!(activeController && activeController.signal.aborted)) finish(); 
+  }, {
+     search: opts.search, signal: activeController.signal,
+    onSearch: () => {
+      if(orbEl){
+        stopOrb(orbEl);
+        startOrb(orbEl, 'composing');
+      }
+    },
+    onSystemAction: (obj) => {
+      if(obj.action === 'open' && obj.target){
+        apiFetch('/api/open', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target: obj.target })
+        }).catch(() => {});
+      }
+    }
+  });
+}
+
+function postApi(path, body){
+  try {
+    apiFetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {})
+    }).catch(() => {});
+  } catch(e){}
+}
+
+function saveChats(){
+  try { localStorage.setItem('arch.chats.v1', JSON.stringify(chats)); } catch(e){}
+  // Persist to backend for cross-session survival
+  apiFetch('/api/chats', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chats: chats })
+  }).catch(() => {});
+}
+function loadChats(){
+  let fromBackend = false;
+  // Try backend first, fall back to localStorage
+  apiFetch('/api/chats', { method: 'GET' })
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('backend unavailable')))
+    .then(data => {
+      if(Array.isArray(data.chats) && data.chats.length > 0){
+        chats = data.chats;
+        fromBackend = true;
+        return data.chats;
+      }
+      throw new Error('no chats on backend');
+    })
+    .then(() => {
+      renderHistory();
+      if(!fromBackend){
+        // Backend returned no chats — try localStorage fallback
+        try {
+          const raw = localStorage.getItem('arch.chats.v1') || localStorage.getItem('dexter.chats.v1');
+          if(raw){
+            const parsed = JSON.parse(raw);
+            if(Array.isArray(parsed)) chats = parsed;
+          }
+        } catch(e){}
+      }
+    })
+    .catch(() => {
+      // Backend unavailable — load from localStorage
+      try {
+        const raw = localStorage.getItem('arch.chats.v1') || localStorage.getItem('dexter.chats.v1');
+        if(raw){
+          const parsed = JSON.parse(raw);
+          if(Array.isArray(parsed)) chats = parsed;
+        }
+      } catch(e){}
+    })
+    .finally(() => {
+      renderHistory();
+    });
+}
+window.addEventListener('beforeunload', saveChats);
+// Also save on page visibility change (tab switching) for real-time persistence
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden) saveChats();
+});
+
+let __voicesLoaded = false;
+function refreshVoices(){
+  if(!('speechSynthesis' in window)) return;
+  const loaded = () => { __voicesLoaded = true; };
+  const v = window.speechSynthesis.getVoices();
+  if(v && v.length){ loaded(); }
+  window.speechSynthesis.onvoiceschanged = loaded;
+}
+  function getVoiceFor(name){
+    if(!('speechSynthesis' in window)) return null;
+    const voices = window.speechSynthesis.getVoices();
+    if(voices.length === 0) return null;
+    // Map our custom voice names to browser voices
+    const nameMap = {
+      'Verity': 'Microsoft Zira',
+      'Light': 'Microsoft David',
+      'L': 'Microsoft Mark',
+      'Sabrina': 'Microsoft Zira',
+      'Chinese Voice': 'Microsoft Xiaoxiao',
+    };
+    const mapped = nameMap[name];
+    if(mapped){
+      const match = voices.find(x => x.name.toLowerCase().includes(mapped.toLowerCase()));
+      if(match) return match;
+    }
+    const en = voices.filter(x => /^en/i.test(x.lang));
+    return en[0] || voices[0] || null;
+  }
+  function voiceProfile(name){
+    const profiles = {
+      'Verity': { rate: 0.9, pitch: 1.1 },
+      'Light': { rate: 1.0, pitch: 1.0 },
+      'L': { rate: 1.1, pitch: 0.9 },
+      'Sabrina': { rate: 0.85, pitch: 1.2 },
+      'Chinese Voice': { rate: 0.8, pitch: 1.0 },
+    };
+    return profiles[name] || { rate: 1, pitch: 1 };
+  }
+let activeFishAudio = null;
+async function speakFish(text, voiceId){
+  try { window.speechSynthesis.cancel(); } catch(e){}
+  if(activeFishAudio){ try { activeFishAudio.pause(); } catch(e){} activeFishAudio = null; }
+  const r = await apiFetch('/api/tts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, voice_id: voiceId })
+  });
+  if(!r.ok) throw new Error('tts http ' + r.status);
+  const blob = await r.blob();
+  const url = URL.createObjectURL(blob);
+  const a = new Audio(url);
+  activeFishAudio = a;
+  try { await a.play(); } catch(e){ throw e; }
+}
+function speakOutLoudTTS(text){
+  try {
+    if(!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const v = getVoiceFor(selectedVoice);
+    if(v) u.voice = v;
+    const prof = voiceProfile(selectedVoice);
+    u.rate = prof.rate;
+     u.pitch = prof.pitch;
+     window.speechSynthesis.speak(u);
+   } catch(e){}
+ }
+
+ const FISH_MAX_CHARS = 4000;
+ function capNarrationText(text){
+   text = String(text || '').trim();
+   if(text.length <= FISH_MAX_CHARS) return text;
+   return text.slice(0, FISH_MAX_CHARS - 1) + '…';
+ }
+
+ function speakOutLoud(text){
+   try {
+     const v = voices.find(x => x.name === selectedVoice);
+     if(v && v.fish){
+       speakFish(capNarrationText(text), v.fish).catch(() => speakOutLoudTTS(capNarrationText(text)));
+       return;
+     }
+     speakOutLoudTTS(capNarrationText(text));
+   } catch(e){}
+ }
+ function stopNarration(){
+   try { window.speechSynthesis.cancel(); } catch(e){}
+   if(activeFishAudio){ try { activeFishAudio.pause(); activeFishAudio.src = ''; } catch(e){} activeFishAudio = null; }
+ }
+refreshVoices();
+
+/* =========================================================
+   TRANSLATION SYSTEM – African languages + UI localisation
+   ========================================================= */
+const TRANSLATIONS = {
+  en: {
+    'New chat': 'New chat', 'Search chats': 'Search chats', 'Library': 'Library',
+    'Archived': 'Archived', 'Agent': 'Agent', 'Conversation': 'Conversation',
+    'Archived chats': 'Archived chats', 'All of your past conversations in one place': 'All of your past conversations in one place',
+    'Continuing this chat': 'Continuing this chat', 'Hand off a real coding task': 'Hand off a real coding task',
+    'Heavy-duty coding tasks, run end to end': 'Heavy-duty coding tasks, run end to end',
+    "Point at a stack trace, or describe what's failing and where…": "Point at a stack trace, or describe what's failing and where…",
+    "Describe the feature you want built…": "Describe the feature you want built…",
+    'What module or pattern should the agent restructure?': 'What module or pattern should the agent restructure?',
+    'Start task': 'Start task', 'The agent will plan, edit, and report back.': 'The agent will plan, edit, and report back.',
+    "What would you like the agent to do?": "What would you like the agent to do?",
+    'Describe the task…': 'Describe the task…', 'History': 'History',
+    'Search your chats…': 'Search your chats…', "No chats match": "No chats match",
+    'Settings': 'Settings', 'Call me': 'Call me', 'Language': 'Language',
+    'Save preference': 'Save preference', 'Selected voice applies to all spoken responses.': 'Selected voice applies to all spoken responses.',
+    'Choose how Arch sounds, and what it calls you.': 'Choose how Arch sounds, and what it calls you.',
+    'Reply to Arch': 'Reply to Arch', 'Ask Arch': 'Ask Arch',
+    'Arch can make mistakes. Verify important information.': 'Arch can make mistakes. Verify important information.',
+    'Start typing below to begin a new conversation.': 'Start typing below to begin a new conversation.',
+    'Nothing archived': 'Nothing archived',
+    'Chats you archive will show up here so you can restore or delete them.': 'Chats you archive will show up here so you can restore or delete them.',
+    'No conversations yet': 'No conversations yet',
+    'Start a new chat and it will show up here.': 'Start a new chat and it will show up here.',
+    'Arch is ready': 'Arch is ready', 'Debug my shader': 'Debug my shader',
+    'Refactor a file': 'Refactor a file', 'Review particle physics': 'Review particle physics',
+    'Brainstorm ideas': 'Brainstorm ideas', 'Restore': 'Restore',
+    'Delete permanently': 'Delete permanently', 'Voice input': 'Voice input',
+    'Listening… click to stop': 'Listening… click to stop',
+    'Deep web search: off': 'Deep web search: off', 'Deep web search: on': 'Deep web search: on',
+    'Copied': 'Copied', 'Copy': 'Copy', 'Narrate this response': 'Narrate this response',
+    'Attach files or folder': 'Attach files or folder', 'Tools': 'Tools',
+  },
+  sw: {
+    'New chat': 'Jukwaa mpya', 'Search chats': 'Tafuta mazungumzo', 'Library': 'Maktaba',
+    'Archived': 'Imehifadhiwa', 'Agent': 'Mvuvia', 'Conversation': 'Mazungumzo',
+    'Archived chats': 'Mazungumzo yaliyohifadhiwa', 'All of your past conversations in one place': 'Mazungumzo yote ya awali katika mahali moja',
+    'Continuing this chat': 'Kurudia mazungumzo hii', 'Hand off a real coding task': 'Tuma kazi ya kuandika kiakili kweli',
+    'Heavy-duty coding tasks, run end to end': 'Kazi za kuandika kiakili nguvu, enda hadi mwisho',
+    "Point at a stack trace, or describe what's failing and where…": "Onisha kile anapokuua kwenye mgombe, au eleza nini kinakofa na wapi…",
+    "Describe the feature you want built…": "Eleza jiprogramu unayotaka kujenga…",
+    'What module or pattern should the agent restructure?': 'Je, ni toleo au muundo gani anapokuweka tena?',
+    'Start task': 'Anza kazi', 'The agent will plan, edit, and report back.': 'Mtoaji wa kazi atapanga, kuhariri, na kuripoti.',
+    "What would you like the agent to do?": "Una hitaji mtoa kazi afanye nini?",
+    'Describe the task…': 'Eleza kazi…', 'History': 'Historia',
+    'Search your chats…': 'Tafuta mazungumzo yako…', "No chats match": "Hakuna mazungumzo yanayolingana",
+    'Settings': 'Mipangilio', 'Call me': 'Pita ndugu yangu', 'Language': 'Lugha',
+    'Save preference': 'Hifadhi mapendeleo', 'Selected voice applies to all spoken responses.': 'Kelele iliyochaguliwa hutumika katika majibu yote ya kisema.',
+    'Choose how Arch sounds, and what it calls you.': 'Chagua jinsi Arch inavyopiga kelele, na jinsi inavyokuita wewe.',
+    'Reply to Arch': 'Jibu Arch', 'Ask Arch': 'Uliza Arch',
+    'Arch can make mistakes. Verify important information.': 'Arch anaweza kufanya makosa. Thibitisha habari muhimu.',
+    'Start typing below to begin a new conversation.': 'Anza kuchora hapa chini ili kuanza mazungumzo mpya.',
+    'Nothing archived': 'Hakuna kilichohifadhiwa',
+    'Chats you archive will show up here so you can restore or delete them.': 'Mazungumzo yanayohifadhiwa itaonekana hapa ili uweze kurejea au kufuta.',
+    'No conversations yet': 'Hakuna mazungumzo bado',
+    'Start a new chat and it will show up here.': 'Anza jukwaa mpya na litakuonekana hapa.',
+    'Arch is ready': 'Arch imemaandalika', 'Debug my shader': 'Tatua kizuizi changu',
+    'Refactor a file': 'Rekebisha faili', 'Review particle physics': 'Chunguza kiasi cha mialezi',
+    'Brainstorm ideas': 'Panga wazo', 'Restore': 'Rejea',
+    'Delete permanently': 'Futa kwa kudumu', 'Voice input': 'Ingizo la sauti',
+    'Listening… click to stop': 'Inasikiliza… bonyeza ili kuacha',
+    'Deep web search: off': 'Tafuta mtanda unaotulivu: zimevuliwa', 'Deep web search: on': 'Tafuta mtanda unaotulivu: wakati',
+    'Copied': 'Imeonikwa', 'Copy': 'Nakili', 'Narrate this response': 'Soma majibu haya',
+    'Attach files or folder': 'jiunge na faili au folda', 'Tools': 'Zana',
+  },
+  ha: {
+    'New chat': 'Saya da darussan', 'Search chats': 'Nema darussar', 'Library': 'Kutub',
+    'Archived': 'Ana hifadhi', 'Agent': 'Mai amfani', 'Conversation': 'Hunƴa',
+    'Archived chats': 'Darussar yana hifadhi', 'All of your past conversations in one place': 'Dawan dukkan yin da suka wana a wani wuri',
+    'Continuing this chat': 'Kuma hunsa', 'Hand off a real coding task': 'Bayar da kassi kuma kuma amfani da kamma',
+    'Heavy-duty coding tasks, run end to end': 'Ayam-da kussi kuma kuma da ƙarfiya',
+    "Point at a stack trace, or describe what's failing and where…": "Nuna waincaccen takam, ko wasan kafa…",
+    "Describe the feature you want built…": "Dawakin abil din kuma…",
+    'What module or pattern should the agent restructure?': ' Sabin da wani abinci yana amfani da kuma?',
+    'Start task': 'Fara kamma', 'The agent will plan, edit, and report back.': 'Mai amfani zai kuma kuma kuma.',
+    "What would you like the agent to do?": "Abil din mai amfani yana nuna?",
+    'Describe the task…': 'Dawakin kamma…', 'History': 'Tarihi',
+    'Search your chats…': 'Nema darussarka…', "No chats match": "Babu darussar daidai",
+    'Settings': 'Saiti', 'Call me': 'Kira min', 'Language': 'Harshe',
+    'Save preference': 'Hifadhi abil din', 'Selected voice applies to all spoken responses.': 'Abil din kuma hususan a duka yin da suka saiti.',
+    'Choose how Arch sounds, and what it calls you.': 'Ayya jin Arch, da kuma isemun.',
+    'Reply to Arch': 'Javeri daga Arch', 'Ask Arch': 'Tanya Arch',
+    'Arch can make mistakes. Verify important information.': 'Arch yana iya kusar da kusanci. Tabbatar da habar da yake.',
+    'Start typing below to begin a new conversation.': 'Fara kura daga cikin',
+    'Nothing archived': 'Babu zabu',
+    'Chats you archive will show up here so you can restore or delete them.': 'Darussar yana hifadhi ya zo huna',
+    'No conversations yet': 'Babu yin da suka zo',
+    'Start a new chat and it will show up here.': 'Fara darussar nuna',
+    'Arch is ready': 'Arch ya kammala', 'Debug my shader': 'Tattalashe shadant',
+    'Refactor a file': 'Saita wani fayil', 'Review particle physics': 'Duba membul',
+    'Brainstorm ideas': 'Fikra kusa', 'Restore': 'Saita',
+    'Delete permanently': 'Cacce kuma', 'Voice input': 'Shirin sauti',
+    'Listening… click to stop': 'Yana zama… bonyeza don kusar',
+    'Deep web search: off': 'Tafuta duniya: zima', 'Deep web search: on': 'Tafuta duniya: kuma',
+    'Copied': 'An juye', 'Copy': 'Kopiyon', 'Narrate this response': 'Daura wani',
+    'Attach files or folder': 'Haikay tasiri', 'Tools': 'Tasiri',
+  },
+  yo: {
+    'New chat': 'Ìsìdàgbàsókè tuntun', 'Search chats': 'Wá àsọ', 'Library': 'Ilé-iwé',
+    'Archived': 'Ti a fi sí', 'Agent': 'Aládé', 'Conversation': 'Ìbábò',
+    'Archived chats': 'Àwọn ìbábò ti a fi sí', 'All of your past conversations in one place': 'GBogbo àwọn ìbábòàgbàyìí ní ipo kan',
+    'Continuing this chat': 'Ṣatunṣe ìbábò', 'Hand off a real coding task': 'Fúnun ni ìṣirò kòòkọ',
+    'Heavy-duty coding tasks, run end to end': 'Ìṣirò kọ̀kọ̀ nírìn-àkókò, ṣíṣẹ́ lọ sí osi',
+    "Point at a stack trace, or describe what's failing and where…": "Ṣàkọsíwé iṣawọ, tàbí ṣe àlàyé ohun tí ó ti n ṣàbàbò…",
+    "Describe the feature you want built…": "Ṣe àlàyé àtúnṣe tí o fẹ́ ṣe…",
+    'What module or pattern should the agent restructure?': 'Ṣé ìwé àwọn tó kí aládé ṣe àṣàkójọ?',
+    'Start task': 'Bí a kọ̀kọ̀', 'The agent will plan, edit, and report back.': 'Aládé yóò dàfihàn, ṣàtúnṣe, sí Oúnjẹ.',
+    "What would you like the agent to do?": "O fẹ́ kí aládé ṣeé ṣe?",
+    'Describe the task…': 'Ṣe àlàyé ìṣirò…', 'History': 'Ìtàn',
+    'Search your chats…': 'Wá àwọn ìbábò…', "No chats match": "Kò sí ìbábò tí ó mù",
+    'Settings': 'Ìsàdé', 'Call me': 'Pè mí', 'Language': 'Èdè',
+    'Save preference': 'Fẹ̀wà', 'Selected voice applies to all spoken responses.': 'Ìhùwà tí a yíì sẹ́ dàgbàsókè lórí gbogbo.',
+    'Choose how Arch sounds, and what it calls you.': 'Yan bi Arch yóò sọ, àti kí nímọ̀ nín.',
+    'Reply to Arch': 'Dáhùwá sí Arch', 'Ask Arch': 'Béèrè sí Arch',
+    'Arch can make mistakes. Verify important information.': 'Arch lè ṣe àṣìṣe. Ìmọ̀gbági ni ìdánilójú.',
+    'Start typing below to begin a new conversation.': 'Bẹ̀rẹ̀ sí i kí nípa ìbábò tuntun.',
+    'Nothing archived': 'Kò sí ohun ti a fi sí',
+    'Chats you archive will show up here so you can restore or delete them.': 'Àwọn ìbábò tí o fún sí yóò sí ní bí i rẹ.',
+    'No conversations yet': 'Kò sí ìbábò',
+    'Start a new chat and it will show up here.': 'Tẹ́ ìsìdàgbàsókè tuntun kí ó sí ní bí i rẹ.',
+    'Arch is ready': 'Arch ti dákọ́', 'Debug my shader': 'Ṣàtúnṣe ajánú',
+    'Refactor a file': 'Ṣe àtúnṣe wé', 'Review particle physics': 'Duba ìṣirò',
+    'Brainstorm ideas': 'Ronú ìdá', 'Restore': 'Pa',
+    'Delete permanently': 'Fò kík', 'Voice input': 'Ìwé sauti',
+    'Listening… click to stop': 'N sìtún… bonyeza lati ca',
+    'Deep web search: off': 'TÌM PÈLÚ Òfin: zima', 'Deep web search: on': 'TÌM PÈLÚ Òfin: wà',
+    'Copied': 'Ṕ ́kó', 'Copy': 'Nakopi', 'Narrate this response': 'Sọ nípa ayípadà',
+    'Attach files or folder': 'Tẹ̀ faili tàbí folḍa', 'Tools': 'Aláṣẹ́',
+  },
+  zu: {
+    'New chat': 'Inkulumo emitjintshweni', 'Search chats': 'Search chats', 'Library': 'Lbhulayithi',
+    'Archived': 'Kuhunyushwa', 'Agent': 'Umphenduli', 'Conversation': 'Ingxoxo',
+    'Archived chats': 'Ingxoxo eziputheniwe', 'All of your past conversations in one place': 'Onke amibuzo edlule kule ndawo',
+    'Continuing this chat': 'Eke nangemibuzo', 'Hand off a real coding task': 'Nikelela kazi yoku khiqizwa',
+    'Heavy-duty coding tasks, run end to end': 'Imisebenzi yoku khiqiza ezinkulu, bayithatha kude',
+    "Point at a stack trace, or describe what's failing and where…": "Vocala isikhililo, noma chaza ki kuphela…",
+    "Describe the feature you want built…": "Chaza inhlamvu owifuna ukuiyenza…",
+    'What module or pattern should the agent restructure?': 'Lelizansi malunga noma uhloo leliyengwa?',
+    'Start task': 'Qala kazi', 'The agent will plan, edit, and report back.': 'Umphenduli uzadizayein, kuhreli, kanye nokuqina.',
+    "What would you like the agent to do?": "Osekho ukuba umphenduli afakhe ntoni?",
+    'Describe the task…': 'Chaza kazi…', 'History': 'Imari',
+    'Search your chats…': 'Bheka imibuzo…', "No chats match": "Hayi kuwona mibuzo",
+    'Settings': 'Izilungilelwano', 'Call me': 'Bonga', 'Language': 'Ulwizo',
+    'Save preference': 'Londoloza kwesukhethu', 'Selected voice applies to all spoken responses.': 'Isitimela esikhetiriwe sibeka kuzo zonke.',
+    'Choose how Arch sounds, and what it calls you.': 'Khetha yini Arch isitimela, futhi ndonjani.',
+    'Reply to Arch': 'Phendula ku Arch', 'Ask Arch': 'Bhala ku Arch',
+    'Arch can make mistakes. Verify important information.': 'Arch angase athole inhlalakahle. Mqoka ulwazi olubalulekile.',
+    'Start typing below to begin a new conversation.': 'Qala ukubhalisa ngezansi ukuze wade ibuxoxo.',
+    'Nothing archived': 'Akunathi into eziputheniwe',
+    'Chats you archive will show up here so you can restore or delete them.': 'Izimbuzulu ozihlaziyayo izobonakala la ukuze usileze.',
+    'No conversations yet': 'Awunathi mibuzo',
+    'Start a new chat and it will show up here.': 'Qala inkulumo emitjintshweni kanye izobonakala la.',
+    'Arch is ready': 'Arch iphelele', 'Debug my shader': 'Hlukunze isakhi',
+    'Refactor a file': 'Bheka fayela', 'Review particle physics': 'Cwaninga izifobo',
+    'Brainstorm ideas': 'Bambalangena', 'Restore': 'Sula',
+    'Delete permanently': 'Caca nangoma', 'Voice input': 'Into yosayizi',
+    'Listening… click to stop': 'Ngithanda… bonyeza ukuze ugqibe',
+    'Deep web search: off': 'Kuthenjaniswa kwewebhusayithi: mide', 'Deep web search: on': 'Kuthenjaniswa kwewebhusayithi: phezu',
+    'Copied': 'Kopiyethwe', 'Copy': 'Kopisha', 'Narrate this response': 'Vula le mpendulo',
+    'Attach files or folder': 'Linga faile kanye foda', 'Tools': 'Amathuluzi',
+  },
+  ig: {
+    'New chat': 'Mkparị ọ bụlịa', 'Search chats': 'Chọo njikọta', 'Library': 'Akwukọ',
+    'Archived': 'Kpọtọrọ', 'Agent': 'Okenzi', 'Conversation': 'Okwu',
+    'Archived chats': 'Njikọta kporọ', 'All of your past conversations in one place': 'Ihe ncheta gara aga n\u0254tu ebe',
+    'Continuing this chat': 'Nchọ maka okwu', 'Hand off a real coding task': 'Nweta ihe nsụwa kodu',
+    'Heavy-duty coding tasks, run end to end': 'Ihe nsụwa ọnọ dị mma, rinne kakandu',
+    "Point at a stack trace, or describe what's failing and where…": "Kpọtọrọ ihe ọ bụla, ma ọ bụ gọ…",
+    "Describe the feature you want built…": "Kwuo ihe ị chaa…",
+    'What module or pattern should the agent restructure?': 'Ihe omume gaa?',
+    'Start task': 'Mepụta kodu', 'The agent will plan, edit, and report back.': 'Okenzi ga-dee, mgbapa, ebe.',
+    "What would you like the agent to do?": "O furu ihe oke?",
+    'Describe the task…': 'Kwuo kodu…', 'History': 'Akwukolo',
+    'Search your chats…': 'Chọo njikọta…', "No chats match": "Enwere njikọta",
+    'Settings': 'Ntọchite', 'Call me': 'Pukulu', 'Language': 'Asụsụ',
+    'Save preference': 'Ncheta kodu', 'Selected voice applies to all spoken responses.': 'Asịsị dị iche na nke ọma.',
+    'Choose how Arch sounds, and what it calls you.': 'Họrọ Arch na nke ị na-e, o sị gị.',
+    'Reply to Arch': 'Kpọtọ Arch', 'Ask Arch': 'Biko Arch',
+    'Arch can make mistakes. Verify important information.': 'Arch nwere ike ịbụghị ezigbo ezigbo. Chetara ihe ị dị.',
+    'Start typing below to begin a new conversation.': 'Mepụta nke ọma.',
+    'Nothing archived': 'Enwere ihe ọ bụla',
+    'Chats you archive will show up here so you can restore or delete them.': 'Njikọta kporọ yọsịrị.',
+    'No conversations yet': 'Enwere okwu',
+    'Start a new chat and it will show up here.': 'Mepụta njikọta.',
+    'Arch is ready': 'Arch daa', 'Debug my shader': 'Nweta njikọta',
+    'Refactor a file': 'Hjira faile', 'Review particle physics': 'Chawakite ihe',
+    'Brainstorm ideas': 'Patere okwu', 'Restore': 'Chọọ',
+    'Delete permanently': 'Pukulu nke ọma', 'Voice input': 'Asụsụ ọbụ',
+    'Listening… click to stop': 'N na-e ncheta… pịn pịa',
+    'Deep web search: off': 'Chọo we nna: mide', 'Deep web search: on': 'Chọo we nna: mepu',
+    'Copied': 'Kpọtọrọ', 'Copy': 'Kpọ', 'Narrate this response': 'Gbanwe',
+    'Attach files or folder': 'Jikọ faile n\u0254ka', 'Tools': 'Akwụkwọ',
+  },
+  am: {
+    'New chat': 'አዲስ ቃፋ', 'Search chats': 'ፈትስ ውጭ', 'Library': 'መጽሐፈ ቤት',
+    'Archived': 'ታች መጠበቅ', 'Agent': 'የማንም', 'Conversation': 'ውጭ',
+    'Archived chats': 'ውጭ ዝግጅ', 'All of your past conversations in one place': 'ሁሉም ውጭ በአንድ ቦታ',
+    'Continuing this chat': 'ውጭ ወደደ', 'Hand off a real coding task': 'የሚሆነ ኮይንት አንድ',
+    'Heavy-duty coding tasks, run end to end': 'ብሩኸተቱ ኮይንት በመጠበቅ',
+    "Point at a stack trace, or describe what's failing and where…": "ታዝኛ ዝርዝር፣ ኦሁል ምንም…",
+    "Describe the feature you want built…": "ዝርዝር እና መሮጫ።",
+    'What module or pattern should the agent restructure?': 'የምንድን የመጀመሪያ?',
+    'Start task': 'ጀምር ኮይንት', 'The agent will plan, edit, and report back.': 'አይ ይቅርብ፣ እና ይዘዋል።',
+    "What would you like the agent to do?": "አይ ይቻላል?",
+    'Describe the task…': 'ዝርዝር ኮይንት…', 'History': 'ታሪክ',
+    'Search your chats…': 'ፈትስ ውጭ…', "No chats match": "የለም ምንም",
+    'Settings': 'ቅንብአት', 'Call me': 'አዺናትም', 'Language': 'ቋንቋ',
+    'Save preference': 'አስ save', 'Selected voice applies to all spoken responses.': 'የተመረጠው ዝምቧዊ በሁሉ።',
+    'Choose how Arch sounds, and what it calls you.': 'ዝምብዝ አርክት፣ እና የምንደ.',
+    'Reply to Arch': 'መልሱ አርክት', 'Ask Arch': 'ጠይቀት አርክት',
+    'Arch can make mistakes. Verify important information.': 'አርክት ሊተኛ ይችላል። ወደቅዋል መረጃ።',
+    'Start typing below to begin a new conversation.': 'እርስ በታ ለውጭ አዲስ።',
+    'Nothing archived': 'የለም ታች',
+    'Chats you archive will show up here so you can restore or delete them.': 'ውጭ ዝግጅ ይቆምታል።',
+    'No conversations yet': 'የለም ውጭ',
+    'Start a new chat and it will show up here.': 'አዲስ ቃፋ ይቆምታል።',
+    'Arch is ready': 'አርክት የተደረገ', 'Debug my shader': 'የማዕበል መተካት',
+    'Refactor a file': 'ፋይል ለውጭ', 'Review particle physics': 'ፍሪ አይነት ይለውጡ',
+    'Brainstorm ideas': 'አይደረገ', 'Restore': 'ውጭ',
+    'Delete permanently': 'ለውጭ አጠፋ', 'Voice input': 'ዝምጃ አይነት',
+    'Listening… click to stop': 'በሞልታ… አንገባ',
+    'Deep web search: off': 'ውጭ ፈትስ: አይደለም', 'Deep web search: on': 'ውጭ ፈትስ: ነው',
+    'Copied': 'ትይታል', 'Copy': 'ዲያክ', 'Narrate this response': 'መረጃ ይቧል',
+    'Attach files or folder': 'አዘም ፋይል ወይም ፋይል', 'Tools': 'ሳራንች',
+  },
+  fr: {
+    'New chat': 'Nouvelle discussion', 'Search chats': 'Rechercher des discussions', 'Library': 'Bibliothèque',
+    'Archived': 'Archivé', 'Agent': 'Agent', 'Conversation': 'Conversation',
+    'Archived chats': 'Discussions archivées', 'All of your past conversations in one place': 'Toutes vos conversations passées en un lieu',
+    'Continuing this chat': 'Poursuivre cette discussion', 'Hand off a real coding task': 'Transmettre une tâche de codage réelle',
+    'Heavy-duty coding tasks, run end to end': 'Tâches de codage lourdes, du début à la fin',
+    "Point at a stack trace, or describe what's failing and where…": "Pointez vers une trace, ou décrivez ce qui échoue et où…",
+    "Describe the feature you want built…": "Décrivez la fonctionnalité que vous souhaitez créer…",
+    'What module or pattern should the agent restructure?': 'Quel module ou modèle l\'agent devrait-il restructurer?',
+    'Start task': 'Commencer la tâche', 'The agent will plan, edit, and report back.': 'L\'agent planifiera, éditera et rapportera.',
+    "What would you like the agent to do?": "Que souhaitez-vous que l'agent fasse?",
+    'Describe the task…': 'Décrivez la tâche…', 'History': 'Historique',
+    'Search your chats…': 'Rechercher vos discussions…', "No chats match": "Aucune discussion ne correspond",
+    'Settings': 'Paramètres', 'Call me': 'Appelle-moi', 'Language': 'Langue',
+    'Save preference': 'Enregistrer la préférence', 'Selected voice applies to all spoken responses.': 'La voix sélectionnée s\'applique à toutes les réponses parlées.',
+    'Choose how Arch sounds, and what it calls you.': 'Choisissez comment Arch sonne, et ce qu\'il vous appelle.',
+    'Reply to Arch': 'Répondre à Arch', 'Ask Arch': 'Demander à Arch',
+    'Arch can make mistakes. Verify important information.': 'Arch peut se tromper. Vérifiez les informations importantes.',
+    'Start typing below to begin a new conversation.': 'Commencez à taper ci-dessous pour commencer une nouvelle conversation.',
+    'Nothing archived': 'Rien n\'est archivé',
+    'Chats you archive will show up here so you can restore or delete them.': 'Les discussions que vous archivez apparaîtront ici pour les restaurer ou supprimer.',
+    'No conversations yet': 'Aucune conversation pour le moment',
+    'Start a new chat and it will show up here.': 'Commencez une nouvelle discussion et elle apparaîtra ici.',
+    'Arch is ready': 'Arch est prêt', 'Debug my shader': 'Déboguer mon shader',
+    'Refactor a file': 'Refactoriser un fichier', 'Review particle physics': 'Réviser la physique des particules',
+    'Brainstorm ideas': 'Idées d\'ébauche', 'Restore': 'Restaurer',
+    'Delete permanently': 'Supprimer définitivement', 'Voice input': 'Saisie vocal',
+    'Listening… click to stop': 'Écoute… cliquez pour arrêter',
+    'Deep web search: off': 'Recherche web approfondie: désactivé', 'Deep web search: on': 'Recherche web approfondie: activé',
+    'Copied': 'Copié', 'Copy': 'Copier', 'Narrate this response': 'Narrer cette réponse',
+    'Attach files or folder': 'Attacher des fichiers ou dossier', 'Tools': 'Outils',
+  },
+};
+
+let currentLang = 'en';
+
+function applyLanguage(lang){
+  currentLang = lang || 'en';
+  const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+  // Translate specific elements by their text content
+  const translateEl = (el) => {
+    if(!el || !el.nodeType === 3) return;
+    const txt = el.textContent.trim();
+    if(txt && dict[txt]){
+      if(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return; // don't touch placeholders via this
+      el.textContent = dict[txt];
+    }
+  };
+  // Element-specific translations
+  const idMap = {
+    'newChatBtn': 'New chat', 'searchChatsBtn': 'Search chats', 'libraryBtn': 'Library',
+    'agentBtn': 'Agent', 'archivedBtn': 'Archived', 'chatTitle': 'Conversation',
+    'chatSub': 'Continuing this chat', 'libraryBackBtn': 'Library', 'archiveBackBtn': 'Archived chats',
+    'agentBackBtn': 'Agent', 'agentModalTitle': 'Fix a bug', 'agentTaskGo': 'Start task',
+    'voiceSave': 'Save preference', 'nicknameInput': 'Call me', 'languageSelect': 'Language',
+    'heroSub': 'Start typing below to begin a new conversation.',
+    'heroEyebrow': 'Arch is ready',
+    'composerHint': 'Arch can make mistakes. Verify important information.',
+  };
+  Object.keys(idMap).forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const key = idMap[id];
+    if(dict[key]){
+      if(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT'){
+        // Don't translate placeholder text via this mechanism
+      } else {
+        el.textContent = dict[key];
+      }
+    }
+  });
+  // Section labels and panel subs
+  const sectionLabels = document.querySelectorAll('.section-label');
+  sectionLabels.forEach(el => { if(dict[el.textContent.trim()]) el.textContent = dict[el.textContent.trim()]; });
+  const panelSubs = document.querySelectorAll('.panel-sub');
+  panelSubs.forEach(el => { if(dict[el.textContent.trim()]) el.textContent = dict[el.textContent.trim()]; });
+  // Panel titles
+  const panelTitles = document.querySelectorAll('.panel-title');
+  panelTitles.forEach(el => { if(dict[el.textContent.trim()]) el.textContent = dict[el.textContent.trim()]; });
+  // Agent hero
+  const agentHero = document.querySelector('.agent-hero h2');
+  if(agentHero && dict[agentHero.textContent.trim()]) agentHero.textContent = dict[agentHero.textContent.trim()];
+  const agentPara = document.querySelector('.agent-hero p');
+  if(agentPara && dict[agentPara.textContent.trim()]) agentPara.textContent = dict[agentPara.textContent.trim()];
+  // Agent cards titles and descriptions
+  document.querySelectorAll('.ac-title').forEach(el => {
+    const key = el.textContent.trim();
+    if(dict[key]) el.textContent = dict[key];
+  });
+  document.querySelectorAll('.ac-desc').forEach(el => {
+    const key = el.textContent.trim();
+    if(dict[key]) el.textContent = dict[key];
+  });
+  // Chips
+  document.querySelectorAll('#view-home .chip').forEach(el => {
+    const key = el.textContent.trim();
+    if(dict[key]) el.textContent = dict[key];
+  });
+  // Footer hint
+  const footerHints = document.querySelectorAll('.footer-hint');
+  footerHints.forEach(el => { if(dict[el.textContent.trim()]) el.textContent = dict[el.textContent.trim()]; });
+  // Voice modal header
+  const vmHeader = document.querySelector('#voiceModal .voice-modal-header h2');
+  if(vmHeader && dict[vmHeader.textContent.trim()]) vmHeader.textContent = dict[vmHeader.textContent.trim()];
+  const vmSub = document.querySelector('#voiceModal .voice-modal-header p');
+  if(vmSub && dict[vmSub.textContent.trim()]) vmSub.textContent = dict[vmSub.textContent.trim()];
+  // Voice card names and descs
+  document.querySelectorAll('.voice-name').forEach(el => { if(dict[el.textContent.trim()]) el.textContent = dict[el.textContent.trim()]; });
+  document.querySelectorAll('.voice-desc').forEach(el => { if(dict[el.textContent.trim()]) el.textContent = dict[el.textContent.trim()]; });
+  const previewLabel = document.getElementById('previewName');
+  // Voice card names and descs - already handled above
+   // Composer placeholder
+  const inputEl = document.getElementById('input');
+  if(inputEl && currentLang !== 'en' && TRANSLATION_PLACEHOLDERS[currentLang]){
+    inputEl.placeholder = TRANSLATION_PLACEHOLDERS[currentLang].ask || "Ask Arch";
+  }
+  const input2El = document.getElementById('input2');
+  if(input2El && currentLang !== 'en' && TRANSLATION_PLACEHOLDERS[currentLang]){
+    input2El.placeholder = TRANSLATION_PLACEHOLDERS[currentLang].reply || "Reply to Arch";
+  }
+  const agentTaskInput = document.getElementById('agentTaskInput');
+  if(agentTaskInput && currentLang !== 'en' && TRANSLATION_PLACEHOLDERS[currentLang]){
+    agentTaskInput.placeholder = TRANSLATION_PLACEHOLDERS[currentLang].task || 'Describe the task…';
+  }
+  // Search overlay
+  const searchInput = document.getElementById('searchInput');
+  if(searchInput && currentLang !== 'en' && TRANSLATION_PLACEHOLDERS[currentLang]){
+    searchInput.placeholder = TRANSLATION_PLACEHOLDERS[currentLang].search || 'Search your chats...';
+  }
+  // Re-apply greeting with translated text
+  applyGreeting(_pickGreetingForLang(currentLang), false);
+}
+
+const TRANSLATION_PLACEHOLDERS = {
+  sw: { ask: 'Uliza Arch', reply: 'Jibu Arch', task: 'Eleza kazi…', search: 'Tafuta mazungumzo…' },
+  ha: { ask: 'Tanya Arch', reply: 'Javeri daga Arch', task: 'Dawakin kamma…', search: 'Nema darussarka…' },
+  yo: { ask: 'Béèrè sí Arch', reply: 'Dáhùwá sí Arch', task: 'Kwuo ìṣirò…', search: 'Wá àwọn ìbábò…' },
+  zu: { ask: 'Bhala ku Arch', reply: 'Phendula ku Arch', task: 'Chaza kazi…', search: 'Bheka imibuzo…' },
+  ig: { ask: 'Biko Arch', reply: 'Kpọtọ Arch', task: 'Kwuo kodu…', search: 'Chọo njikọta…' },
+  am: { ask: 'ጠይቀት አርክት', reply: 'መልሱ አርክት', task: 'ዝርዝር ኮይንት…', search: 'ፈትስ ውጭ…' },
+  fr: { ask: 'Demander à Arch', reply: 'Répondre à Arch', task: 'Décrire la tâche…', search: 'Rechercher vos discussions…' },
+};
+
+/* =========================================================
+   DYNAMIC INTRODUCTION
+========================================================= */
+const GREETING_TRANSLATIONS = {
+  en: [
+    { h: `Where were we, {{name}}?`, sub: `Last session ended mid-fix on the spiral-arm velocity clamp. Pick that back up, or point me at something new.` },
+    { h: `Let's break something beautiful, {{name}}.`, sub: `Shaders, particle fields, hand-tracked interaction — bring the half-finished idea, I'll help you push it through.` },
+    { h: `Good to see you, {{name}}.`, sub: `Whether it's a stubborn bug in the render loop or a whole new system to sketch out, I'm ready when you are.` },
+    { h: `Ready when the physics gets weird, {{name}}.`, sub: `Singularities, decay curves, softened gravity — the messy math is exactly where I'm most useful.` },
+    { h: `What are we building today, {{name}}?`, sub: `From a one-line fix to a full architectural rewrite, describe it below and we'll get moving.` },
+    { h: `Back at it, {{name}}?`, sub: `I've still got context on the ASCII shader work and the galaxy sim. Say the word, or start fresh.` },
+  ],
+  sw: [
+    { h: `Alipokuwe, {{name}}?`, sub: `Hiiri ya awali ilishabidhi shule ya kupungua kwa kasi ya kupendekeza. Anza hapo, au wone kelele la kitu kipya.` },
+    { h: `Tuanze kitu kupendeza, {{name}}.`, sub: `Shaders, seheamu za magogo, uhusiano wa mkono —leta wazo la nusu kamili, nitakusaidia kupitia.` },
+    { h: `Mmekuja vizuri, {{name}}.`, sub: `Iwe ni makosa ya kupiga kwenye mzigo au mfumo mzima wa kuandika, mimi tayari ninakusubiri.` },
+    { h: `Tayari ninapokuwa kiitio cha kiufundi, {{name}}.`, sub: `Singulantia, mistari ya mgama, ukweli mgumu — hii ni mahali pazuri ambapo ninasaidia zaidi.` },
+    { h: `Unajenga nini leo, {{name}}?`, sub: `Kutoka moja kwa moja hadi toleo kamili la usanifu, eleza hapa chini na tutaanze.` },
+    { h: `Tenagain kuweza, {{name}}?`, sub: `Bado nina mazungumzo kuhusu kazi ya shader ya ASCII na mwizi wa galaksi. Sema neno, au anza upya.` },
+  ],
+  fr: [
+    { h: `Où étions-nous, {{name}} ?`, sub: `La dernière session s'est arrêtée au milieu d'une correction sur la courbure de vitesse du bras spirale. Reprenez-y ou montrez-moi quelque chose de nouveau.` },
+    { h: `Cassons quelque chose de beau, {{name}}.`, sub: `Shaders, champs de particules, interaction par le toucher — apportez l'idée à moitié terminée, je vous aiderai à la pousser.` },
+    { h: `Ravi de vous voir, {{name}}.`, sub: `Que ce soit un bug persistant dans la boucle de rendu ou un nouveau système à esquisser, je suis prêt quand vous l'êtes.` },
+    { h: `Prêt quand la physique devient bizarre, {{name}}.`, sub: `Singularités, courbes de décroissance, gravité adoucie — c'est exactement là où je suis le plus utile.` },
+    { h: `Que construisons-nous aujourd'hui, {{name}} ?`, sub: `D'une correction d'une ligne à une réécriture architecturale complète, décrivez-le ci-dessous et on commence.` },
+    { h: `De retour, {{name}} ?`, sub: `J'ai toujours le contexte du travail sur les shaders ASCII et de la simulation galactique. Dites le mot, ou commencez fraîchement.` },
+  ],
+  yo: [
+    { h: `Níbo a ti wà, {{name}}?`, sub: `Awọn ìṣirò sísha ti ṣí padà síwájú lórí ìtúnilẹ̀ ara ẹrọ. Ṣe àwọn náà padà, tàbí fún mí ní something tuntun.` },
+    { h: `Jẹ́ kí a dúró nǹkan dálayé, {{name}}.`, sub: `Shaders, àwọn ẹgbẹ́ awọn ìṣáyẹ̀, ìwọ̀n ìmọ́ máwọ́ — máa bí iwe tí ó ti kẹ́rẹ́, máa rù ẹ̀sí.` },
+    { h: `Ó dá Bí i, {{name}}.`, sub: `Bẹ́lẹ̀ sí i pé kí o sì ń ṣiṣẹ́ nínàwó, tàbí ẹni tó tó lẹ́nyìn, é kúnrẹ́rẹ́ láti ṣe i.` },
+    { h: `Pẹ̀lú tó ti wá, {{name}}?`.replace('p','p'), sub: `Ìtúnṣe, àwọn e̩kó̩, ìwó ogun — eyi ni ibi ibi tí n jẹ́ dáadáa fún mi.` },
+  ],
+};
+let _greetingCache = {};
+
+function _getGreetingsForLang(lang){
+  if(_greetingCache[lang]) return _greetingCache[lang];
+  const g = GREETING_TRANSLATIONS[lang];
+  if(g) { _greetingCache[lang] = g; return g; }
+  return GREETING_TRANSLATIONS.en;
+}
+
+const greetings = GREETING_TRANSLATIONS.en;
+let greetingIdx = -1;
+
+function _pickGreetingForLang(lang){
+  const gs = _getGreetingsForLang(lang);
+  let next = Math.floor(Math.random() * gs.length);
+  if(gs.length > 1 && next === greetingIdx){
+    next = (next + 1) % gs.length;
+  }
+  greetingIdx = next;
+  return gs[next];
+}
+
+function pickGreeting(){
+  let next = Math.floor(Math.random() * greetings.length);
+  if(greetings.length > 1 && next === greetingIdx){
+    next = (next + 1) % greetings.length;
+  }
+  greetingIdx = next;
+  return greetings[next];
+}
+
+function pad2(n){ return n < 10 ? '0' + n : '' + n; }
+function updateEyebrowTime(){
+  const el = document.getElementById('eyebrowTime');
+  if(!el) return;
+  const d = new Date();
+  el.textContent = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+}
+updateEyebrowTime();
+setInterval(updateEyebrowTime, 15000);
+}
+
+function applyGreeting(g, animate){
+  const h1 = document.getElementById('heroHeading');
+  const sub = document.getElementById('heroSub');
+  const refreshBtn = document.getElementById('heroRefresh');
+  const name = profileNick || 'User';
+
+  const render = () => {
+    h1.innerHTML = g.h.replace(/\{\{name\}\}/g, escapeHtml(name)) + ' ' + refreshBtn.outerHTML;
+    sub.textContent = g.sub.replace(/<[^>]+>/g, '');
+    // re-bind, since innerHTML replaced the node
+    document.getElementById('heroRefresh').addEventListener('click', rotateGreeting);
+  };
+
+  if(animate){
+    h1.classList.add('swapping');
+    setTimeout(render, 175);
+    setTimeout(() => h1.classList.remove('swapping'), 500);
+  } else {
+    render();
+  }
+}
+
+function rotateGreeting(e){
+  if(e){ e.stopPropagation(); fireRipple(e, e.currentTarget); }
+  applyGreeting(_pickGreetingForLang(currentLang), true);
+}
+
+let profileNick = 'User';
+applyGreeting(pickGreeting(), false);
+
+/* =========================================================
+    VIEW SWITCHING
+ ========================================================= */
+function showView(name){
+  if(name === 'home') stopNarration();
+  document.querySelectorAll('.panel-view').forEach(v => v.classList.remove('visible'));
+  document.getElementById('view-' + name).classList.add('visible');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-view'));
+}
+
+function setActiveNav(id){
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-view'));
+  const el = document.getElementById(id);
+  if(el) el.classList.add('active-view');
+}
+
+/* =========================================================
+   RENDER: SIDEBAR HISTORY
+========================================================= */
+function renderHistory(){
+  const list = document.getElementById('historyList');
+  list.innerHTML = '';
+  const active = chats.filter(c => !c.archived);
+  active.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'history-item rippler' + (c.id === currentChatId ? ' current' : '');
+    item.innerHTML = `
+      <span class="dot"></span><span class="label">${escapeHtml(c.title)}</span>
+      <span class="hi-actions">
+        <span class="hi-btn rippler" title="Archive" data-hi-action="archive" data-hi-id="${c.id}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="4" rx="1.2"/><path d="M5 9v9a1.5 1.5 0 001.5 1.5h11A1.5 1.5 0 0019 18V9"/><path d="M10 13h4"/></svg>
+        </span>
+        <span class="hi-btn danger rippler" title="Delete" data-hi-action="delete" data-hi-id="${c.id}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m2 0-1 13a1 1 0 01-1 1H8a1 1 0 01-1-1L6 7"/></svg>
+        </span>
+      </span>
+    `;
+    item.addEventListener('click', (e) => openChat(c.id, e));
+    item.querySelectorAll('.hi-btn').forEach(btn => {
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        fireRipple(e, this);
+        const action = this.dataset.hiAction;
+        const id = this.dataset.hiId;
+        if(action === 'archive'){
+          const chat = chats.find(x => x.id === id);
+          if(chat){
+            chat.archived = true;
+            if(currentChatId === id){ currentChatId = null; showView('home'); }
+            renderHistory();
+          }
+        } else if(action === 'delete'){
+          item.style.transition = 'opacity .2s ease, transform .2s ease';
+          item.style.opacity = '0';
+          item.style.transform = 'translateX(8px)';
+          setTimeout(() => {
+            chats = chats.filter(x => x.id !== id);
+            if(currentChatId === id){ currentChatId = null; showView('home'); }
+            renderHistory();
+          }, 180);
+        }
+      });
+    });
+    list.appendChild(item);
+  });
+  const archivedCountEl = document.getElementById('archivedCount');
+  if(archivedCountEl) archivedCountEl.textContent = chats.filter(c => c.archived).length;
+  saveChats();
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+/* =========================================================
+    CHAT VIEW
+ ========================================================= */
+function openChat(id, evt){
+  if(evt) fireRipple(evt);
+  currentChatId = id;
+  const chat = chats.find(c => c.id === id);
+  if(!chat) return;
+
+  document.getElementById('chatTitle').textContent = chat.title;
+  document.getElementById('chatSub').textContent = chat.messages.length + ' messages';
+
+  const box = document.getElementById('chatMessages');
+  box.innerHTML = '';
+  chat.messages.forEach((m, i) => {
+    const row = document.createElement('div');
+    row.className = 'msg-row ' + m.role;
+    row.style.animationDelay = (i * 0.05) + 's';
+     row.innerHTML = '';
+     const content = document.createElement('div');
+     content.className = 'msg-content';
+     if(m.role === 'assistant'){
+       const orb = makeOrb(m.search ? 'searching' : 'composing');
+       orb.classList.add('msg-orb');
+       if(!m._streaming) stopOrb(orb);
+       content.appendChild(orb);
+     }
+     const bubbleWrap = document.createElement('div');
+     bubbleWrap.className = 'msg-bubble-wrap';
+     const nameEl = document.createElement('div');
+     nameEl.className = 'msg-name';
+     nameEl.textContent = (m.role === 'user' ? (profileNick || 'User') : 'Arch');
+     bubbleWrap.appendChild(nameEl);
+     const bubble = document.createElement('div');
+     bubble.className = 'msg-bubble';
+     bubble.innerHTML = renderMsgHtml(m.text);
+     bubbleWrap.appendChild(bubble);
+     content.appendChild(bubbleWrap);
+     row.appendChild(content);
+     attachCodeInteractions(row);
+      if(m.role === 'assistant' && !m._streaming){
+        const actions = document.createElement('div');
+        actions.className = 'msg-actions';
+        actions.appendChild(copyMsgBtn(bubble));
+        actions.appendChild(listenBtn());
+        actions.appendChild(narrateBtn(bubble));
+        actions.appendChild(modelQuickSwitcher());
+        row.appendChild(actions);
+      }
+     box.appendChild(row);
+  });
+
+  renderHistory();
+  showView('chat');
+  setTimeout(() => { box.scrollTop = box.scrollHeight; }, 50);
+}
+
+document.getElementById('chatBackBtn').addEventListener('click', () => showView('home'));
+
+function sendReplyInChat(){
+  const inp = document.getElementById('input2');
+  const text = withAttachments(inp.value.trim());
+  if(!text || !currentChatId) return;
+  const chat = chats.find(c => c.id === currentChatId);
+  if(!chat) return;
+  chat.messages.push({role:'user', text});
+  inp.value = '';
+  inp.style.height = 'auto';
+  document.getElementById('sendBtn2').classList.remove('active');
+  openChat(currentChatId);
+  askChat(chat, { search: searchMode });
+}
+
+const input2 = document.getElementById('input2');
+const sendBtn2 = document.getElementById('sendBtn2');
+const composer2 = document.getElementById('composer2');
+input2.addEventListener('focus', () => composer2.classList.add('focused'));
+input2.addEventListener('blur', () => composer2.classList.remove('focused'));
+input2.addEventListener('input', () => {
+  input2.style.height = 'auto';
+  input2.style.height = Math.min(input2.scrollHeight, 200) + 'px';
+  sendBtn2.classList.toggle('active', input2.value.trim().length > 0);
+  if(copyInputBtn2){ copyInputBtn2.style.display = input2.value.trim().length > 0 ? 'flex' : 'none'; }
+});
+input2.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendReplyInChat(); }
+});
+sendBtn2.addEventListener('click', sendReplyInChat);
+
+/* =========================================================
+   LIBRARY VIEW
+========================================================= */
+function renderLibrary(){
+  const grid = document.getElementById('libraryGrid');
+  grid.innerHTML = '';
+  const items = chats.filter(c => !c.archived);
+  if(items.length === 0){
+    grid.innerHTML = emptyStateHtml('No conversations yet', 'Start a new chat and it will show up here.');
+    return;
+  }
+  items.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'lib-card rippler';
+    card.innerHTML = `
+      <div class="lib-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+      <div class="lib-info">
+        <div class="lib-name">${escapeHtml(c.title)}</div>
+        <div class="lib-meta">${escapeHtml(c.preview)}</div>
+      </div>
+    `;
+    card.addEventListener('click', (e) => openChat(c.id, e));
+    grid.appendChild(card);
+  });
+}
+
+document.getElementById('libraryBtn').addEventListener('click', () => {
+  renderLibrary();
+  showView('library');
+  setActiveNav('libraryBtn');
+});
+document.getElementById('libraryBackBtn').addEventListener('click', () => showView('home'));
+
+/* =========================================================
+   ARCHIVE VIEW
+========================================================= */
+function renderArchive(){
+  const grid = document.getElementById('archiveGrid');
+  grid.innerHTML = '';
+  const items = chats.filter(c => c.archived);
+  if(items.length === 0){
+    grid.innerHTML = emptyStateHtml('Nothing archived', 'Chats you archive will show up here so you can restore or delete them.');
+    return;
+  }
+  items.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'archive-row';
+    row.innerHTML = `
+      <div class="lib-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="4" rx="1.2"/><path d="M5 9v9a1.5 1.5 0 001.5 1.5h11A1.5 1.5 0 0019 18V9"/><path d="M10 13h4"/></svg></div>
+      <div class="lib-info">
+        <div class="lib-name">${escapeHtml(c.title)}</div>
+        <div class="lib-meta">${escapeHtml(c.preview)}</div>
+      </div>
+      <div class="archive-actions">
+        <div class="archive-action-btn rippler" title="Restore" data-action="restore" data-id="${c.id}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        </div>
+        <div class="archive-action-btn danger rippler" title="Delete permanently" data-action="delete" data-id="${c.id}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m2 0-1 13a1 1 0 01-1 1H8a1 1 0 01-1-1L6 7"/></svg>
+        </div>
+      </div>
+    `;
+    row.querySelector('.lib-info').addEventListener('click', (e) => openChat(c.id, e));
+    row.querySelectorAll('.archive-action-btn').forEach(btn => {
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        fireRipple(e, this);
+        const action = this.dataset.action;
+        const id = this.dataset.id;
+        if(action === 'restore'){
+          const chat = chats.find(x => x.id === id);
+          chat.archived = false;
+          renderArchive();
+          renderHistory();
+          renderLibrary();
+        } else if(action === 'delete'){
+          row.style.transition = 'opacity .25s ease, transform .25s ease';
+          row.style.opacity = '0';
+          row.style.transform = 'translateX(12px)';
+          setTimeout(() => {
+            chats = chats.filter(x => x.id !== id);
+            renderArchive();
+            renderHistory();
+          }, 220);
+        }
+      });
+    });
+    grid.appendChild(row);
+  });
+}
+
+function emptyStateHtml(title, sub){
+  return `<div class="empty-state">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    <div class="es-title">${title}</div>
+    <div class="es-sub">${sub}</div>
+  </div>`;
+}
+
+document.getElementById('archivedBtn').addEventListener('click', (e) => {
+  renderArchive();
+  showView('archive');
+});
+document.getElementById('archiveBackBtn').addEventListener('click', () => showView('home'));
+
+/* =========================================================
+   AGENT VIEW
+========================================================= */
+document.getElementById('agentBtn').addEventListener('click', () => {
+  showView('agent');
+  setActiveNav('agentBtn');
+});
+document.getElementById('agentBackBtn').addEventListener('click', () => showView('home'));
+
+/* ---- Agent card -> "what would you like to do?" prompt ---- */
+const agentModalOverlay = document.getElementById('agentModalOverlay');
+const agentModalTitle = document.getElementById('agentModalTitle');
+const agentTaskInput = document.getElementById('agentTaskInput');
+const agentTaskGo = document.getElementById('agentTaskGo');
+let activeAgentKind = 'Fix a bug';
+
+function openAgentModal(kind, placeholder){
+  activeAgentKind = kind;
+  agentModalTitle.textContent = kind;
+  agentTaskInput.placeholder = placeholder || 'Describe the task…';
+  agentTaskInput.value = '';
+  agentModalOverlay.classList.add('open');
+  setTimeout(() => agentTaskInput.focus(), 60);
+}
+function closeAgentModal(){
+  agentModalOverlay.classList.remove('open');
+}
+
+document.querySelectorAll('.agent-card').forEach(card => {
+  card.addEventListener('click', (e) => {
+    openAgentModal(card.dataset.agent, card.dataset.placeholder);
+  });
+});
+
+document.getElementById('agentModalClose').addEventListener('click', closeAgentModal);
+agentModalOverlay.addEventListener('click', (e) => { if(e.target === agentModalOverlay) closeAgentModal(); });
+
+function submitAgentTask(){
+  const text = agentTaskInput.value.trim();
+  if(!text) { agentTaskInput.focus(); return; }
+  closeAgentModal();
+
+  const id = 'c' + Date.now();
+  const newChat = {
+    id, title: activeAgentKind + ': ' + (text.length > 34 ? text.slice(0,34) + '…' : text),
+    preview: text, archived:false,
+    messages: [{role:'user', text: `[${activeAgentKind}] ${text}`}]
+  };
+  chats.unshift(newChat);
+  openChat(id);
+  askChat(newChat);
+}
+agentTaskGo.addEventListener('click', submitAgentTask);
+agentTaskInput.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); submitAgentTask(); }
+});
+
+/* =========================================================
+   NEW CHAT
+========================================================= */
+document.getElementById('newChatBtn').addEventListener('click', () => {
+  currentChatId = null;
+  renderHistory();
+  showView('home');
+  input.value = '';
+  input.dispatchEvent(new Event('input'));
+  applyGreeting(pickGreeting(), true);
+  setTimeout(() => input.focus(), 350);
+});
+
+/* =========================================================
+   SIDEBAR COLLAPSE
+========================================================= */
+const sidebar = document.getElementById('sidebar');
+function toggleSidebar(){
+  sidebarCollapsed = !sidebarCollapsed;
+  sidebar.classList.toggle('collapsed', sidebarCollapsed);
+}
+document.getElementById('collapseBtn').addEventListener('click', toggleSidebar);
+document.getElementById('menuBtn').addEventListener('click', toggleSidebar);
+
+/* =========================================================
+   MICROPHONE / VOICE INPUT
+========================================================= */
+const micBtn = document.getElementById('micBtn');
+const micOrb = micBtn.querySelector('.mic-orb');
+const micBtn2 = document.getElementById('micBtn2');
+const micOrb2 = micBtn2.querySelector('.mic-orb');
+let micRecording = false;
+
+function activeInputEl(){
+  const chatVisible = document.getElementById('view-chat').classList.contains('visible');
+  return chatVisible ? document.getElementById('input2') : document.getElementById('input');
+}
+
+function setMicUI(btn, orb, on){
+  btn.classList.toggle('recording', on);
+  btn.title = on ? 'Listening… click to stop' : 'Voice input';
+  if(on){
+    orb.innerHTML = '';
+    orb.appendChild(makeOrb('breathing'));
+  } else {
+    stopOrb(orb.querySelector('.thinking-orb'));
+    orb.innerHTML = '';
+  }
+}
+
+let _speechRecognition = null;
+
+function getSpeechRecognition(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR) return null;
+  if(_speechRecognition) return _speechRecognition;
+  const rec = new SR();
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.maxAlternatives = 3;
+  rec.lang = (currentLang === 'en') ? 'en-US' : (currentLang + '-US');
+  _speechRecognition = rec;
+  return rec;
+}
+
+function listenOnce(){
+  return new Promise((resolve, reject) => {
+    const rec = getSpeechRecognition();
+    if(!rec){
+      reject(new Error('Speech recognition not supported in this browser'));
+      return;
+    }
+    rec.lang = (currentLang === 'en') ? 'en-US' : (currentLang + '-US');
+    rec.interimResults = true;
+    let done = false;
+    let bestText = '';
+    let interimText = '';
+    rec.onresult = (e) => {
+      if(done) return;
+      for(let i = e.resultIndex; i < e.results.length; i++){
+        const result = e.results[i];
+        if(result && result.isFinal){
+          // Pick the longest hypothesis as the most likely
+          let best = '';
+          for(let j = 0; j < result.length; j++){
+            const t = result[j].transcript.trim();
+            if(t.length > best.length) best = t;
+          }
+          if(best && best.length > 2){
+            bestText = best;
+            done = true;
+            resolve(bestText);
+            return;
+          }
+        } else {
+          // interim
+          let best = '';
+          for(let j = 0; j < result.length; j++){
+            const t = result[j].transcript.trim();
+            if(t.length > best.length) best = t;
+          }
+          interimText = best;
+        }
+      }
+    };
+    rec.onerror = (e) => {
+      if(done) return;
+      done = true;
+      if(e.error === 'no-speech' || e.error === 'aborted'){
+        resolve('');
+      } else {
+        reject(new Error(e.error));
+      }
+    };
+    rec.onend = () => {
+      if(done) return;
+      done = true;
+      resolve(bestText || interimText || '');
+    };
+    try {
+      rec.start();
+    } catch(err){
+      reject(err);
+    }
+  });
+}
+
+async function toggleMic(btn, orb){
+  micRecording = !micRecording;
+  setMicUI(btn, orb, micRecording);
+  if(!micRecording){
+    if(_speechRecognition){
+      try { _speechRecognition.abort(); } catch(e){}
+    }
+    return;
+  }
+  const target = activeInputEl();
+  const MAX_TOTAL = 25000;
+  const started = Date.now();
+  while(micRecording && Date.now() - started < MAX_TOTAL){
+    try {
+      const phrase = await listenOnce();
+      if(!micRecording) return;
+      if(phrase){
+        setMicUI(btn, orb, false);
+        micRecording = false;
+        target.value = phrase;
+        target.dispatchEvent(new Event('input'));
+        target.focus();
+        return;
+      }
+    } catch(err){
+      if(!micRecording) return;
+    }
+  }
+  if(micRecording){
+    setMicUI(btn, orb, false);
+    micRecording = false;
+  }
+}
+
+micBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMic(micBtn, micOrb); });
+micBtn2.addEventListener('click', (e) => { e.stopPropagation(); toggleMic(micBtn2, micOrb2); });
+
+/* =========================================================
+   DEEP WEB SEARCH TOGGLE
+========================================================= */
+let searchMode = false;
+function applySearchMode(){
+  document.querySelectorAll('.search-toggle-btn').forEach(b => {
+    b.classList.toggle('search-on', searchMode);
+    b.title = 'Deep web search: ' + (searchMode ? 'on' : 'off');
+  });
+}
+document.querySelectorAll('.search-toggle-btn').forEach(b => {
+   b.addEventListener('click', (e) => {
+     e.stopPropagation();
+     searchMode = !searchMode;
+     applySearchMode();
+     try { localStorage.setItem('arch.search.v1', searchMode ? '1' : '0'); } catch(err){}
+   });
+});
+
+/* =========================================================
+   CODEBASE CONTEXT TOGGLE
+========================================================= */
+let codebaseMode = false;
+function applyCodebaseMode(){
+  document.querySelectorAll('.codebase-toggle-btn').forEach(b => {
+    b.classList.toggle('search-on', codebaseMode);
+    b.title = 'Codebase context: ' + (codebaseMode ? 'on' : 'off');
+  });
+}
+document.querySelectorAll('.codebase-toggle-btn').forEach(b => {
+   b.addEventListener('click', (e) => {
+     e.stopPropagation();
+     codebaseMode = !codebaseMode;
+     applyCodebaseMode();
+     try { localStorage.setItem('arch.codebase.v1', codebaseMode ? '1' : '0'); } catch(err){}
+   });
+});
+
+/* =========================================================
+   OPEN APP / WEBSITE
+========================================================= */
+let openAppPrompt = false;
+document.querySelectorAll('.open-app-btn').forEach(b => {
+   b.addEventListener('click', (e) => {
+     e.stopPropagation();
+     const target = prompt('Enter an app name, file path, or URL to open:');
+     if(target && target.trim()){
+       postApi('/api/open', { target: target.trim() });
+     }
+   });
+});
+
+/* =========================================================
+   ATTACH (files / folder)
+========================================================= */
+let attachments = [];
+const attachMenu = document.getElementById('attachMenu');
+const attachFiles = document.getElementById('attachFiles');
+const attachFolder = document.getElementById('attachFolder');
+
+document.querySelectorAll('.attach-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = attachMenu.classList.contains('open');
+    if(open && attachMenu.dataset.anchor === btn.id){ closeAttachMenu(); return; }
+    const rect = btn.getBoundingClientRect();
+    attachMenu.style.left = Math.max(8, rect.left) + 'px';
+    attachMenu.style.top = (rect.bottom + 6) + 'px';
+    attachMenu.dataset.anchor = btn.id;
+    attachMenu.classList.add('open');
+  });
+});
+document.addEventListener('click', (e) => {
+  if(!attachMenu.contains(e.target) && !e.target.closest('.attach-btn')) closeAttachMenu();
+});
+function closeAttachMenu(){ attachMenu.classList.remove('open'); }
+
+document.querySelectorAll('.attach-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    closeAttachMenu();
+    if(opt.dataset.kind === 'files') attachFiles.click();
+    else attachFolder.click();
+  });
+});
+
+attachFiles.addEventListener('change', () => { readAttachFiles(attachFiles.files); attachFiles.value = ''; });
+attachFolder.addEventListener('change', () => { readAttachFiles(attachFolder.files); attachFolder.value = ''; });
+
+function readAttachFiles(fileList){
+  Array.from(fileList).slice(0, 8).forEach(f => {
+    if(f.size > 300 * 1024){
+      addAttachment({ name: f.name, content: '[skipped: file > 300 KB]' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      addAttachment({ name: f.name, content: String(reader.result || '').slice(0, 200000) });
+    };
+    reader.onerror = () => addAttachment({ name: f.name, content: '[could not read file]' });
+    reader.readAsText(f);
+  });
+}
+function addAttachment(a){
+  attachments.push(a);
+  renderAttachChips();
+}
+function removeAttachmentAt(i){
+  attachments.splice(i, 1);
+  renderAttachChips();
+}
+function renderAttachChips(){
+  ['attachChips', 'attachChips2'].forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.innerHTML = '';
+    attachments.forEach((a, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'attach-chip';
+      chip.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 11.5l6.2-6.2a3.5 3.5 0 015 5L9.9 20a4.2 4.2 0 01-6-6L14.6 3.4"/></svg>
+        <span class="ac-name">${escapeHtml(a.name)}</span>
+        <span class="ac-x" title="Remove">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </span>`;
+      chip.querySelector('.ac-x').addEventListener('click', () => removeAttachmentAt(i));
+      el.appendChild(chip);
+    });
+  });
+}
+function withAttachments(text){
+  if(!attachments.length) return text;
+  const blocks = attachments.map(a => {
+    const ext = a.name.rsplit('.', 1)[1] || '';
+    const lang = LANG_BY_EXT[ext] || ext;
+    return `**FILE: ${a.name}**\n\`\`\`${lang}\n${a.content}\n\`\`\``;
+  }).join('\n\n');
+  const out = text + '\n\n--- Attached Files — refer to these for context. ---\n' + blocks;
+  attachments = [];
+  renderAttachChips();
+  return out;
+}
+
+// Language mapping for file extensions
+const LANG_BY_EXT = {
+  py: 'python', js: 'javascript', ts: 'typescript', tsx: 'typescript',
+  jsx: 'javascript', go: 'go', rs: 'rust', c: 'c', cpp: 'cpp', h: 'c',
+  hpp: 'cpp', java: 'java', rb: 'ruby', php: 'php', sh: 'bash',
+  yml: 'yaml', yaml: 'yaml', json: 'json', xml: 'xml', css: 'css',
+  scss: 'scss', html: 'html', htm: 'html', sql: 'sql', ps1: 'powershell',
+  md: 'markdown', latex: 'latex',
+};
+
+/* =========================================================
+   MODEL PICKER
+========================================================= */
+const models = [
+  { name: 'Terra 5.3', desc: 'Fast, well-rounded default — great for everyday coding and quick iteration.' },
+  { name: 'Chen Instruct 3', desc: 'Deeper reasoning for multi-step problems — slower, but thorough.' },
+  { name: 'Fable 5.1', desc: 'Tuned for large codebases and long-context refactors.' },
+];
+let selectedModel = 'Terra 5.3';
+
+const modelPill = document.getElementById('modelPill');
+const modelDropdown = document.getElementById('modelDropdown');
+const modelPillLabel = document.getElementById('modelPillLabel');
+
+function renderModelDropdown(){
+  modelDropdown.innerHTML = '';
+  models.forEach(m => {
+    const opt = document.createElement('div');
+    opt.className = 'model-option rippler' + (m.name === selectedModel ? ' selected' : '');
+    opt.innerHTML = `
+      <span class="mo-dot"></span>
+      <div class="mo-info">
+        <div class="mo-name">${escapeHtml(m.name)}</div>
+        <div class="mo-desc">${escapeHtml(m.desc)}</div>
+      </div>
+      <svg class="mo-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l6 6L20 6"/></svg>
+    `;
+    opt.addEventListener('click', (e) => {
+      fireRipple(e, opt);
+      selectedModel = m.name;
+      modelPillLabel.textContent = m.name;
+      renderModelDropdown();
+      closeModelDropdown();
+      try { localStorage.setItem('arch.model.v1', m.name); } catch(err){}
+      postApi('/api/model', { model: m.name });
+    });
+    modelDropdown.appendChild(opt);
+  });
+}
+renderModelDropdown();
+
+function openModelDropdown(){
+  renderModelDropdown();
+  modelDropdown.classList.add('open');
+  modelPill.classList.add('open');
+}
+function closeModelDropdown(){
+  modelDropdown.classList.remove('open');
+  modelPill.classList.remove('open');
+}
+modelPill.addEventListener('click', (e) => {
+  e.stopPropagation();
+  modelDropdown.classList.contains('open') ? closeModelDropdown() : openModelDropdown();
+});
+document.addEventListener('click', (e) => {
+  if(!modelDropdown.contains(e.target) && !modelPill.contains(e.target)) closeModelDropdown();
+});
+
+/* =========================================================
+   HOME COMPOSER
+========================================================= */
+const input = document.getElementById('input');
+const composer = document.getElementById('composer');
+const sendBtn = document.getElementById('sendBtn');
+
+input.addEventListener('focus', () => composer.classList.add('focused'));
+input.addEventListener('blur', () => composer.classList.remove('focused'));
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 200) + 'px';
+  sendBtn.classList.toggle('active', input.value.trim().length > 0);
+  const cb = document.getElementById('copyInputBtn');
+  if(cb){ cb.style.display = input.value.trim().length > 0 ? 'flex' : 'none'; }
+});
+input.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    if(input.value.trim().length > 0) startNewChatFromHome();
+  }
+});
+sendBtn.addEventListener('click', () => {
+  if(input.value.trim().length > 0) startNewChatFromHome();
+});
+
+const copyInputBtn = document.getElementById('copyInputBtn');
+if(copyInputBtn){
+  copyInputBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const text = input.value.trim();
+    if(!text) return;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(() => {
+        copyInputBtn.classList.add('copied');
+        copyInputBtn.innerHTML = COPIED_SVG;
+        setTimeout(() => { copyInputBtn.classList.remove('copied'); copyInputBtn.innerHTML = COPY_SVG; }, 1600);
+      });
+    } else {
+      fallbackCopy(text, () => {
+        copyInputBtn.classList.add('copied');
+        copyInputBtn.innerHTML = COPIED_SVG;
+        setTimeout(() => { copyInputBtn.classList.remove('copied'); copyInputBtn.innerHTML = COPY_SVG; }, 1600);
+      });
+    }
+  });
+}
+
+const copyInputBtn2 = document.getElementById('copyInputBtn2');
+if(copyInputBtn2){
+  copyInputBtn2.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const text = input2.value.trim();
+    if(!text) return;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(() => {
+        copyInputBtn2.classList.add('copied');
+        copyInputBtn2.innerHTML = COPIED_SVG;
+        setTimeout(() => { copyInputBtn2.classList.remove('copied'); copyInputBtn2.innerHTML = COPY_SVG; }, 1600);
+      });
+    } else {
+      fallbackCopy(text, () => {
+        copyInputBtn2.classList.add('copied');
+        copyInputBtn2.innerHTML = COPIED_SVG;
+        setTimeout(() => { copyInputBtn2.classList.remove('copied'); copyInputBtn2.innerHTML = COPY_SVG; }, 1600);
+      });
+    }
+  });
+}
+
+function startNewChatFromHome(){
+  const text = withAttachments(input.value.trim());
+  const id = 'c' + Date.now();
+  const newChat = {
+    id, title: text.length > 40 ? text.slice(0,40) + '…' : text, preview: text, archived:false,
+    messages: [{role:'user', text}]
+  };
+
+  chats.unshift(newChat);
+
+  input.value = '';
+  input.style.height = 'auto';
+  sendBtn.classList.remove('active');
+  openChat(id);
+  askChat(newChat, { search: searchMode });
+}
+
+document.querySelectorAll('#view-home .chip').forEach(chip => {
+  chip.addEventListener('click', (e) => {
+    fireRipple(e);
+    input.value = chip.textContent.trim();
+    input.dispatchEvent(new Event('input'));
+    input.focus();
+  });
+});
+
+/* =========================================================
+   RIPPLE EFFECT (delegated + manual helper)
+========================================================= */
+function fireRipple(e, targetOverride){
+  const el = targetOverride || e.currentTarget;
+  if(!el) return;
+  const rect = el.getBoundingClientRect();
+  const ripple = document.createElement('span');
+  const size = Math.max(rect.width, rect.height) * 1.3;
+  ripple.className = 'ripple';
+  ripple.style.width = ripple.style.height = size + 'px';
+  ripple.style.left = ((e.clientX ?? rect.left+rect.width/2) - rect.left - size/2) + 'px';
+  ripple.style.top = ((e.clientY ?? rect.top+rect.height/2) - rect.top - size/2) + 'px';
+  el.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+}
+
+document.body.addEventListener('click', (e) => {
+  const target = e.target.closest('.rippler');
+  if(target) fireRipple(e, target);
+});
+
+/* =========================================================
+   THEME TOGGLE (smooth circular veil transition)
+========================================================= */
+const themeToggle = document.getElementById('themeToggle');
+const htmlEl = document.documentElement;
+const veil = document.getElementById('themeVeil');
+
+let themeAnimating = false;
+themeToggle.addEventListener('click', (e) => {
+  if(themeAnimating) return;
+  themeAnimating = true;
+
+  const isLight = htmlEl.getAttribute('data-theme') === 'light';
+  const nextTheme = isLight ? 'dark' : 'light';
+  const nextVeilColor = nextTheme === 'light' ? '#f7f6f3' : '#0a0a0c';
+
+  const rect = themeToggle.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const cy = rect.top + rect.height/2;
+  const maxRadius = Math.hypot(
+    Math.max(cx, window.innerWidth - cx),
+    Math.max(cy, window.innerHeight - cy)
+  );
+  const size = maxRadius * 2.15;
+
+  veil.style.background = nextVeilColor;
+  veil.style.left = (cx - size/2) + 'px';
+  veil.style.top = (cy - size/2) + 'px';
+  veil.style.width = veil.style.height = size + 'px';
+  veil.classList.remove('animating');
+  void veil.offsetWidth; // restart animation
+
+  // Swap the theme itself right as the veil is about to fully cover the
+  // screen (opacity is still high at this point), so the actual repaint
+  // is masked and never visible as a flash.
+  requestAnimationFrame(() => {
+    veil.classList.add('animating');
+    setTimeout(() => {
+      htmlEl.setAttribute('data-theme', nextTheme);
+      try { localStorage.setItem('arch.theme.v1', nextTheme); } catch(err){}
+      postApi('/api/theme', { theme: nextTheme });
+    }, 220);
+  });
+
+  setTimeout(() => { themeAnimating = false; }, 650);
+});
+
+/* =========================================================
+   SEARCH OVERLAY (Gemini-style live filter)
+========================================================= */
+const searchOverlay = document.getElementById('searchOverlay');
+const searchInput = document.getElementById('searchInput');
+const searchResultsEl = document.getElementById('searchResults');
+let kbIndex = -1;
+
+function openSearch(){
+  renderSearchResults('');
+  searchOverlay.classList.add('open');
+  setTimeout(() => searchInput.focus(), 60);
+}
+function closeSearch(){
+  searchOverlay.classList.remove('open');
+  searchInput.value = '';
+  kbIndex = -1;
+}
+
+document.getElementById('searchChatsBtn').addEventListener('click', openSearch);
+searchOverlay.addEventListener('click', (e) => { if(e.target === searchOverlay) closeSearch(); });
+
+document.addEventListener('keydown', (e) => {
+  if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'){
+    e.preventDefault();
+    searchOverlay.classList.contains('open') ? closeSearch() : openSearch();
+  }
+  if(e.key === 'Escape'){
+    if(searchOverlay.classList.contains('open')) closeSearch();
+    else if(modalOverlay.classList.contains('open')) closeModal();
+    else if(modelDropdown.classList.contains('open')) closeModelDropdown();
+  }
+  if(searchOverlay.classList.contains('open')){
+    const results = [...searchResultsEl.querySelectorAll('.search-result')];
+    if(e.key === 'ArrowDown'){ e.preventDefault(); kbIndex = Math.min(kbIndex+1, results.length-1); updateKbActive(results); }
+    if(e.key === 'ArrowUp'){ e.preventDefault(); kbIndex = Math.max(kbIndex-1, 0); updateKbActive(results); }
+    if(e.key === 'Enter' && results[kbIndex]){ results[kbIndex].click(); }
+  }
+});
+
+function updateKbActive(results){
+  results.forEach(r => r.classList.remove('kb-active'));
+  if(results[kbIndex]) results[kbIndex].classList.add('kb-active');
+}
+
+function highlightMatch(text, query){
+  if(!query) return escapeHtml(text);
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if(idx === -1) return escapeHtml(text);
+  return escapeHtml(text.slice(0,idx)) + '<mark>' + escapeHtml(text.slice(idx, idx+query.length)) + '</mark>' + escapeHtml(text.slice(idx+query.length));
+}
+
+function renderSearchResults(query){
+  kbIndex = -1;
+  const q = query.trim().toLowerCase();
+  const pool = chats.filter(c => !c.archived);
+  const results = q === '' ? pool : pool.filter(c =>
+    c.title.toLowerCase().includes(q) || c.preview.toLowerCase().includes(q)
+  );
+
+  searchResultsEl.innerHTML = '';
+  if(results.length === 0){
+    searchResultsEl.innerHTML = `<div class="search-empty">No chats match "${escapeHtml(query)}"</div>`;
+    return;
+  }
+  results.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'search-result';
+    row.innerHTML = `
+      <div class="sr-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+      <div class="sr-info">
+        <div class="sr-title">${highlightMatch(c.title, query)}</div>
+        <div class="sr-meta">${escapeHtml(c.preview)}</div>
+      </div>
+    `;
+    row.addEventListener('click', () => { closeSearch(); openChat(c.id); });
+    searchResultsEl.appendChild(row);
+  });
+}
+
+searchInput.addEventListener('input', () => renderSearchResults(searchInput.value));
+
+/* =========================================================
+   VOICE SETTINGS MODAL
+========================================================= */
+const voices = [
+  { name: 'Verity',   color: '#7f9fd6', desc: 'Real fish.audio voice (Verity voice bank).', sample: 'voicebank/verity.mp3', fish: '8d21b053e2804e2a890e1cf62f267b6f' },
+  { name: 'Light',    color: '#e0b04f', desc: 'Real fish.audio voice (Light voice bank).', sample: 'voicebank/light.mp3', fish: '8e577d805bcf479fa50b21e6f565c268' },
+  { name: 'L',        color: '#5fb8a8', desc: 'Real fish.audio voice (L voice bank).', sample: 'voicebank/l.mp3', fish: '52d9d3c3b6f845aea0a0a03c7ad9a61d' },
+  { name: 'Sabrina',  color: '#d97ba0', desc: 'Real fish.audio voice (Sabrina Carpenter bank).', sample: 'voicebank/sabrina.mp3', fish: '4cf07afcf2ae4aa1ae4da28ddf479c9e' },
+  { name: 'Chinese Voice', color: '#a577c9', desc: 'Real fish.audio voice (Chinese voice bank).', sample: 'voicebank/japanese.mp3', fish: '95880cb661f54c4d968c996e2a225a65' },
+];
+
+const voiceGrid = document.getElementById('voiceGrid');
+let selectedVoice = 'Verity';
+
+function renderVoices(){
+  voiceGrid.innerHTML = '';
+  voices.forEach(v => {
+    const card = document.createElement('div');
+    card.className = 'voice-card rippler' + (v.name === selectedVoice ? ' selected' : '');
+    card.innerHTML = `
+      <div class="voice-bubble" style="background:${v.color}">${v.name[0]}</div>
+      <div class="voice-info">
+        <div class="voice-name">${v.name}</div>
+        <div class="voice-desc">${v.desc}</div>
+      </div>
+      <div class="voice-check">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l6 6L20 6"/></svg>
+      </div>
+    `;
+    card.addEventListener('click', function(e){
+      fireRipple(e, this);
+      selectedVoice = v.name;
+      document.querySelectorAll('.voice-card').forEach(c => c.classList.remove('selected'));
+      this.classList.add('selected');
+      document.getElementById('previewName').textContent = v.name;
+      try { localStorage.setItem('arch.voice.v1', v.name); } catch(err){}
+      postApi('/api/voice', { voice: v.name });
+      startPreview();
+    });
+    voiceGrid.appendChild(card);
+  });
+}
+renderVoices();
+
+const modalOverlay = document.getElementById('modalOverlay');
+const settingsBtn = document.getElementById('settingsBtn');
+const modalClose = document.getElementById('modalClose');
+
+settingsBtn.addEventListener('click', () => { loadProfile(true); modalOverlay.classList.add('open'); });
+modalClose.addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', (e) => { if(e.target === modalOverlay) closeModal(); });
+
+async function loadProfile(populateForm){
+  try {
+    const r = await apiFetch('/api/config');
+    if(!r.ok) return;
+    const cfg = await r.json();
+    const p = cfg.profile || {};
+    if(p.nickname) profileNick = p.nickname;
+    if(p.language){
+      currentLang = p.language || 'en';
+    }
+    if(populateForm){
+      const nick = document.getElementById('nicknameInput');
+      if(nick && p.nickname != null) nick.value = p.nickname;
+      const lang = document.getElementById('languageSelect');
+      if(lang && p.language != null){
+        for(const o of lang.options){ if(o.value === p.language){ o.selected = true; break; } }
+      }
+    }
+    if(p.voice){
+      selectedVoice = p.voice;
+      localStorage.setItem('arch.voice.v1', p.voice);
+      document.querySelectorAll('.voice-card').forEach(c => c.classList.toggle('selected', c.querySelector('.voice-name').textContent === p.voice));
+      const el = document.getElementById('previewName');
+      if(el) el.textContent = p.voice;
+    }
+    // Apply language translation and refresh greeting with the loaded nickname
+    applyLanguage(currentLang);
+    // applyLanguage already re-applies a translated greeting; no need for a second call
+  } catch(e){}
+}
+
+function closeModal(){
+  modalOverlay.classList.remove('open');
+  stopPreview();
+}
+
+document.getElementById('voiceSave').addEventListener('click', () => {
+  const btn = document.getElementById('voiceSave');
+  const original = btn.textContent;
+  btn.textContent = 'Saved ✓';
+  postApi('/api/voice', { voice: selectedVoice });
+  const nick = document.getElementById('nicknameInput').value.trim();
+  const lang = document.getElementById('languageSelect').value;
+  postApi('/api/profile', { nickname: nick, language: lang });
+  profileNick = nick || 'User';
+  currentLang = lang || 'en';
+  try { localStorage.setItem('arch.lang.v1', currentLang); } catch(err){}
+  applyLanguage(currentLang);
+  setTimeout(() => { btn.textContent = original; closeModal(); }, 700);
+});
+
+const previewPlay = document.getElementById('previewPlay');
+const previewBars = document.getElementById('previewBars');
+const iconPlay = previewPlay.querySelector('.icon-play');
+const iconPause = previewPlay.querySelector('.icon-pause');
+let previewTimer = null;
+let previewAudio = null;
+
+previewPlay.addEventListener('click', () => {
+  previewBars.classList.contains('playing') ? stopPreview() : startPreview();
+});
+function startPreview(){
+  previewBars.classList.add('playing');
+  iconPlay.style.display = 'none';
+  iconPause.style.display = 'block';
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(stopPreview, 6000);
+  const v = voices.find(x => x.name === selectedVoice);
+  const line = 'Hello ' + (profileNick || 'User') + ', this is how I sound as ' + selectedVoice + '.';
+  if(v && v.fish){
+    speakFish(line, v.fish)
+      .catch(() => playSample(v));
+  } else if(v && v.sample){
+    playSample(v);
+  } else {
+    speakOutLoudTTS(line);
+  }
+}
+function playSample(v){
+  try { window.speechSynthesis.cancel(); } catch(e){}
+  if(activeFishAudio){ try { activeFishAudio.pause(); } catch(e){} activeFishAudio = null; }
+  if(previewAudio){ previewAudio.pause(); previewAudio = null; }
+  previewAudio = new Audio(v.sample);
+  previewAudio.play().catch(() => { previewAudio = null; speakOutLoudTTS('Hello ' + (profileNick || 'User') + ', this is how I sound as ' + selectedVoice + '.'); });
+}
+function stopPreview(){
+  previewBars.classList.remove('playing');
+  iconPlay.style.display = 'block';
+  iconPause.style.display = 'none';
+  clearTimeout(previewTimer);
+  if(previewAudio){ previewAudio.pause(); previewAudio = null; }
+  if(activeFishAudio){ try { activeFishAudio.pause(); } catch(e){} activeFishAudio = null; }
+  try { window.speechSynthesis.cancel(); } catch(e){}
+}
+
+/* =========================================================
+    INIT
+    ========================================================= */
+loadChats();  // async — fetches from backend and renders when ready
+
+(function restorePrefs(){
+  try {
+    const m = localStorage.getItem('arch.model.v1');
+    if(m && models.some(x => x.name === m)){
+      selectedModel = m;
+      modelPillLabel.textContent = m;
+      renderModelDropdown();
+    }
+  } catch(e){}
+  try {
+    const v = localStorage.getItem('arch.voice.v1');
+    if(v && voices.some(x => x.name === v)){
+      selectedVoice = v;
+      document.querySelectorAll('.voice-card').forEach(c => c.classList.toggle('selected', c.querySelector('.voice-name').textContent === v));
+      const el = document.getElementById('previewName');
+      if(el) el.textContent = v;
+    }
+  } catch(e){}
+  try {
+    const t = localStorage.getItem('arch.theme.v1');
+    if(t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch(e){}
+  try {
+     const lang = localStorage.getItem('arch.lang.v1');
+     if(lang){ currentLang = lang; }
+  } catch(e){}
+   try {
+      searchMode = localStorage.getItem('arch.search.v1') === '1';
+      applySearchMode();
+   } catch(e){}
+   try {
+      codebaseMode = localStorage.getItem('arch.codebase.v1') === '1';
+      applyCodebaseMode();
+   } catch(e){}
+   loadProfile(false);
+})();
+</script>
+
+</body>
+</html>
