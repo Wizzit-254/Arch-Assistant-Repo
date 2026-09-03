@@ -2,8 +2,8 @@
 Local AI bridge: ollama HTTP client used by Api_server.
 
 All heavy lifting talks to the portable ollama runtime on 127.0.0.1:11435.
-Personality model names (luna-5.3, mushy-4.6, wun-3.8) map directly to
-ollama model names (created via the .Modelfile files).
+Personality model names (luna-5.3, mushy-4.6, wun-3.8) map to display names
+(Terra 5.3, Chen Instruct 3, Kyuu 3.8) and ollama model names (created via the .Modelfile files).
 """
 import os
 import re
@@ -20,21 +20,19 @@ from arch_context import OLLAMA_HOST, OLLAMA_PORT, CTX, FISH_API_KEY, APP_DIR
 OLLAMA_BASE = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}"
 
 # Model name overrides for the backend. luna/mushy/wun are ollama "create"d
-# names; if a user has a plain model tagged the same, this still resolves.
-# Display names used by the Electron UI are mapped here too so the frontend
-# can send either "Luna 5.3" or "luna-5.3".
+# names; display names shown in the UI are mapped here.
 MODEL_OVERRIDES = {
     "luna-5.3": "luna-5.3",
-    "Luna 5.3": "luna-5.3",
+    "Terra 5.3": "luna-5.3",
     "mushy-4.6": "mushy-4.6",
-    "Mushy 4.6": "mushy-4.6",
+    "Chen Instruct 3": "mushy-4.6",
     "wun-3.8": "wun-3.8",
-    "Wun 3.8": "wun-3.8",
+    "Kyuu 3.8": "wun-3.8",
 }
 MODEL_DISPLAY = {
-    "luna-5.3": "Luna 5.3",
-    "mushy-4.6": "Mushy 4.6",
-    "wun-3.8": "Wun 3.8",
+    "luna-5.3": "Terra 5.3",
+    "mushy-4.6": "Chen Instruct 3",
+    "wun-3.8": "Kyuu 3.8",
 }
 
 AFRICAN_LANGUAGE_NAMES = {

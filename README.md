@@ -2,40 +2,48 @@
 
 A portable offline AI desktop assistant with 3 persona models powered by Ollama.
 
-![Arch](Arch-Assistant-Installer.exe)
+![Arch](ArchAssistantInstaller.exe)
 
 ## Quick Install
 
-1. **Download** `install.bat` from this repo
-2. **Run** the installer — it downloads the full app automatically
-3. **Launch** Arch Assistant from your desktop
-4. **Wait** for AI models to download on first launch (~2 GB)
+### Option 1: Lightweight Installer (Recommended)
+1. Download `ArchAssistantInstaller.exe` from the [latest release](https://github.com/Wizzit-254/Arch-Assistant-Repo/releases/latest)
+2. Run the installer — it downloads the full app automatically (choose install location)
+3. Launch Arch Assistant from your desktop
+
+### Option 2: Direct ZIP Download
+When you visit the [releases page](https://github.com/Wizzit-254/Arch-Assistant-Repo/releases), the `Arch-Assistant-App.zip` is directly downloadable. Extract the folder and run `Arch.exe`.
+
+### Option 3: install.bat
+1. Download `install.bat` from this repo
+2. Run it — it downloads the full app automatically
+3. Launch Arch Assistant from your desktop
 
 That's it. No Python setup, no Ollama install — the installer handles everything.
 
 ## Requirements
 
 - Windows 10/11
-- Python 3.10+ (for the backend)
-- ~3 GB free disk space
-- Internet connection (for initial model download)
+- Python 3.10+ (the installer downloads it automatically if missing)
+- ~3 GB free disk space (includes base model blob, ~1.8 GB)
+- Internet connection needed only for first launch model verification
 
 ## AI Models
 
 | Model | Specialty | Speed |
 |-------|-----------|-------|
-| **Luna 5.3** | Fast, code-first assistant | Fast |
-| **Mushy 4.6** | Deep reasoning, multi-step problems | Medium |
-| **Wun 3.8** | Large codebases, long-context refactors | Medium |
+| **Terra 5.3** | Fast, code-first assistant | Fast |
+| **Chen Instruct 3** | Deep reasoning, multi-step problems | Medium |
+| **Kyuu 3.8** | Large codebases, long-context refactors | Medium |
 
-All models are based on Qwen 2.5 Coder 3B (quantized Q4_K_S).
+All models share one base: **Fable 5.1** (Qwen 2.5 Coder 3B, quantized Q4_K_S). The models are included in the release zip for fully offline operation.
 
 ## Features
 
 - Real-time streaming chat (SSE)
 - Web search integration (DuckDuckGo + Exa MCP)
-- Speech-to-text (Windows SAPI)
-- Text-to-speech (Fish Audio API)
+- Speech-to-text via Web Speech API (Google Cloud)
+- Text-to-speech (Fish Audio API + system TTS)
 - Codebase context injection
 - Dark/Light theme
 - Chat history persistence
@@ -51,14 +59,14 @@ Arch Assistant/
 ├── local_ai.py            # Ollama client, web search, TTS
 ├── ollama_runtime.py      # Portable Ollama lifecycle
 ├── arch_context.py        # Config loader, runtime context
-├── speech_stt.ps1         # Windows speech-to-text
+├── speech_stt.ps1         # Legacy PowerShell STT (deprecated; Web Speech API used in renderer)
 ├── Config.json            # App configuration
 ├── *.Modelfile            # Ollama model definitions
 ├── Arch.exe               # Electron frontend
 ├── ollama/                # Portable Ollama runtime
 │   ├── ollama.exe
 │   ├── lib/ollama/        # llama.cpp server + DLLs
-│   └── models/            # Model weights
+│   └── models/            # Model weights (blobs + manifests)
 └── resources/app.asar     # Electron renderer
 ```
 

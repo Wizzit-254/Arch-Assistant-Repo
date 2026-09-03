@@ -205,7 +205,8 @@ echo.
 echo   Installed to: %INSTALL_DIR%
 echo   Desktop shortcut created.
 echo.
-echo   First launch downloads AI models (~2 GB) automatically.
+echo   First launch uses AI models included in the download (~2 GB).
+echo   Models are bundled — no separate download needed after install.
 echo.
 
 choice /C YN /M "  Launch Arch Assistant now? [Y/N]"
