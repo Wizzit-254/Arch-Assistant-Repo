@@ -14,6 +14,7 @@ import tempfile
 import urllib.request
 import urllib.error
 import urllib.parse
+import time
 
 from arch_context import OLLAMA_HOST, OLLAMA_PORT, CTX, FISH_API_KEY, APP_DIR
 
@@ -582,6 +583,9 @@ SKIP_DIRS = {
     'ollama', 'models', 'resources', 'locales', 'voicebank',
 }
 
+_codebase_cache = {}
+_CODEBASE_CACHE_TTL = 30
+
 def scan_codebase(root_dir=None, max_files=500, max_file_size=100000):
     """Scan a directory tree and build an index of code files.
     
@@ -593,7 +597,12 @@ def scan_codebase(root_dir=None, max_files=500, max_file_size=100000):
     """
     root_dir = root_dir or APP_DIR or os.getcwd()
     root_dir = os.path.abspath(root_dir)
-    
+
+    now = time.time()
+    cached = _codebase_cache.get(root_dir)
+    if cached and (now - cached['_ts']) < _CODEBASE_CACHE_TTL:
+        return cached['data']
+
     files = []
     dir_tree = {}
     total_size = 0
@@ -658,13 +667,15 @@ def scan_codebase(root_dir=None, max_files=500, max_file_size=100000):
     
     dir_tree = build_tree(root_dir)
     
-    return {
+    result = {
         'files': files[:max_files],
         'total_size': total_size,
         'file_count': file_count,
         'dir_tree': dir_tree,
         'root': root_dir,
     }
+    _codebase_cache[root_dir] = {'_ts': time.time(), 'data': result}
+    return result
 
 
 def read_file_content(filepath, max_chars=50000):

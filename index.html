@@ -2276,8 +2276,10 @@ async function askChat(chat, opts){
   const rows = box.querySelectorAll('.msg-row');
   const lastRow = rows[rows.length - 1];
   let orbEl = null;
+  let lastBubbleEl = null;
   if(lastRow){
     orbEl = lastRow.querySelector('.msg-orb');
+    lastBubbleEl = lastRow.querySelector('.msg-bubble');
     // Animate the orb going down while the answer is generated
     if(orbEl){ orbEl.classList.add('composing-down'); }
   }
@@ -2288,24 +2290,38 @@ async function askChat(chat, opts){
     if(last && last.text.trim() === '') last.text = replySimulated(chat);
     else if(last) last.text = stripThinking(last.text);
     if(orbEl){ stopOrb(orbEl); orbEl.classList.remove('composing-down'); }
+    // Render final HTML once instead of re-rendering on every chunk
+    if(lastBubbleEl && last){
+      lastBubbleEl.innerHTML = renderMsgHtml(last.text);
+      attachCodeInteractions(lastBubbleEl);
+      const row = lastBubbleEl.closest('.msg-row');
+      if(row && last.role === 'assistant' && !row.querySelector('.msg-actions')){
+        const actions = document.createElement('div');
+        actions.className = 'msg-actions';
+        actions.appendChild(copyMsgBtn(lastBubbleEl));
+        actions.appendChild(listenBtn());
+        actions.appendChild(narrateBtn(lastBubbleEl));
+        actions.appendChild(modelQuickSwitcher());
+        row.appendChild(actions);
+      }
+    }
     saveChats();
-    openChat(chat.id);
+    document.getElementById('chatTitle').textContent = chat.title;
+    document.getElementById('chatSub').textContent = chat.messages.length + ' messages';
+    renderHistory();
+    showView('chat');
+    box.scrollTop = box.scrollHeight;
   };
-  // Smooth streaming: batch DOM updates via requestAnimationFrame
+  // Batch DOM updates for smooth streaming — avoid expensive re-renders per chunk
   let pendingChunk = '';
-  let rafId = null;
+  let renderTimer = null;
   const flushChunk = () => {
-    if(pendingChunk && rafId) {
+    if(pendingChunk) {
       const last = chat.messages[chat.messages.length - 1];
       if(last && last._streaming) last.text += pendingChunk;
-      const r2 = box.querySelectorAll('.msg-row');
-      const lr = r2[r2.length - 1];
-      if(lr){
-        const bubble = lr.querySelector('.msg-bubble');
-        if(bubble){
-          bubble.innerHTML = renderMsgHtml(last ? last.text : '');
-          attachCodeInteractions(bubble);
-        }
+      if(lastBubbleEl){
+        // textContent is ~50x faster than innerHTML for plain text — no HTML parsing
+        lastBubbleEl.textContent = last ? last.text : '';
         box.scrollTop = box.scrollHeight;
       }
       pendingChunk = '';
@@ -2313,21 +2329,22 @@ async function askChat(chat, opts){
   };
    askArch(msgs, (chunk) => {
     if(activeController && activeController.signal.aborted) return;
-    if(!rafId){
-      rafId = requestAnimationFrame(() => {
-        flushChunk();
-        rafId = null;
-      });
-    }
     pendingChunk += chunk;
-  }, () => { 
+    // Debounce: batch chunks over 33ms (~30fps) instead of every rAF frame (~60fps)
+    if(!renderTimer){
+      renderTimer = setTimeout(() => {
+        flushChunk();
+        renderTimer = null;
+      }, 33);
+    }
+  }, () => {
+    if(renderTimer){ clearTimeout(renderTimer); renderTimer = null; }
     if(pendingChunk) flushChunk();
-    if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
-    if(!(activeController && activeController.signal.aborted)) finish(); 
-  }, () => { 
+    if(!(activeController && activeController.signal.aborted)) finish();
+  }, () => {
+    if(renderTimer){ clearTimeout(renderTimer); renderTimer = null; }
     if(pendingChunk) flushChunk();
-    if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
-    if(!(activeController && activeController.signal.aborted)) finish(); 
+    if(!(activeController && activeController.signal.aborted)) finish();
   }, {
      search: opts.search, signal: activeController.signal,
     onSearch: () => {
@@ -3052,9 +3069,12 @@ function renderHistory(){
 }
 
 function escapeHtml(s){
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /* =========================================================

@@ -418,7 +418,7 @@ class Handler(BaseHTTPRequestHandler):
         top_p = body.get("top_p", 0.9)
         top_k = body.get("top_k", 20)
         search = bool(body.get("search", False))
-        inject_codebase = bool(body.get("codebase_context", True))
+        inject_codebase = bool(body.get("codebase_context", False))
         if inject_codebase:
             messages = local_ai.inject_codebase_context(messages)
         self._send_sse_start()
