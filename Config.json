@@ -1,10 +1,18 @@
 {
   "api_port": 9224,
   "ollama_port": 11435,
-  "default_model": "luna-5.3",,
+  "default_model": "mushy-4.6",
+  "fish_api_key": "",
+  "fish_voices": {
+    "Verity": "8d21b053e2804e2a890e1cf62f267b6f",
+    "Light": "8e577d805bcf479fa50b21e6f565c268",
+    "L": "52d9d3c3b6f845aea0a0a03c7ad9a61d",
+    "Sabrina": "4cf07afcf2ae4aa1ae4da28ddf479c9e",
+    "Chinese Voice": "95880cb661f54c4d968c996e2a225a65"
+  },
   "profile": {
     "name": "User",
-    "nickname": "Roy",
+    "nickname": "Trevor",
     "language": "en",
     "theme": "dark",
     "voice": "Verity"

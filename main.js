@@ -14,10 +14,39 @@ function pingBackend(timeout = 800){
   return new Promise((resolve) => {
     const req = http.get({ host: API_HOST, port: API_PORT, path: "/api/config", timeout, headers: { Authorization: "Bearer " + TOKEN } }, (res) => {
       res.resume();
-      resolve(res.statusCode === 200);
+      if(res.statusCode === 401){
+        resolve('unauthorized'); // Backend running but with a different token
+      } else {
+        resolve(res.statusCode === 200);
+      }
     });
     req.on("error", () => resolve(false));
     req.on("timeout", () => { req.destroy(); resolve(false); });
+  });
+}
+
+function killProcessOnPort(port){
+  return new Promise((resolve) => {
+    try {
+      const { exec } = require('child_process');
+      exec('netstat -ano', (err, stdout) => {
+        if(err || !stdout) { resolve(false); return; }
+        const lines = stdout.split('\n');
+        for(const line of lines){
+          if(line.includes(String(port)) && line.includes('LISTENING')){
+            const parts = line.trim().split(/\s+/);
+            if(parts.length >= 5){
+              const pid = parts[4];
+              if(pid && pid !== '0' && pid !== String(process.pid)){
+                exec('taskkill /PID ' + pid + ' /F', () => { resolve(true); });
+                return;
+              }
+            }
+          }
+        }
+        resolve(false);
+      });
+    } catch(e){ resolve(false); }
   });
 }
 
@@ -97,15 +126,21 @@ function startBackend(){
       }
     };
 
-    (async () => {
-      if(await pingBackend()) return; // already running elsewhere
-      escalate();
-      for(let i = 0; i < 20; i++){
-        await new Promise(r => setTimeout(r, 750));
-        if(await pingBackend()) return;
-        if(!backendProc || backendProc.exitCode !== null) escalate();
-      }
-    })();
+     (async () => {
+       const pingResult = await pingBackend();
+       if(pingResult === true) return; // already running with our token
+       if(pingResult === 'unauthorized'){
+         // Stale backend with a different token — kill it and restart
+         await killProcessOnPort(API_PORT);
+         await new Promise(r => setTimeout(r, 500));
+       }
+       escalate();
+       for(let i = 0; i < 20; i++){
+         await new Promise(r => setTimeout(r, 750));
+         if(await pingBackend()) return;
+         if(!backendProc || backendProc.exitCode !== null) escalate();
+       }
+     })();
   } catch(e){}
 }
 
