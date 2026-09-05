@@ -1011,35 +1011,46 @@
   .modal-close:hover{ background: var(--panel-2); color: var(--text); }
   .modal-close:active{ transform: scale(0.9) rotate(90deg); }
 
-  .intro-modal{
+  .intro-notification{
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 22px;
-    box-shadow: 0 40px 90px -30px rgba(0,0,0,0.7);
-    max-width: 700px;
-    width: min(700px, 92vw);
-    padding: 0;
-    overflow: hidden;
+    border-radius: 18px;
+    box-shadow: 0 20px 60px -20px rgba(0,0,0,0.5);
+    padding: 20px 24px;
+    max-width: 380px;
+    width: min(380px, 90vw);
+    z-index: 100;
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    pointer-events: none;
+    transition: opacity .3s var(--ease), transform .3s var(--ease);
   }
-  .intro-content{
+  .intro-notification.show{
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+  .intro-notify-content{
     display: flex;
     align-items: flex-start;
-    gap: 24px;
-    padding: 28px;
+    gap: 16px;
   }
-  .intro-video{
+  .intro-video-circle{
     flex-shrink: 0;
-    width: 160px;
-    height: 160px;
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
     overflow: hidden;
     background: rgba(0,0,0,0.4);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
   }
-  .intro-video video{
+  .intro-video-circle video{
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -1048,44 +1059,40 @@
   .intro-text h1{
     font-family: 'Fraunces', serif;
     font-weight: 600;
-    font-size: 28px;
-    margin: 0 0 6px 0;
+    font-size: 22px;
+    margin: 0 0 4px 0;
     letter-spacing: -0.01em;
   }
   .intro-subtitle{
-    font-size: 14px;
+    font-size: 13px;
     color: var(--accent);
-    margin: 0 0 12px 0;
+    margin: 0 0 8px 0;
     font-weight: 500;
   }
   .intro-body{
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text-dim);
-    line-height: 1.6;
+    line-height: 1.5;
     margin: 0;
-    max-width: 470px;
   }
-  .intro-footer{
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    padding: 16px 28px 24px;
-    border-top: 1px solid var(--border-soft);
-  }
-  .intro-skip{
+  .intro-close{
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
     background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    padding: 8px 20px;
-    border-radius: 10px;
-    font-size: 13px;
+    border: none;
+    color: var(--text-faint);
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .16s var(--ease), color .16s var(--ease);
   }
-  .intro-skip:hover{ color: var(--text); border-color: var(--border); }
-  .intro-start{
-    padding: 8px 24px;
-    font-size: 13px;
-  }
+  .intro-close:hover{ background: var(--panel-2); color: var(--text); }
+  .intro-close svg{ width: 14px; height: 14px; }
 
   .voice-preview-bar{ display:flex; align-items:center; gap: 14px; padding: 16px 24px; border-bottom: 1px solid var(--border-soft); }
   .voice-preview-play{
@@ -1712,25 +1719,22 @@
     </div>
   </main>
 
- </div>
+  </div>
 
-<!-- ===================== FABLE 5.1 INTRO MODAL ===================== -->
-<div class="modal-overlay" id="introOverlay">
-  <div class="intro-modal" id="introModal">
-    <div class="intro-content">
-      <div class="intro-video">
-        <video id="introVideo" autoplay muted loop playsinline></video>
-      </div>
-      <div class="intro-text">
-        <h1>Fable 5.1</h1>
-        <p class="intro-subtitle">The best LLM of the Arch series since release</p>
-        <p class="intro-body">Fable 5.1 delivers state-of-the-art performance across benchmarks and real-world coding tasks. With improved reasoning, faster inference, and better long-context handling, it's the most capable model in the Arch family yet.</p>
-      </div>
+<!-- ===================== FABLE 5.1 INTRO NOTIFICATION ===================== -->
+<div class="intro-notification" id="introNotify">
+  <div class="intro-notify-content">
+    <div class="intro-video-circle">
+      <video id="introVideo" autoplay muted loop playsinline></video>
     </div>
-    <div class="intro-footer">
-      <button class="btn intro-skip" id="introSkip">Skip</button>
-      <button class="btn btn-primary intro-start" id="introStart">Get Started</button>
+    <div class="intro-text">
+      <h1>Fable 5.1</h1>
+      <p class="intro-subtitle">The best LLM of the Arch series since release</p>
+      <p class="intro-body">Fable 5.1 delivers state-of-the-art performance across benchmarks and real-world coding tasks. With improved reasoning, faster inference, and better long-context handling, it's the most capable model in the Arch family yet.</p>
     </div>
+    <button class="intro-close" id="introClose" title="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
   </div>
 </div>
 
@@ -2426,19 +2430,19 @@ async function askChat(chat, opts){
    askArch(msgs, (chunk) => {
     if(activeController && activeController.signal.aborted) return;
     pendingChunk += chunk;
-     // Ultra-low-latency flush: 8ms debounce (~120fps) for buttery streaming
+    // Use requestAnimationFrame for visually synchronized, jitter-free streaming
     if(!renderTimer){
-      renderTimer = setTimeout(() => {
+      renderTimer = requestAnimationFrame(() => {
         flushChunk();
         renderTimer = null;
-      }, 8);
+      });
     }
   }, () => {
-    if(renderTimer){ clearTimeout(renderTimer); renderTimer = null; }
+    if(renderTimer){ cancelAnimationFrame(renderTimer); renderTimer = null; }
     if(pendingChunk) flushChunk();
     if(!(activeController && activeController.signal.aborted)) finish();
   }, () => {
-    if(renderTimer){ clearTimeout(renderTimer); renderTimer = null; }
+    if(renderTimer){ cancelAnimationFrame(renderTimer); renderTimer = null; }
     if(pendingChunk) flushChunk();
     if(!(activeController && activeController.signal.aborted)) finish();
   }, {
@@ -4234,14 +4238,14 @@ loadChats();  // async — fetches from backend and renders when ready
     loadProfile(false);
   })();
 
-  // Show Fable 5.1 intro modal on first launch
+  // Show Fable 5.1 intro notification on first launch (non-blocking — app stays usable)
   (function showIntroOnFirstLaunch(){
     try {
       const seen = localStorage.getItem('arch.intro.seen');
       if(seen === '1') return;
-      const overlay = document.getElementById('introOverlay');
+      const notify = document.getElementById('introNotify');
       const video = document.getElementById('introVideo');
-      if(!overlay) return;
+      if(!notify) return;
       // Resolve video path from appRoot (passed by main.js) — video lives outside the asar
       const appRoot = new URLSearchParams(location.search).get('appRoot') || '';
       if(appRoot && video){
@@ -4249,19 +4253,27 @@ loadChats();  // async — fetches from backend and renders when ready
         video.setAttribute('src', videoPath);
         video.load();
       }
-      overlay.classList.add('open');
-      if(video){
-        video.addEventListener('loadedmetadata', () => video.play().catch(() => {}));
-        video.play().catch(() => {});
-      }
-      const startIntro = () => {
+      // Show notification — app remains fully usable in background
+      requestAnimationFrame(() => {
+        notify.classList.add('show');
+        if(video){
+          video.play().catch(() => {});
+        }
+      });
+      // Auto-dismiss after 8 seconds
+      let autoTimer = setTimeout(() => {
         localStorage.setItem('arch.intro.seen', '1');
-        overlay.classList.remove('open');
+        notify.classList.remove('show');
+      }, 8000);
+      const startIntro = () => {
+        clearTimeout(autoTimer);
+        localStorage.setItem('arch.intro.seen', '1');
+        notify.classList.remove('show');
       };
-      document.getElementById('introStart').addEventListener('click', startIntro);
-      document.getElementById('introSkip').addEventListener('click', startIntro);
-      overlay.addEventListener('click', (e) => {
-        if(e.target === overlay) startIntro();
+      const closeBtn = document.getElementById('introClose');
+      if(closeBtn) closeBtn.addEventListener('click', startIntro);
+      notify.addEventListener('click', (e) => {
+        if(e.target === notify) startIntro();
       });
     } catch(e){}
   })();
