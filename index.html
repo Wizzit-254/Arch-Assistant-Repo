@@ -1031,17 +1031,19 @@
     flex-shrink: 0;
     width: 160px;
     height: 160px;
-    border-radius: 14px;
+    border-radius: 50%;
     overflow: hidden;
     background: rgba(0,0,0,0.4);
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
   }
   .intro-video video{
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 50%;
   }
   .intro-text h1{
     font-family: 'Fraunces', serif;
@@ -1717,9 +1719,7 @@
   <div class="intro-modal" id="introModal">
     <div class="intro-content">
       <div class="intro-video">
-        <video id="introVideo" autoplay muted loop playsinline>
-          <source src="Fable-5.1.mp4" type="video/mp4">
-        </video>
+        <video id="introVideo" autoplay muted loop playsinline></video>
       </div>
       <div class="intro-text">
         <h1>Fable 5.1</h1>
@@ -2426,12 +2426,12 @@ async function askChat(chat, opts){
    askArch(msgs, (chunk) => {
     if(activeController && activeController.signal.aborted) return;
     pendingChunk += chunk;
-    // Debounce: batch chunks over 33ms (~30fps) instead of every rAF frame (~60fps)
+     // Ultra-low-latency flush: 8ms debounce (~120fps) for buttery streaming
     if(!renderTimer){
       renderTimer = setTimeout(() => {
         flushChunk();
         renderTimer = null;
-      }, 33);
+      }, 8);
     }
   }, () => {
     if(renderTimer){ clearTimeout(renderTimer); renderTimer = null; }
@@ -4242,6 +4242,13 @@ loadChats();  // async — fetches from backend and renders when ready
       const overlay = document.getElementById('introOverlay');
       const video = document.getElementById('introVideo');
       if(!overlay) return;
+      // Resolve video path from appRoot (passed by main.js) — video lives outside the asar
+      const appRoot = new URLSearchParams(location.search).get('appRoot') || '';
+      if(appRoot && video){
+        const videoPath = 'file:///' + appRoot.replace(/\\/g, '/') + '/Fable-5.1.mp4';
+        video.setAttribute('src', videoPath);
+        video.load();
+      }
       overlay.classList.add('open');
       if(video){
         video.addEventListener('loadedmetadata', () => video.play().catch(() => {}));

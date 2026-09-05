@@ -347,7 +347,8 @@ class Handler(BaseHTTPRequestHandler):
             target = body.get("target", "")
             try:
                 import subprocess as _sp
-                _sp.Popen(["cmd", "/c", "start", "", target], shell=True)
+                _sp.Popen(["cmd", "/c", "start", "", target],
+                          creationflags=getattr(_sp, "CREATE_NO_WINDOW", 0))
                 self._send(200, {"ok": True, "target": target})
             except Exception as e:
                 self._send(500, {"error": str(e)})
@@ -450,7 +451,9 @@ class Handler(BaseHTTPRequestHandler):
                 target = target.strip().rstrip(".")
                 self.wfile.write(emit_event({"action": "open", "target": target}, event="system_action").encode("utf-8"))
                 self.wfile.flush()
-                _sp.Popen(["cmd", "/c", "start", "", target], shell=True, stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
+                _sp.Popen(["cmd", "/c", "start", "", target],
+                          stdout=_sp.DEVNULL, stderr=_sp.DEVNULL,
+                          creationflags=getattr(_sp, "CREATE_NO_WINDOW", 0))
             self.wfile.write(emit_event(None, event="done").encode("utf-8"))
             self.wfile.flush()
         except Exception as e:

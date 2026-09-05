@@ -28,9 +28,10 @@ function pingBackend(timeout = 800){
 function killProcessOnPort(port){
   return new Promise((resolve) => {
     try {
-      const { exec } = require('child_process');
-      exec('netstat -ano', (err, stdout) => {
-        if(err || !stdout) { resolve(false); return; }
+      const child = spawn('netstat', ['-ano'], { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
+      let stdout = '';
+      child.stdout.on('data', (d) => stdout += d.toString());
+      child.on('close', () => {
         const lines = stdout.split('\n');
         for(const line of lines){
           if(line.includes(String(port)) && line.includes('LISTENING')){
@@ -38,7 +39,8 @@ function killProcessOnPort(port){
             if(parts.length >= 5){
               const pid = parts[4];
               if(pid && pid !== '0' && pid !== String(process.pid)){
-                exec('taskkill /PID ' + pid + ' /F', () => { resolve(true); });
+                spawn('taskkill', ['/PID', pid, '/F'], { windowsHide: true, stdio: 'ignore' });
+                resolve(true);
                 return;
               }
             }
@@ -46,6 +48,7 @@ function killProcessOnPort(port){
         }
         resolve(false);
       });
+      child.on('error', () => resolve(false));
     } catch(e){ resolve(false); }
   });
 }
@@ -134,11 +137,11 @@ function startBackend(){
          await killProcessOnPort(API_PORT);
          await new Promise(r => setTimeout(r, 500));
        }
-       escalate();
-       for(let i = 0; i < 20; i++){
-         await new Promise(r => setTimeout(r, 750));
-         if(await pingBackend()) return;
-         if(!backendProc || backendProc.exitCode !== null) escalate();
+        escalate();
+        for(let i = 0; i < 20; i++){
+          await new Promise(r => setTimeout(r, 250));
+          if(await pingBackend()) return;
+          if(!backendProc || backendProc.exitCode !== null) escalate();
        }
      })();
   } catch(e){}
@@ -183,7 +186,7 @@ function createWindow() {
      const isLocalhost = u.hostname === "localhost" || u.hostname === "127.0.0.1" || u.hostname === "::1";
      cb({ cancel: !isLocalhost });
    });
-  win.loadFile("index.html", { query: { token: TOKEN } });
+   win.loadFile("index.html", { query: { token: TOKEN, appRoot: path.dirname(process.execPath) } });
 }
 
 app.whenReady().then(() => {
