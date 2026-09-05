@@ -1011,6 +1011,80 @@
   .modal-close:hover{ background: var(--panel-2); color: var(--text); }
   .modal-close:active{ transform: scale(0.9) rotate(90deg); }
 
+  .intro-modal{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    box-shadow: 0 40px 90px -30px rgba(0,0,0,0.7);
+    max-width: 700px;
+    width: min(700px, 92vw);
+    padding: 0;
+    overflow: hidden;
+  }
+  .intro-content{
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    padding: 28px;
+  }
+  .intro-video{
+    flex-shrink: 0;
+    width: 160px;
+    height: 160px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .intro-video video{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .intro-text h1{
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 28px;
+    margin: 0 0 6px 0;
+    letter-spacing: -0.01em;
+  }
+  .intro-subtitle{
+    font-size: 14px;
+    color: var(--accent);
+    margin: 0 0 12px 0;
+    font-weight: 500;
+  }
+  .intro-body{
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    margin: 0;
+    max-width: 470px;
+  }
+  .intro-footer{
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 28px 24px;
+    border-top: 1px solid var(--border-soft);
+  }
+  .intro-skip{
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 8px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .intro-skip:hover{ color: var(--text); border-color: var(--border); }
+  .intro-start{
+    padding: 8px 24px;
+    font-size: 13px;
+  }
+
   .voice-preview-bar{ display:flex; align-items:center; gap: 14px; padding: 16px 24px; border-bottom: 1px solid var(--border-soft); }
   .voice-preview-play{
     width: 42px; height:42px; border-radius:50%; background: var(--text); color: var(--bg);
@@ -1636,6 +1710,28 @@
     </div>
   </main>
 
+ </div>
+
+<!-- ===================== FABLE 5.1 INTRO MODAL ===================== -->
+<div class="modal-overlay" id="introOverlay">
+  <div class="intro-modal" id="introModal">
+    <div class="intro-content">
+      <div class="intro-video">
+        <video id="introVideo" autoplay muted loop playsinline>
+          <source src="Fable-5.1.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="intro-text">
+        <h1>Fable 5.1</h1>
+        <p class="intro-subtitle">The best LLM of the Arch series since release</p>
+        <p class="intro-body">Fable 5.1 delivers state-of-the-art performance across benchmarks and real-world coding tasks. With improved reasoning, faster inference, and better long-context handling, it's the most capable model in the Arch family yet.</p>
+      </div>
+    </div>
+    <div class="intro-footer">
+      <button class="btn intro-skip" id="introSkip">Skip</button>
+      <button class="btn btn-primary intro-start" id="introStart">Get Started</button>
+    </div>
+  </div>
 </div>
 
 <!-- ===================== SEARCH OVERLAY ===================== -->
@@ -4135,8 +4231,33 @@ loadChats();  // async — fetches from backend and renders when ready
       codebaseMode = localStorage.getItem('arch.codebase.v1') === '1';
       applyCodebaseMode();
    } catch(e){}
-   loadProfile(false);
-})();
+    loadProfile(false);
+  })();
+
+  // Show Fable 5.1 intro modal on first launch
+  (function showIntroOnFirstLaunch(){
+    try {
+      const seen = localStorage.getItem('arch.intro.seen');
+      if(seen === '1') return;
+      const overlay = document.getElementById('introOverlay');
+      const video = document.getElementById('introVideo');
+      if(!overlay) return;
+      overlay.classList.add('open');
+      if(video){
+        video.addEventListener('loadedmetadata', () => video.play().catch(() => {}));
+        video.play().catch(() => {});
+      }
+      const startIntro = () => {
+        localStorage.setItem('arch.intro.seen', '1');
+        overlay.classList.remove('open');
+      };
+      document.getElementById('introStart').addEventListener('click', startIntro);
+      document.getElementById('introSkip').addEventListener('click', startIntro);
+      overlay.addEventListener('click', (e) => {
+        if(e.target === overlay) startIntro();
+      });
+    } catch(e){}
+  })();
 </script>
 
 </body>
