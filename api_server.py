@@ -1,4 +1,4 @@
-﻿"""Arch Api Server (CDP-style local bridge on 127.0.0.1:9224).
+"""Arch Api Server (CDP-style local bridge on 127.0.0.1:9224).
 
 Exposes the routes index.html expects:
   GET  /api/config            -> app config + active model/profile
