@@ -1013,42 +1013,44 @@
 
   .intro-notification{
     position: fixed;
-    bottom: 28px;
-    right: 28px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 18px;
-    box-shadow: 0 20px 60px -20px rgba(0,0,0,0.5);
-    padding: 20px 24px;
-    max-width: 380px;
-    width: min(380px, 90vw);
-    z-index: 100;
+    border-radius: 24px;
+    box-shadow: 0 40px 100px -40px rgba(0,0,0,0.7);
+    padding: 32px;
+    max-width: 520px;
+    width: min(520px, 90vw);
+    z-index: 200;
     opacity: 0;
-    transform: translateY(20px) scale(0.95);
     pointer-events: none;
-    transition: opacity .3s var(--ease), transform .3s var(--ease);
+    transition: opacity .4s var(--ease), transform .4s var(--ease);
   }
   .intro-notification.show{
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate(-50%, -50%) scale(1);
     pointer-events: auto;
   }
   .intro-notify-content{
     display: flex;
-    align-items: flex-start;
-    gap: 16px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 20px;
   }
   .intro-video-circle{
     flex-shrink: 0;
-    width: 100px;
-    height: 100px;
+    width: 280px;
+    height: 280px;
     border-radius: 50%;
     overflow: hidden;
     background: rgba(0,0,0,0.4);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
   }
   .intro-video-circle video{
     width: 100%;
@@ -1059,30 +1061,34 @@
   .intro-text h1{
     font-family: 'Fraunces', serif;
     font-weight: 600;
-    font-size: 22px;
-    margin: 0 0 4px 0;
+    font-size: 26px;
+    margin: 0 0 6px 0;
     letter-spacing: -0.01em;
+    text-align: center;
   }
   .intro-subtitle{
-    font-size: 13px;
+    font-size: 14px;
     color: var(--accent);
-    margin: 0 0 8px 0;
+    margin: 0 0 10px 0;
     font-weight: 500;
+    text-align: center;
   }
   .intro-body{
-    font-size: 13px;
+    font-size: 14px;
     color: var(--text-dim);
-    line-height: 1.5;
+    line-height: 1.6;
     margin: 0;
+    text-align: center;
+    max-width: 420px;
   }
-  .intro-close{
+   .intro-close{
     position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    background: transparent;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.3);
     border: none;
     color: var(--text-faint);
     cursor: pointer;
@@ -1090,9 +1096,10 @@
     align-items: center;
     justify-content: center;
     transition: background .16s var(--ease), color .16s var(--ease);
+    z-index: 10;
   }
-  .intro-close:hover{ background: var(--panel-2); color: var(--text); }
-  .intro-close svg{ width: 14px; height: 14px; }
+  .intro-close:hover{ background: rgba(0,0,0,0.5); color: var(--text); }
+  .intro-close svg{ width: 16px; height: 16px; }
 
   .voice-preview-bar{ display:flex; align-items:center; gap: 14px; padding: 16px 24px; border-bottom: 1px solid var(--border-soft); }
   .voice-preview-play{
@@ -4260,13 +4267,8 @@ loadChats();  // async — fetches from backend and renders when ready
           video.play().catch(() => {});
         }
       });
-      // Auto-dismiss after 8 seconds
-      let autoTimer = setTimeout(() => {
-        localStorage.setItem('arch.intro.seen', '1');
-        notify.classList.remove('show');
-      }, 8000);
+       // Stay visible until user explicitly dismisses
       const startIntro = () => {
-        clearTimeout(autoTimer);
         localStorage.setItem('arch.intro.seen', '1');
         notify.classList.remove('show');
       };
