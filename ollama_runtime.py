@@ -189,14 +189,25 @@ def _model_has_blobs(model_name):
 
 
 def _is_offline():
-    """Quick check: can we reach the internet at all?"""
+    """Quick check: can we reach the internet at all?
+
+    Any HTTP response (including 4xx like 404) means we HAVE internet —
+    only connection errors, timeouts, and DNS failures mean offline.
+    This lets us fall through to the "cannot pull" fallback gracefully.
+    """
+    import urllib.error as _uerr
     try:
         req = urllib.request.Request(
             "https://registry.ollama.ai/v2/", method="HEAD",
             headers={"User-Agent": "arch-assistant/1.0"},
         )
         with urllib.request.urlopen(req, timeout=3) as resp:
-            return resp.status < 400
+            return False
+    except _uerr.HTTPError:
+        # Got an HTTP response (4xx/5xx) → we have internet
+        return False
+    except (urllib.error.URLError, OSError, ConnectionError):
+        return True
     except Exception:
         return True
 
@@ -218,15 +229,17 @@ def ensure_custom_models(host=None, existing=None):
         existing = fetch_models(host)
     created = []
     offline = _is_offline()
+    # Normalize existing model names (strip :latest suffix for comparison)
+    existing_norm = set(m.split(":")[0] for m in existing)
     for name, (base, mfile) in BASE_MODELS.items():
-        if name in existing and _model_has_blobs(name):
+        if name in existing_norm and _model_has_blobs(name):
             created.append(name)
             continue
         mpath = _modelfile_path(mfile)
         if not mpath:
             print(f"[ollama] Modelfile not found for {name}, skipping", flush=True)
             continue
-        if name in existing and not _model_has_blobs(name):
+        if name in existing_norm and not _model_has_blobs(name):
             print(f"[ollama] {name} manifest exists but blobs missing, will attempt recreate", flush=True)
         if base is not None and not any(base in m for m in fetch_models(host)):
             if offline:

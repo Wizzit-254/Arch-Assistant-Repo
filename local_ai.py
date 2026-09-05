@@ -579,6 +579,7 @@ SKIP_DIRS = {
     '.next', '.nuxt', '.svelte-kit', 'out', 'coverage', '.cache',
     'venv', '.venv', 'env', '.env', 'vendor', '.gradle', '.m2',
     'target', 'Cargo.lock', '.pytest_cache', 'site-packages',
+    'ollama', 'models', 'resources', 'locales', 'voicebank',
 }
 
 def scan_codebase(root_dir=None, max_files=500, max_file_size=100000):
@@ -617,6 +618,10 @@ def scan_codebase(root_dir=None, max_files=500, max_file_size=100000):
             ext = fname.rsplit('.', 1)[-1].lower() if '.' in fname else ''
             
             if ext in SKIP_EXTS or ext in ('exe', 'dll', 'so', 'dylib', 'bin'):
+                continue
+
+            # Skip files larger than max_file_size early (prevents reading 1.8GB model blobs)
+            if fsize > max_file_size:
                 continue
             
             rel_path = os.path.relpath(fpath, root_dir)
