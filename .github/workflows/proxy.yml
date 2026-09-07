@@ -14,19 +14,30 @@ jobs:
         run: |
           curl -L -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && chmod +x /tmp/cloudflared && sudo mv /tmp/cloudflared /usr/local/bin/cloudflared
           cloudflared version
+          python3 --version
       - name: Start tunnel
         run: |
           # Start Python proxy FIRST
-          python3 proxy.py > /tmp/proxy.log 2>&1 &
+          python3 -u proxy.py > /tmp/proxy.log 2>&1 &
           PROXY_PID=$!
           sleep 3
           echo "Proxy PID: $PROXY_PID"
           ps aux | grep proxy.py | grep -v grep
+          echo "=== PROXY START LOG ==="
+          cat /tmp/proxy.log
+          
+          # Test that proxy is listening
+          echo "=== PROXY TEST ==="
+          echo "GET http://api.ipify.org/ HTTP/1.1
+Host: api.ipify.org
+Connection: close
+
+" | nc -w 5 localhost 8888 2>&1 || echo "NC not available"
           
           # Start cloudflared AFTER proxy is running
           cloudflared tunnel --url http://localhost:8888 --loglevel debug > /tmp/cf.log 2>&1 &
           CF_PID=$!
-          sleep 20
+          sleep 25
           
           echo "=== CF LOG ==="
           cat /tmp/cf.log
