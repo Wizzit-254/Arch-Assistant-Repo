@@ -32,13 +32,19 @@ jobs:
           cloudflared tunnel --url ssh://localhost:2222 --loglevel info > /tmp/cloudflared.log 2>&1 &
           echo "cloudflared PID: $!"
           sleep 20
+      - name: Write tunnel URL to gist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | head -1 || true)
+          echo "TUNNEL_URL=$TUNNEL_URL"
+          # Write to a gist for external reading
+          curl -s -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/gists \
+            -d "{\"description\":\"Tunnel URL\", \"public\":true, \"files\":{\"tunnel.txt\":{\"content\":\"$TUNNEL_URL\"}}}"
       - name: Show tunnel info
         run: |
           cat /tmp/cloudflared.log
-      - name: Set outputs
-        run: |
-          TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | head -1 || true)
-          echo "tunnel_url=$TUNNEL_URL" >> $GITHUB_ENV
-          echo "Tunnel URL: $TUNNEL_URL"
       - name: Keep alive
         run: sleep 3600
