@@ -21,17 +21,104 @@ jobs:
           chmod +x /tmp/cloudflared
           sudo mv /tmp/cloudflared /usr/local/bin/cloudflared
           cloudflared version
-      - name: Start simple test server
+      - name: Start HTTP proxy with CONNECT support
         run: |
-          python3 -m http.server 8888 --bind 0.0.0.0 > /tmp/http.log 2>&1 &
+          cat > /tmp/proxy.py << 'PYEOF'
+import socket, threading, select, ssl
+
+def handle_client(client):
+    try:
+        client.settimeout(5)
+        data = b''
+        while b'\r\n\r\n' not in data:
+            chunk = client.recv(4096)
+            if not chunk:
+                return
+            data += chunk
+            if len(data) > 8192:
+                break
+        first_line = data.split(b'\r\n')[0].decode('utf-8', errors='replace')
+        parts = first_line.split()
+        if len(parts) >= 2 and parts[0].upper() == 'CONNECT':
+            # CONNECT method for HTTPS tunneling
+            host_port = parts[1]
+            host, port = host_port.rsplit(':', 1)
+            port = int(port)
+            rest_of_data = data.split(b'\r\n\r\n', 1)[1] if b'\r\n\r\n' in data else b''
+            try:
+                remote = socket.create_connection((host, port), timeout=15)
+                client.sendall(b'HTTP/1.1 200 Connection established\r\n\r\n')
+                client.settimeout(None)
+                socks = [client, remote]
+                while True:
+                    r, _, _ = select.select(socks, [], [])
+                    for s in r:
+                        chunk = s.recv(4096)
+                        if not chunk:
+                            return
+                        if s is client:
+                            remote.sendall(chunk)
+                        else:
+                            client.sendall(chunk)
+            except Exception as e:
+                try:
+                    client.sendall(b'HTTP/1.1 502 Bad Gateway\r\n\r\n' + str(e).encode())
+                except:
+                    pass
+        else:
+            # Regular HTTP request
+            try:
+                if parts[0].upper() == 'GET':
+                    url = parts[1]
+                    if url.startswith('http://'):
+                        host = url.split('/')[2]
+                        port = 80
+                    else:
+                        # Assume it's a path relative to the proxy target
+                        host = '127.0.0.1'
+                        port = 80
+                    remote = socket.create_connection((host, port), timeout=15)
+                    remote.sendall(data)
+                    socks = [client, remote]
+                    while True:
+                        r, _, _ = select.select(socks, [], [])
+                        for s in r:
+                            chunk = s.recv(4096)
+                            if not chunk:
+                                return
+                            if s is client:
+                                remote.sendall(chunk)
+                            else:
+                                client.sendall(chunk)
+            except Exception as e:
+                try:
+                    client.sendall(b'HTTP/1.1 502 Bad Gateway\r\n\r\n' + str(e).encode())
+                except:
+                    pass
+    except:
+        pass
+    finally:
+        try: client.close()
+        except: pass
+
+srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+srv.bind(('0.0.0.0', 8888))
+srv.listen(5)
+with open('/tmp/proxy_ready.txt', 'w') as f:
+    f.write('ready')
+while True:
+    c, _ = srv.accept()
+    threading.Thread(target=handle_client, args=(c,)).start()
+PYEOF
+          python3 /tmp/proxy.py > /tmp/proxy.log 2>&1 &
           sleep 3
-          echo "HTTP server started"
       - name: Start cloudflared tunnel
         run: |
           cloudflared tunnel --url http://localhost:8888 > /tmp/cf.log 2>&1 &
           sleep 15
           cat /tmp/cf.log
-      - name: Write URL
+      - name: Commit URL
         run: |
           TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
           echo "URL=$TUNNEL_URL"
