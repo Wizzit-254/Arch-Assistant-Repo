@@ -15,57 +15,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Install tools
+      - name: Install cloudflared
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq curl jq
           curl -L -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-          sudo dpkg -i /tmp/cloudflared.deb 2>/dev/null || (cd /tmp && ar x cloudflared.deb data.tar.xz && tar xf data.tar.xz ./usr/bin/cloudflared && sudo mv usr/bin/cloudflared /usr/local/bin/ && rm -rf usr data.tar.xz)
-      - name: Start HTTP proxy
+          sudo dpkg -i /tmp/cloudflared.deb 2>/dev/null || (cd /tmp && ar x cloudflared.deb data.tar.xz && tar xf data.tar.xz ./usr/bin/cloudflared && sudo cp usr/bin/cloudflared /usr/local/bin/)
+          cloudflared --version
+      - name: Start simple test server
         run: |
-          python3 -c "
-import socket, threading, select, ssl, urllib.request
-
-def handle(c):
-    try:
-        d = c.recv(4096)
-        line = d.split(b'\r\n')[0]
-        if b'CONNECT' in line:
-            hp = line.split(b'CONNECT ')[1].split(b' ')[0]
-            h, p = hp.decode().split(':')
-            p = int(p)
-            r = socket.create_connection((h, p), timeout=10)
-            c.sendall(b'HTTP/1.1 200 Connection established\r\n\r\n')
-            socks = [c, r]
-            while True:
-                rd, _, _ = select.select(socks, [], [])
-                for s in rd:
-                    chunk = s.recv(4096)
-                    if not chunk: return
-                    if s is c: r.sendall(chunk)
-                    else: c.sendall(chunk)
-    except: pass
-    finally:
-        try: c.close()
-        except: pass
-
-srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-srv.bind(('0.0.0.0', 8888))
-srv.listen(5)
-while True:
-    c, _ = srv.accept()
-    threading.Thread(target=handle, args=(c,)).start()
-" > /tmp/proxy.log 2>&1 &
+          python3 -m http.server 8888 --bind 0.0.0.0 > /tmp/http.log 2>&1 &
           sleep 3
-      - name: Start cloudflared
+          echo "HTTP server started"
+      - name: Start cloudflared tunnel
         run: |
           cloudflared tunnel --url http://localhost:8888 > /tmp/cf.log 2>&1 &
           sleep 15
           cat /tmp/cf.log
-      - name: Commit URL
+      - name: Write URL
         run: |
           TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
-          echo "URL=$TUNNEL_URL" >> /tmp/url_out.txt
+          echo "URL=$TUNNEL_URL"
           echo "$TUNNEL_URL" > tunnel-url.txt
           git config user.name "github-actions[bot]"
           git config user.email "a@b.c"
