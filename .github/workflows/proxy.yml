@@ -25,9 +25,6 @@ jobs:
           cat /tmp/cf.log
           echo "=== Processes ==="
           ps aux | grep cloudflared
-      - name: Wait for tunnel
-        run: |
-          sleep 10
       - name: Commit URL
         run: |
           TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
