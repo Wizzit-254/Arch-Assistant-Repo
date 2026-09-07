@@ -27,16 +27,29 @@ jobs:
       - name: Start SSH server on 2222
         run: |
           sudo /usr/sbin/sshd -p 2222 -o "PasswordAuthentication=no" -o "PubkeyAuthentication=yes" -o "AllowTcpForwarding=yes" -o "GatewayPorts=yes" -o "PermitTunnel=yes" -o "PidFile=/tmp/sshd.pid"
-      - name: Start cloudflared tunnel (TCP over HTTP/2)
+      - name: Start cloudflared tunnel
         run: |
-          # cloudflared tunnel (no auth needed) creates a trycloudflare.com subdomain
-          # that proxies to our SSH port 2222 via the Cloudflare edge.
-          # The tunnel URL will be printed in stdout.
           cloudflared tunnel --url ssh://localhost:2222 --loglevel info > /tmp/cloudflared.log 2>&1 &
-          sleep 12
-      - name: Show tunnel URL
+          echo "cloudflared PID: $!"
+          sleep 15
+      - name: Write tunnel URL to repo
         run: |
-          grep -i "trycloudflare\|URL\|hostname\|http" /tmp/cloudflared.log || true
-          cat /tmp/cloudflared.log
+          # Extract the trycloudflare.com URL from cloudflared log
+          TUNNEL_URL=$(grep -oP 'https://[a-f0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log || true)
+          if [ -z "$TUNNEL_URL" ]; then
+            TUNNEL_URL=$(grep -oP '\b[a-f0-9-]+\.trycloudflare\.com\b' /tmp/cloudflared.log || true)
+            [ -n "$TUNNEL_URL" ] && TUNNEL_URL="https://$TUNNEL_URL"
+          fi
+          echo "TUNNEL_URL=$TUNNEL_URL"
+          echo "$TUNNEL_URL" > /tmp/tunnel_url.txt
+          # Write to repo for external reading
+          echo "TUNNEL_URL=$TUNNEL_URL" >> /tmp/tunnel_output
+          echo "::set-output name=tunnel_url::$TUNNEL_URL"
+      - name: Upload tunnel info
+        uses: actions/upload-artifact@v4
+        with:
+          name: tunnel-info
+          path: /tmp/cloudflared.log
+          if-no-files-found: warn
       - name: Wait for tunnel
         run: sleep 900
