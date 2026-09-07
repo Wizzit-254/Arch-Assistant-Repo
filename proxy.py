@@ -10,14 +10,13 @@ def handle(c):
             if not chunk: return
             d += chunk
             if len(d) > 8192: break
-        # Log what we receive
-        sys.stderr.write("RECEIVED: " + d[:500].decode('utf-8', errors='replace') + "\n")
+        sys.stderr.write("RECEIVED: " + repr(d[:500]) + "\n")
         sys.stderr.flush()
         fl = d.split(b'\r\n')[0].decode('utf-8', errors='replace')
-        p = fl.split()
-        if len(p) >= 2 and p[0].upper() == 'CONNECT':
-            hp = p[1]
-            host, port = hp.rsplit(':', 1)
+        parts = fl.split()
+        if len(parts) >= 2 and parts[0].upper() == 'CONNECT':
+            host_port = parts[1]
+            host, port = host_port.rsplit(':', 1)
             port = int(port)
             try:
                 r = socket.create_connection((host, port), timeout=15)
@@ -34,28 +33,29 @@ def handle(c):
             except Exception as e:
                 try: c.sendall(b'HTTP/1.1 502 Bad Gateway\r\n\r\n' + str(e).encode())
                 except: pass
-        else:
+        elif len(parts) >= 2 and parts[0].upper() == 'GET':
+            url = parts[1]
+            if url.startswith('http://'):
+                host = url.split('/')[2]
+            else:
+                host = '127.0.0.1'
             try:
-                if parts[0].upper() == 'GET':
-                    url = parts[1]
-                    if url.startswith('http://'):
-                        host = url.split('/')[2]
-                    else:
-                        host = '127.0.0.1'
-                    port = 80
-                    remote = socket.create_connection((host, port), timeout=15)
-                    remote.sendall(d)
-                    socks = [c, remote]
-                    while True:
-                        r, _, _ = select.select(socks, [], [])
-                        for s in r:
-                            chunk = s.recv(4096)
-                            if not chunk: return
-                            if s is c: remote.sendall(chunk)
-                            else: c.sendall(chunk)
+                remote = socket.create_connection((host, 80), timeout=15)
+                remote.sendall(d)
+                socks = [c, remote]
+                while True:
+                    r, _, _ = select.select(socks, [], [])
+                    for s in r:
+                        chunk = s.recv(4096)
+                        if not chunk: return
+                        if s is c: remote.sendall(chunk)
+                        else: c.sendall(chunk)
             except Exception as e:
                 try: c.sendall(b'HTTP/1.1 502 Bad Gateway\r\n\r\n' + str(e).encode())
                 except: pass
+        else:
+            try: c.sendall(b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK')
+            except: pass
     except: pass
     finally:
         try: c.close()
