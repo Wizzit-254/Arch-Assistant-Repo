@@ -20,13 +20,16 @@ jobs:
           cloudflared version
       - name: Start HTTP proxy
         run: |
-          python3 proxy.py > /tmp/proxy.log 2>&1 &
+          nohup python3 proxy.py > /tmp/proxy.log 2>&1 &
+          disown
           sleep 3
+          echo "Proxy started, PID: $!"
+          ps aux | grep proxy.py
       - name: Start cloudflared tunnel
         run: |
-          cloudflared tunnel --url http://localhost:8888 > /tmp/cf.log 2>&1 &
+          nohup cloudflared tunnel --url http://localhost:8888 > /tmp/cf.log 2>&1 &
+          disown
           sleep 15
-          cat /tmp/cf.log
       - name: Commit URL
         run: |
           TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
