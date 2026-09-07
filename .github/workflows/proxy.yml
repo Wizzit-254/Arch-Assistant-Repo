@@ -18,85 +18,59 @@ jobs:
       - name: Install tools
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq curl jq
-          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o /tmp/cloudflared.deb
-          sudo dpkg -i /tmp/cloudflared.deb
-      - name: Start HTTP CONNECT proxy
+          curl -L -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i /tmp/cloudflared.deb 2>/dev/null || (cd /tmp && ar x cloudflared.deb data.tar.xz && tar xf data.tar.xz ./usr/bin/cloudflared && sudo mv usr/bin/cloudflared /usr/local/bin/ && rm -rf usr data.tar.xz)
+      - name: Start HTTP proxy
         run: |
-          cat > /tmp/proxy.py << 'PYEOF'
-import socket, threading, select
+          python3 -c "
+import socket, threading, select, ssl, urllib.request
 
-def handle_client(client_sock):
+def handle(c):
     try:
-        data = client_sock.recv(4096)
-        first_line = data.split(b'\r\n')[0]
-        if b'CONNECT' in first_line:
-            host_port = first_line.split(b'CONNECT ')[1].split(b' ')[0]
-            host, port = host_port.decode().split(':')
-            port = int(port)
-            try:
-                remote = socket.create_connection((host, port), timeout=10)
-                client_sock.sendall(b'HTTP/1.1 200 Connection established\r\n\r\n')
-                sockets = [client_sock, remote]
-                while True:
-                    r, _, _ = select.select(sockets, [], [])
-                    for s in r:
-                        chunk = s.recv(4096)
-                        if not chunk:
-                            raise ConnectionError
-                        if s is client_sock:
-                            remote.sendall(chunk)
-                        else:
-                            client_sock.sendall(chunk)
-            except Exception:
-                client_sock.sendall(b'HTTP/1.1 502 Bad Gateway\r\n\r\n')
-        else:
-            import urllib.request, ssl
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            try:
-                url = data.split(b' ')[1].decode()
-                req = urllib.request.Request('http://' + url, headers={'User-Agent': 'Mozilla/5.0'})
-                r = urllib.request.urlopen(req, timeout=10, context=ctx)
-                client_sock.sendall(b'HTTP/1.1 200 OK\r\n\r\n' + r.read())
-            except:
-                client_sock.sendall(b'HTTP/1.1 502 Bad Gateway\r\n\r\n')
-    except:
-        pass
+        d = c.recv(4096)
+        line = d.split(b'\r\n')[0]
+        if b'CONNECT' in line:
+            hp = line.split(b'CONNECT ')[1].split(b' ')[0]
+            h, p = hp.decode().split(':')
+            p = int(p)
+            r = socket.create_connection((h, p), timeout=10)
+            c.sendall(b'HTTP/1.1 200 Connection established\r\n\r\n')
+            socks = [c, r]
+            while True:
+                rd, _, _ = select.select(socks, [], [])
+                for s in rd:
+                    chunk = s.recv(4096)
+                    if not chunk: return
+                    if s is c: r.sendall(chunk)
+                    else: c.sendall(chunk)
+    except: pass
     finally:
-        try: client_sock.close()
+        try: c.close()
         except: pass
 
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-server.bind(('0.0.0.0', 8080))
-server.listen(5)
-with open('/tmp/proxy_ready.txt', 'w') as f:
-    f.write('ready')
+srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+srv.bind(('0.0.0.0', 8888))
+srv.listen(5)
 while True:
-    client, _ = server.accept()
-    threading.Thread(target=handle_client, args=(client,)).start()
-PYEOF
-          python3 /tmp/proxy.py > /tmp/proxy.log 2>&1 &
-          echo "Proxy PID: $!"
-          sleep 5
-      - name: Start cloudflared tunnel
+    c, _ = srv.accept()
+    threading.Thread(target=handle, args=(c,)).start()
+" > /tmp/proxy.log 2>&1 &
+          sleep 3
+      - name: Start cloudflared
         run: |
-          cloudflared tunnel --url http://localhost:8080 --loglevel info > /tmp/cloudflared.log 2>&1 &
-          echo "cloudflared PID: $!"
-          sleep 20
-      - name: Write tunnel URL
+          cloudflared tunnel --url http://localhost:8888 > /tmp/cf.log 2>&1 &
+          sleep 15
+          cat /tmp/cf.log
+      - name: Commit URL
         run: |
-          TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | head -1 || true)
-          echo "TUNNEL_URL=$TUNNEL_URL"
+          TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
+          echo "URL=$TUNNEL_URL" >> /tmp/url_out.txt
           echo "$TUNNEL_URL" > tunnel-url.txt
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions@users.noreply.github.com"
+          git config user.email "a@b.c"
           git add tunnel-url.txt
-          git commit -m "Tunnel: $TUNNEL_URL" || true
+          git commit -m "URL: $TUNNEL_URL" || true
           git push
-      - name: Show tunnel info
-        run: |
-          cat /tmp/cloudflared.log
-      - name: Keep alive
+      - name: Wait
         run: sleep 7200
