@@ -18,31 +18,31 @@ jobs:
           chmod +x /tmp/cloudflared
           sudo mv /tmp/cloudflared /usr/local/bin/cloudflared
           cloudflared version
-      - name: Start services
+      - name: Start tunnel
         run: |
-          setsid bash -c 'python3 proxy.py > /tmp/proxy.log 2>&1 & sleep 2; cloudflared tunnel --url http://localhost:8888 --loglevel debug > /tmp/cf.log 2>&1; wait' < /dev/null &
-          sleep 25
+          python3 proxy.py > /tmp/proxy.log 2>&1 &
+          PROXY_PID=$!
+          echo "Proxy PID: $PROXY_PID"
+          
+          cloudflared tunnel --url http://localhost:8888 --loglevel debug > /tmp/cf.log 2>&1 &
+          CF_PID=$!
+          echo "Cloudflared PID: $CF_PID"
+          
+          sleep 20
           echo "=== Proxy log ==="
           cat /tmp/proxy.log
           echo "=== Cloudflared log ==="
           cat /tmp/cf.log
           echo "=== Processes ==="
           ps aux | grep -E "proxy.py|cloudflared"
-      - name: Verify tunnel
-        run: |
-          sleep 5
+          
           TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
-          echo "Testing tunnel: $TUNNEL_URL"
-          curl -v -H "Host: localhost" "https://$TUNNEL_URL" 2>&1 || true
-      - name: Commit URL
-        run: |
-          TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
-          echo "URL=$TUNNEL_URL"
           echo "$TUNNEL_URL" > tunnel-url.txt
           git config user.name "github-actions[bot]"
           git config user.email "a@b.c"
           git add tunnel-url.txt
           git commit -m "URL: $TUNNEL_URL" || true
           git push --force
-      - name: Keep alive
-        run: sleep 7200
+          
+          echo "Keeping processes alive..."
+          wait
