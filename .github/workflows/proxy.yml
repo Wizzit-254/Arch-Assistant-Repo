@@ -18,13 +18,22 @@ jobs:
           chmod +x /tmp/cloudflared
           sudo mv /tmp/cloudflared /usr/local/bin/cloudflared
           cloudflared version
-      - name: Start SOCKS5 proxy via cloudflared
+      - name: Start services
         run: |
-          setsid bash -c 'cloudflared tunnel --socks5 --url socks5://localhost:1080 --loglevel info > /tmp/cf.log 2>&1' < /dev/null &
-          sleep 20
+          setsid bash -c 'python3 proxy.py > /tmp/proxy.log 2>&1 & sleep 2; cloudflared tunnel --url http://localhost:8888 --loglevel debug > /tmp/cf.log 2>&1; wait' < /dev/null &
+          sleep 25
+          echo "=== Proxy log ==="
+          cat /tmp/proxy.log
+          echo "=== Cloudflared log ==="
           cat /tmp/cf.log
           echo "=== Processes ==="
-          ps aux | grep cloudflared
+          ps aux | grep -E "proxy.py|cloudflared"
+      - name: Verify tunnel
+        run: |
+          sleep 5
+          TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
+          echo "Testing tunnel: $TUNNEL_URL"
+          curl -v -H "Host: localhost" "https://$TUNNEL_URL" 2>&1 || true
       - name: Commit URL
         run: |
           TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
