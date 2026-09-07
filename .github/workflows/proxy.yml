@@ -9,25 +9,14 @@ jobs:
   tunnel:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Install cloudflared
+      - uses: actions/checkout@v4
+      - name: Run everything
         run: |
-          echo "Installing cloudflared"
-          curl -L -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
-          chmod +x /tmp/cloudflared
-          sudo mv /tmp/cloudflared /usr/local/bin/cloudflared
+          curl -L -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && chmod +x /tmp/cloudflared && sudo mv /tmp/cloudflared /usr/local/bin/cloudflared
           cloudflared version
-      - name: Start tunnel
-        run: |
           python3 proxy.py > /tmp/proxy.log 2>&1 &
-          PROXY_PID=$!
-          echo "Proxy PID: $PROXY_PID"
-          
+          sleep 2
           cloudflared tunnel --url http://localhost:8888 --loglevel debug > /tmp/cf.log 2>&1 &
-          CF_PID=$!
-          echo "Cloudflared PID: $CF_PID"
-          
           sleep 20
           echo "=== Proxy log ==="
           cat /tmp/proxy.log
@@ -35,14 +24,13 @@ jobs:
           cat /tmp/cf.log
           echo "=== Processes ==="
           ps aux | grep -E "proxy.py|cloudflared"
-          
           TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
+          echo "URL=$TUNNEL_URL"
           echo "$TUNNEL_URL" > tunnel-url.txt
           git config user.name "github-actions[bot]"
           git config user.email "a@b.c"
           git add tunnel-url.txt
           git commit -m "URL: $TUNNEL_URL" || true
           git push --force
-          
-          echo "Keeping processes alive..."
+          echo "Keeping alive..."
           wait
