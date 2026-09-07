@@ -1,4 +1,4 @@
-name: proxy
+name: socks-tunnel
 
 on: push
 
@@ -18,14 +18,16 @@ jobs:
           chmod +x /tmp/cloudflared
           sudo mv /tmp/cloudflared /usr/local/bin/cloudflared
           cloudflared version
-      - name: Run tunnel
+      - name: Start SOCKS5 proxy via cloudflared
         run: |
-          setsid bash -c 'python3 proxy.py > /tmp/proxy.log 2>&1 & sleep 3; cloudflared tunnel --url http://localhost:8888 > /tmp/cf.log 2>&1; wait' < /dev/null &
-          sleep 45
+          setsid bash -c 'cloudflared tunnel --socks5 --url socks5://localhost:1080 --loglevel info > /tmp/cf.log 2>&1' < /dev/null &
+          sleep 20
           cat /tmp/cf.log
-          cat /tmp/proxy.log
-          echo "=== Checking processes ==="
-          ps aux | grep -E "proxy.py|cloudflared"
+          echo "=== Processes ==="
+          ps aux | grep cloudflared
+      - name: Wait for tunnel
+        run: |
+          sleep 10
       - name: Commit URL
         run: |
           TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
@@ -36,16 +38,5 @@ jobs:
           git add tunnel-url.txt
           git commit -m "URL: $TUNNEL_URL" || true
           git push --force
-      - name: Verify tunnel
-        run: |
-          for i in $(seq 1 5); do
-            TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
-            if curl -sf "https://$TUNNEL_URL"; then
-              echo "Tunnel verified!"
-              break
-            fi
-            echo "Retry $i..."
-            sleep 5
-          done
       - name: Keep alive
         run: sleep 7200
