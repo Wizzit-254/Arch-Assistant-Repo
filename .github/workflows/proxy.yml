@@ -9,10 +9,78 @@ jobs:
   tunnel:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - run: |
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install cloudflared
+        run: |
           echo "Installing cloudflared"
           curl -L -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
           chmod +x /tmp/cloudflared
           sudo mv /tmp/cloudflared /usr/local/bin/cloudflared
           cloudflared version
+      - name: Start HTTP proxy
+        run: |
+          python3 -c "
+import socket, threading, select
+
+def handle(c):
+    try:
+        c.settimeout(5)
+        d = b''
+        while b'\r\n\r\n' not in d:
+            chunk = c.recv(4096)
+            if not chunk: return
+            d += chunk
+            if len(d) > 8192: break
+        fl = d.split(b'\r\n')[0].decode('utf-8', errors='replace')
+        p = fl.split()
+        if len(p) >= 2 and p[0].upper() == 'CONNECT':
+            hp = p[1]
+            host, port = hp.rsplit(':', 1)
+            port = int(port)
+            try:
+                r = socket.create_connection((host, port), timeout=15)
+                c.sendall(b'HTTP/1.1 200 Connection established\r\n\r\n')
+                c.settimeout(None)
+                socks = [c, r]
+                while True:
+                    rd, _, _ = select.select(socks, [], [])
+                    for s in rd:
+                        chunk = s.recv(4096)
+                        if not chunk: return
+                        if s is c: r.sendall(chunk)
+                        else: c.sendall(chunk)
+            except Exception as e:
+                try: c.sendall(b'HTTP/1.1 502 Bad Gateway\r\n\r\n' + str(e).encode())
+                except: pass
+    except: pass
+    finally:
+        try: c.close()
+        except: pass
+
+srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+srv.bind(('0.0.0.0', 8888))
+srv.listen(5)
+while True:
+    c, _ = srv.accept()
+    threading.Thread(target=handle, args=(c,)).start()
+" > /tmp/proxy.log 2>&1 &
+          sleep 3
+      - name: Start cloudflared
+        run: |
+          cloudflared tunnel --url http://localhost:8888 > /tmp/cf.log 2>&1 &
+          sleep 15
+          cat /tmp/cf.log
+      - name: Commit URL
+        run: |
+          TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
+          echo "URL=$TUNNEL_URL"
+          echo "$TUNNEL_URL" > tunnel-url.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "a@b.c"
+          git add tunnel-url.txt
+          git commit -m "URL: $TUNNEL_URL" || true
+          git push
+      - name: Wait
+        run: sleep 7200
