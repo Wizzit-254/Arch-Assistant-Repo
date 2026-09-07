@@ -35,5 +35,10 @@ jobs:
       - name: Show tunnel info
         run: |
           cat /tmp/cloudflared.log
+      - name: Set outputs
+        run: |
+          TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | head -1 || true)
+          echo "tunnel_url=$TUNNEL_URL" >> $GITHUB_ENV
+          echo "Tunnel URL: $TUNNEL_URL"
       - name: Keep alive
-        run: sleep 7200
+        run: sleep 3600
