@@ -18,18 +18,15 @@ jobs:
           chmod +x /tmp/cloudflared
           sudo mv /tmp/cloudflared /usr/local/bin/cloudflared
           cloudflared version
-      - name: Start HTTP proxy
+      - name: Start services
         run: |
-          nohup python3 proxy.py > /tmp/proxy.log 2>&1 &
-          disown
+          setsid python3 proxy.py > /tmp/proxy.log 2>&1 < /dev/null &
           sleep 3
-          echo "Proxy started, PID: $!"
-          ps aux | grep proxy.py
-      - name: Start cloudflared tunnel
-        run: |
-          nohup cloudflared tunnel --url http://localhost:8888 > /tmp/cf.log 2>&1 &
-          disown
+          setsid cloudflared tunnel --url http://localhost:8888 > /tmp/cf.log 2>&1 < /dev/null &
           sleep 15
+          cat /tmp/cf.log
+          echo "Processes running:"
+          ps aux | grep -E "proxy.py|cloudflared"
       - name: Commit URL
         run: |
           TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
