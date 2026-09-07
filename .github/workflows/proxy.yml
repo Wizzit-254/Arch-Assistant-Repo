@@ -18,14 +18,13 @@ jobs:
           chmod +x /tmp/cloudflared
           sudo mv /tmp/cloudflared /usr/local/bin/cloudflared
           cloudflared version
-      - name: Start services
+      - name: Run tunnel
         run: |
-          setsid python3 proxy.py > /tmp/proxy.log 2>&1 < /dev/null &
-          sleep 3
-          setsid cloudflared tunnel --url http://localhost:8888 > /tmp/cf.log 2>&1 < /dev/null &
-          sleep 15
+          setsid bash -c 'python3 proxy.py > /tmp/proxy.log 2>&1 & sleep 3; cloudflared tunnel --url http://localhost:8888 > /tmp/cf.log 2>&1; wait' < /dev/null &
+          sleep 45
           cat /tmp/cf.log
-          echo "Processes running:"
+          cat /tmp/proxy.log
+          echo "=== Checking processes ==="
           ps aux | grep -E "proxy.py|cloudflared"
       - name: Commit URL
         run: |
@@ -37,5 +36,16 @@ jobs:
           git add tunnel-url.txt
           git commit -m "URL: $TUNNEL_URL" || true
           git push
+      - name: Verify tunnel
+        run: |
+          for i in $(seq 1 5); do
+            TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
+            if curl -sf "https://$TUNNEL_URL"; then
+              echo "Tunnel verified!"
+              break
+            fi
+            echo "Retry $i..."
+            sleep 5
+          done
       - name: Keep alive
         run: sleep 7200
