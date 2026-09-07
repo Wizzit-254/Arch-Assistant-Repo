@@ -10,20 +10,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run everything
+      - name: Setup
         run: |
           curl -L -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && chmod +x /tmp/cloudflared && sudo mv /tmp/cloudflared /usr/local/bin/cloudflared
           cloudflared version
-          python3 proxy.py > /tmp/proxy.log 2>&1 &
-          sleep 2
+          echo "PROXY TEST: $(curl -s http://api.ipify.org)"
+      - name: Start tunnel
+        run: |
+          # Start proxy in foreground with cloudflared as background
           cloudflared tunnel --url http://localhost:8888 --loglevel debug > /tmp/cf.log 2>&1 &
-          sleep 20
-          echo "=== Proxy log ==="
-          cat /tmp/proxy.log
-          echo "=== Cloudflared log ==="
-          cat /tmp/cf.log
-          echo "=== Processes ==="
+          CF_PID=$!
+          sleep 5
+          
+          # Start Python proxy as background
+          python3 proxy.py > /tmp/proxy.log 2>&1 &
+          PROXY_PID=$!
+          sleep 3
+          
+          echo "Proxy PID: $PROXY_PID, CF PID: $CF_PID"
           ps aux | grep -E "proxy.py|cloudflared"
+          echo "=== CF LOG ==="
+          cat /tmp/cf.log
+          echo "=== PROXY LOG ==="
+          cat /tmp/proxy.log
+          
           TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
           echo "URL=$TUNNEL_URL"
           echo "$TUNNEL_URL" > tunnel-url.txt
@@ -32,5 +42,5 @@ jobs:
           git add tunnel-url.txt
           git commit -m "URL: $TUNNEL_URL" || true
           git push --force
-          echo "Keeping alive..."
-          wait
+          
+          wait $CF_PID
