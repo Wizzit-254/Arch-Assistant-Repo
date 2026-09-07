@@ -1,0 +1,32 @@
+name: cloud-tunnel
+
+on:
+  workflow_dispatch:
+    inputs:
+      pubkey:
+        description: 'SSH Public Key'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  tunnel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq curl jq
+          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o /tmp/cloudflared.deb
+          sudo dpkg -i /tmp/cloudflared.deb
+      - name: Start cloudflared HTTP tunnel
+        run: |
+          cloudflared tunnel --url http://localhost:80 --loglevel info > /tmp/cloudflared.log 2>&1 &
+          echo "cloudflared PID: $!"
+          sleep 20
+      - name: Show tunnel info
+        run: |
+          cat /tmp/cloudflared.log
+      - name: Keep alive
+        run: sleep 3600
