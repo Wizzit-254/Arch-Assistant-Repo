@@ -1,6 +1,9 @@
 name: proxy
 
 on:
+  push:
+    paths:
+      - 'tunnel-trigger'
   workflow_dispatch:
 
 permissions:
