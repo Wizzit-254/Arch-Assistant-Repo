@@ -1,18 +1,21 @@
-#!/usr/bin/env python3
 import socket, threading, select, sys, urllib.request, ssl
 
-def handle_client(client):
+def handle(c):
     try:
-        client.settimeout(5)
-        data = b''
-        while b'\r\n\r\n' not in data:
-            chunk = client.recv(4096)
-            if not chunk: return
-            data += chunk
-            if len(data) > 65536: break
-        fl = data.split(b'\r\n')[0].decode('utf-8', errors='replace')
+        c.settimeout(5)
+        d = b''
+        while b'\r\n\r\n' not in d:
+            chunk = c.recv(4096)
+            if not chunk:
+                return
+            d += chunk
+            if len(d) > 65536:
+                break
+        sys.stderr.write("RECEIVED: " + repr(d[:200]) + "\n")
+        sys.stderr.flush()
+        fl = d.split(b'\r\n')[0].decode('utf-8', errors='replace')
         parts = fl.split()
-        sys.stderr.write("REQUEST: " + repr(fl[:200]) + "\n")
+        sys.stderr.write("PARTS: " + repr(parts) + "\n")
         sys.stderr.flush()
         
         if len(parts) >= 2 and parts[0].upper() == 'CONNECT':
@@ -21,62 +24,74 @@ def handle_client(client):
             port = int(port)
             try:
                 r = socket.create_connection((host, port), timeout=15)
-                client.sendall(b'HTTP/1.1 200 Connection established\r\n\r\n')
-                client.settimeout(None)
-                socks = [client, r]
+                c.sendall(b'HTTP/1.1 200 Connection established\r\n\r\n')
+                c.settimeout(None)
+                socks = [c, r]
                 while True:
                     rd, _, _ = select.select(socks, [], [])
                     for s in rd:
                         chunk = s.recv(4096)
-                        if not chunk: return
-                        if s is client: r.sendall(chunk)
-                        else: client.sendall(chunk)
+                        if not chunk:
+                            return
+                        if s is c:
+                            r.sendall(chunk)
+                        else:
+                            c.sendall(chunk)
             except Exception as e:
-                try: client.sendall(b'HTTP/1.1 502 Bad Gateway\r\n\r\n' + str(e).encode())
-                except: pass
-        elif len(parts) >= 2 and parts[0].upper() in ('GET','POST','PUT','DELETE','HEAD'):
-            method = parts[0].upper()
-            url = parts[1].decode('utf-8', errors='replace')
-            headers = {}
-            for line in data.split(b'\r\n')[1:]:
-                if b': ' in line:
-                    k, v = line.split(b': ', 1)
-                    k = k.decode('utf-8', errors='replace')
-                    v = v.decode('utf-8', errors='replace')
-                    if k.lower() not in ('proxy-connection', 'connect'):
-                        headers[k] = v
-            
-            if url.startswith('https://') or url.startswith('http://'):
-                if not url.startswith('http://'):
-                    url = url.replace('https://', 'http://')
+                sys.stderr.write("CONNECT ERR: " + str(e) + "\n")
+                sys.stderr.flush()
                 try:
-                    req = urllib.request.Request(url, headers={**headers, 'User-Agent': 'Mozilla/5.0'})
-                    ctx = ssl.create_default_context()
-                    ctx.check_hostname = False
-                    ctx.verify_mode = ssl.CERT_NONE
-                    resp = urllib.request.urlopen(req, timeout=15, context=ctx)
-                    content = resp.read()
-                    client.sendall(b'HTTP/1.1 200 OK\r\n')
-                    ct = resp.headers.get('Content-Type','text/html')
-                    client.sendall(f'Content-Type: {ct}\r\n'.encode())
-                    client.sendall(f'Content-Length: {len(content)}\r\n'.encode())
-                    client.sendall(b'Access-Control-Allow-Origin: *\r\n')
-                    client.sendall(b'Connection: close\r\n')
-                    client.sendall(b'\r\n')
-                    client.sendall(content)
-                except Exception as e:
-                    try: client.sendall(b'HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n')
-                    except: pass
+                    c.sendall(b'HTTP/1.1 502 Bad Gateway\r\n\r\n' + str(e).encode())
+                except:
+                    pass
+        elif len(parts) >= 2 and parts[0].upper() == 'GET':
+            url = parts[1]
+            sys.stderr.write("URL: " + url + "\n")
+            sys.stderr.flush()
+            if url.startswith('http://'):
+                host = url.split('/')[2]
+            elif url.startswith('https://'):
+                host = url.replace('https://', '').split('/')[0]
             else:
-                try: client.sendall(b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK')
-                except: pass
+                host = '127.0.0.1'
+            sys.stderr.write("HOST: " + host + "\n")
+            sys.stderr.flush()
+            try:
+                remote = socket.create_connection((host, 80), timeout=15)
+                remote.sendall(d)
+                socks = [c, remote]
+                while True:
+                    rd, _, _ = select.select(socks, [], [])
+                    for s in rd:
+                        chunk = s.recv(4096)
+                        if not chunk:
+                            return
+                        if s is c:
+                            remote.sendall(chunk)
+                        else:
+                            c.sendall(chunk)
+            except Exception as e:
+                sys.stderr.write("GET ERR: " + str(e) + "\n")
+                sys.stderr.flush()
+                try:
+                    c.sendall(b'HTTP/1.1 502 Bad Gateway\r\n\r\n' + str(e).encode())
+                except:
+                    pass
         else:
-            try: client.sendall(b'HTTP/1.1 200 OK\r\nContent-Length: -2\r\n\r\n')
-            except: pass
-    except: pass
+            sys.stderr.write("UNKNOWN: " + fl + "\n")
+            sys.stderr.flush()
+            try:
+                c.sendall(b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK')
+            except:
+                pass
+    except Exception as e:
+        sys.stderr.write("HANDLE ERR: " + str(e) + "\n")
+        sys.stderr.flush()
     finally:
-        try: client.close()
-        except: pass
+        try:
+            c.close()
+        except:
+            pass
 
 srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -86,4 +101,4 @@ sys.stderr.write("PROXY READY on port 8888\n")
 sys.stderr.flush()
 while True:
     c, _ = srv.accept()
-    threading.Thread(target=handle_client, args=(c,)).start()
+    threading.Thread(target=handle, args=(c,)).start()
