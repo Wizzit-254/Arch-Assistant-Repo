@@ -16,13 +16,12 @@ jobs:
           cloudflared version
       - name: Start tunnel
         run: |
-          # Start Python proxy FIRST
-          python3 proxy.py > /tmp/proxy.log 2>&1 &
+          # Start simple HTTP server first to verify tunnel works
+          python3 -m http.server 8888 --bind 0.0.0.0 > /tmp/proxy.log 2>&1 &
           PROXY_PID=$!
           sleep 3
           echo "Proxy PID: $PROXY_PID"
-          ps aux | grep proxy.py
-          cat /tmp/proxy.log
+          ps aux | grep "http.server"
           
           # Start cloudflared AFTER proxy is running
           cloudflared tunnel --url http://localhost:8888 --loglevel debug > /tmp/cf.log 2>&1 &
