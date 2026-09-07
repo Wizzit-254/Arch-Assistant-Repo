@@ -32,17 +32,19 @@ jobs:
           cloudflared tunnel --url ssh://localhost:2222 --loglevel info > /tmp/cloudflared.log 2>&1 &
           echo "cloudflared PID: $!"
           sleep 20
-      - name: Write tunnel URL to gist
+      - name: Write tunnel URL to repo
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TUNNEL_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | head -1 || true)
           echo "TUNNEL_URL=$TUNNEL_URL"
-          # Write to a gist for external reading
-          curl -s -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/gists \
-            -d "{\"description\":\"Tunnel URL\", \"public\":true, \"files\":{\"tunnel.txt\":{\"content\":\"$TUNNEL_URL\"}}}"
+          echo "$TUNNEL_URL" > /tmp/tunnel_url.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          echo "$TUNNEL_URL" > tunnel-url.txt
+          git add tunnel-url.txt
+          git commit -m "Update tunnel URL to: $TUNNEL_URL"
+          git push origin HEAD:main
       - name: Show tunnel info
         run: |
           cat /tmp/cloudflared.log
