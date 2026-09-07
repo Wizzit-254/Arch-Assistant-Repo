@@ -35,7 +35,7 @@ jobs:
           git config user.email "a@b.c"
           git add tunnel-url.txt
           git commit -m "URL: $TUNNEL_URL" || true
-          git push
+          git push --force
       - name: Verify tunnel
         run: |
           for i in $(seq 1 5); do
