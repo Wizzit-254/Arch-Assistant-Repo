@@ -12,21 +12,31 @@ jobs:
   tunnel:
     runs-on: ubuntu-latest
     steps:
-      - name: Install SSH server
+      - name: Install tools
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq openssh-server socat
+          sudo apt-get update -qq && sudo apt-get install -y -qq openssh-server socat curl jq
           sudo mkdir -p /run/sshd
-      - name: Setup authorized keys
+          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o /tmp/cloudflared.deb
+          sudo dpkg -i /tmp/cloudflared.deb
+      - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ github.event.inputs.pubkey }}" > ~/.ssh/authorized_keys
           chmod 600 ~/.ssh/authorized_keys
-      - name: Generate host keys
-        run: |
           ssh-keygen -A
-      - name: Start SSH server on port 2222
+      - name: Start SSH server on 2222
         run: |
-          sudo /usr/sbin/sshd -p 2222 -o "PasswordAuthentication=no" -o "PubkeyAuthentication=yes" -o "AllowTcpForwarding=yes" -o "GatewayPorts=yes" -o "PermitTunnel=yes" -o "PidFile=/tmp/sshd.pid" -o "LogLevel=INFO"
-          echo "SSH server started on port 2222"
-      - name: Wait
-        run: sleep 600
+          sudo /usr/sbin/sshd -p 2222 -o "PasswordAuthentication=no" -o "PubkeyAuthentication=yes" -o "AllowTcpForwarding=yes" -o "GatewayPorts=yes" -o "PermitTunnel=yes" -o "PidFile=/tmp/sshd.pid"
+      - name: Start cloudflared tunnel (TCP over HTTP/2)
+        run: |
+          # cloudflared tunnel (no auth needed) creates a trycloudflare.com subdomain
+          # that proxies to our SSH port 2222 via the Cloudflare edge.
+          # The tunnel URL will be printed in stdout.
+          cloudflared tunnel --url ssh://localhost:2222 --loglevel info > /tmp/cloudflared.log 2>&1 &
+          sleep 12
+      - name: Show tunnel URL
+        run: |
+          grep -i "trycloudflare\|URL\|hostname\|http" /tmp/cloudflared.log || true
+          cat /tmp/cloudflared.log
+      - name: Wait for tunnel
+        run: sleep 900
