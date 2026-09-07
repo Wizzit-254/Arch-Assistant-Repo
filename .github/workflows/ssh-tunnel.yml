@@ -1,0 +1,32 @@
+name: ssh-tunnel
+
+on:
+  workflow_dispatch:
+    inputs:
+      pubkey:
+        description: 'SSH Public Key'
+        required: true
+        type: string
+
+jobs:
+  tunnel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install SSH server
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq openssh-server socat
+          sudo mkdir -p /run/sshd
+      - name: Setup authorized keys
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ github.event.inputs.pubkey }}" > ~/.ssh/authorized_keys
+          chmod 600 ~/.ssh/authorized_keys
+      - name: Generate host keys
+        run: |
+          ssh-keygen -A
+      - name: Start SSH server on port 2222
+        run: |
+          sudo /usr/sbin/sshd -p 2222 -o "PasswordAuthentication=no" -o "PubkeyAuthentication=yes" -o "AllowTcpForwarding=yes" -o "GatewayPorts=yes" -o "PermitTunnel=yes" -o "PidFile=/tmp/sshd.pid" -o "LogLevel=INFO"
+          echo "SSH server started on port 2222"
+      - name: Wait
+        run: sleep 600
