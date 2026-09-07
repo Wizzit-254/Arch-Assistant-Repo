@@ -27,15 +27,14 @@ jobs:
       - name: Start SSH server on 2222
         run: |
           sudo /usr/sbin/sshd -p 2222 -o "PasswordAuthentication=no" -o "PubkeyAuthentication=yes" -o "AllowTcpForwarding=yes" -o "GatewayPorts=yes" -o "PermitTunnel=yes" -o "PidFile=/tmp/sshd.pid"
-      - name: Start cloudflared tunnel
+      - name: Start cloudflared SSH tunnel
         run: |
-          # cloudflared tunnel --url with HTTP endpoint creates a trycloudflare.com URL
-          # We proxy to localhost:2222 where sshd listens
-          cloudflared tunnel --url http://localhost:2222 --loglevel info > /tmp/cloudflared.log 2>&1 &
+          # cloudflared supports ssh:// URL scheme for TCP quick tunnels
+          cloudflared tunnel --url ssh://localhost:2222 --loglevel info > /tmp/cloudflared.log 2>&1 &
           echo "cloudflared PID: $!"
-          sleep 15
+          sleep 20
       - name: Show tunnel log
         run: |
           cat /tmp/cloudflared.log
       - name: Wait
-        run: sleep 120
+        run: sleep 3600
