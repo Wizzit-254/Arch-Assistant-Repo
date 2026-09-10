@@ -1,0 +1,56 @@
+ARCH ASSISTANT - TERMS AND CONDITIONS
+Version 1.0.0 (Effective: September 10, 2026)
+
+1. LICENSE
+   This software is distributed under the MIT License.
+   - You may use, copy, modify, merge, publish, distribute, sublicense,
+     and/or sell copies of the Software.
+   - The above copyright notice and this permission notice shall be
+     included in all copies or substantial portions.
+   - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+
+2. NO WARRANTY
+   This is free, open-source software. We provide NO warranty
+   (express or implied) regarding its fitness for any purpose.
+   Use at your own risk.
+
+3. AI MODEL DISCLAIMER
+   The bundled AI models are provided as-is. Generated output
+   is not guaranteed to be accurate, secure, or original.
+   Always review AI-generated code before using it.
+
+4. PRIVACY
+   Arch Assistant is designed to be self-hosted. No data or
+   prompts are transmitted to the internet during normal operation.
+   No telemetry, no tracking, no accounts required.
+   No personal information is collected, stored, or transmitted.
+
+5. SUPPORT
+   Community support is available via GitHub Issues:
+   https://github.com/Wizzit-254/Arch-Assistant-Repo/issues
+   Contact: trevorkisingu@gmail.com
+
+6. INSTALLATION
+   This installer will:
+   - Download ~5GB of AI model files
+   - Extract them to your chosen install directory
+   - Create a desktop shortcut
+   - Launch the app when complete
+
+7. DOWNLOAD SECURITY
+   Checksums (SHA-256) are published for every release.
+   Verify before installing.
+   
+   Official download location:
+   https://github.com/Wizzit-254/Arch-Assistant-Repo/releases
+
+8. BY CLICKING "INSTALL", YOU AGREE TO THESE TERMS.
+
+9. THIRD-PARTY COMPONENTS
+   This software bundles models from Ollama (Apache 2.0) and
+   various open-source libraries. See the LICENSE file in the
+   installation directory for details.
+
+10. EXPORT COMPLIANCE
+    By downloading, you agree to comply with your country's
+    export control laws and regulations.

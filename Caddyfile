@@ -1,0 +1,19 @@
+# Caddy edge config for arch-assistant.com — automatic HTTPS, backend on :8080.
+# Install Caddy, point DNS at this server, then:  caddy run --config Caddyfile
+# (Caddy obtains + renews Let's Encrypt certificates by itself.)
+
+arch-assistant.com, www.arch-assistant.com {
+	reverse_proxy 127.0.0.1:8080
+
+	header {
+		# Hide server fingerprint; the app already sets the security headers.
+		-Server
+	}
+
+	# Don't let proxies cache ticketed downloads.
+	header /dl/* Cache-Control "no-store"
+
+	log {
+		output file /var/log/caddy/arch-assistant.log
+	}
+}
