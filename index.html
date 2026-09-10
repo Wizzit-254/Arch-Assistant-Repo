@@ -3326,6 +3326,8 @@ function applyLanguage(lang){
   
   // Full DOM sweep: translate ALL text nodes in the visible UI
   const ignoreTags = ['SCRIPT', 'STYLE', 'TEXTAREA', 'CODE'];
+  const ignoreIds = ['heroHeading', 'heroSub']; // dynamically set by applyGreeting
+  const ignoreClasses = ['hero-refresh']; // contains SVG, not text
   const walk = document.createTreeWalker(
     document.body,
     NodeFilter.SHOW_ELEMENT,
@@ -3333,6 +3335,7 @@ function applyLanguage(lang){
       acceptNode: (node) => {
         if (!node.textContent.trim()) return NodeFilter.FILTER_SKIP;
         if (ignoreTags.includes(node.tagName)) return NodeFilter.FILTER_SKIP;
+        if (ignoreIds.includes(node.id)) return NodeFilter.FILTER_SKIP;
         if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA' || node.tagName === 'SELECT') {
           // Handle placeholders separately
           const ph = node.getAttribute('placeholder');
@@ -3457,16 +3460,38 @@ updateEyebrowTime();
 setInterval(updateEyebrowTime, 15000);
 
 function applyGreeting(g, animate){
+  if (!g) return;
   const h1 = document.getElementById('heroHeading');
   const sub = document.getElementById('heroSub');
   const refreshBtn = document.getElementById('heroRefresh');
   const name = profileNick || 'User';
+  if (!h1) {
+    // Fallback: replace {{name}} in any element that contains it
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT, {
+      acceptNode: (node) => {
+        if (node.textContent && node.textContent.includes('{{name}}')) return NodeFilter.FILTER_ACCEPT;
+        return NodeFilter.FILTER_SKIP;
+      }
+    });
+    let el;
+    while (el = walker.nextNode()) {
+      if (el.textContent.includes('{{name}}')) {
+        el.innerHTML = (g.h || el.textContent).replace(/\{\{name\}\}/g, escapeHtml(name));
+      }
+    }
+    return;
+  }
 
   const render = () => {
-    h1.innerHTML = g.h.replace(/\{\{name\}\}/g, escapeHtml(name)) + ' ' + refreshBtn.outerHTML;
-    sub.textContent = g.sub.replace(/<[^>]+>/g, '');
+    if (refreshBtn) {
+      h1.innerHTML = (g.h || '').replace(/\{\{name\}\}/g, escapeHtml(name)) + ' ' + refreshBtn.outerHTML;
+    } else {
+      h1.innerHTML = (g.h || '').replace(/\{\{name\}\}/g, escapeHtml(name));
+    }
+    if (sub) sub.textContent = (g.sub || '').replace(/<[^>]+>/g, '');
     // re-bind, since innerHTML replaced the node
-    document.getElementById('heroRefresh').addEventListener('click', rotateGreeting);
+    const newRefresh = document.getElementById('heroRefresh');
+    if (newRefresh) newRefresh.addEventListener('click', rotateGreeting);
   };
 
   if(animate){
