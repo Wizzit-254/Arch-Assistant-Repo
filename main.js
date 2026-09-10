@@ -365,23 +365,30 @@ function startBackend(win){
     };
 
      (async () => {
-       const pingResult = await pingBackend();
-       if(pingResult === true) return; // already running with our token
-       if(pingResult === 'unauthorized'){
-         // Stale backend with a different token — kill it and restart
-         await killProcessOnPort(API_PORT);
-         await new Promise(r => setTimeout(r, 2000));
-       }
-       // Silent first-run setup: fetch Python / pip packages / VC++ if the host lacks them
-        await ensureRuntimes(win);
-       if(runtimePython){ tries.unshift([runtimePython[0], [...runtimePython[1], "-u", script]]); idx = 0; }
-       escalate();
-       for(let i = 0; i < 250; i++){  // 50s max wait
-         await new Promise(r => setTimeout(r, 200));
+        const pingResult = await pingBackend();
+        if(pingResult === true) return; // already running with our token
+        if(pingResult === 'unauthorized'){
+          // Stale backend with a different token — kill it and restart
+          await killProcessOnPort(API_PORT);
+          await new Promise(r => setTimeout(r, 2000));
+        }
+        // Start backend FIRST (so UI becomes responsive quickly), then run ensureRuntimes in parallel
+        if(runtimePython){ tries.unshift([runtimePython[0], [...runtimePython[1], "-u", script]]); idx = 0; }
+        escalate();  // Start backend immediately
+        // Silent first-run setup: fetch Python / pip packages / VC++ if the host lacks them
+        // Run in background — backend already starting
+        ensureRuntimes(win).then(() => {
+          // Re-check if backend came up after runtime installation
+          for(let i = 0; i < 50; i++){
+            setTimeout(() => {}, 200);
+          }
+        });
+        for(let i = 0; i < 250; i++){  // 50s max wait
+          await new Promise(r => setTimeout(r, 200));
           if(await pingBackend()) return;
           if(!backendProc || backendProc.exitCode !== null) escalate();
-       }
-     })();
+        }
+      })();
   } catch(e){}
 }
 

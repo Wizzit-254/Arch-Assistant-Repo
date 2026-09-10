@@ -4716,6 +4716,13 @@ loadChats();  // async — fetches from backend and renders when ready
       else if(msg.includes('backend runtimes')) pct = 15;
       progressFill.style.width = pct + '%';
     }
+    // Auto-hide overlay after 60 seconds if backend doesn't report ready (prevents frozen UI)
+    if(msg.includes('Downloading') || msg.includes('Installing') || msg.includes('Finalizing')){
+      clearTimeout(window._bootstrapTimeout);
+      window._bootstrapTimeout = setTimeout(() => {
+        if(overlay.style.display === 'flex') overlay.style.display = 'none';
+      }, 60000);
+    }
   };
 
   // Show Fable 5.1 intro notification on first launch (non-blocking — app stays usable)
