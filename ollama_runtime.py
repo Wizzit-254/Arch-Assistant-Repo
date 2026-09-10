@@ -14,7 +14,9 @@ SYSTEM_HOST = f"http://localhost:{SYSTEM_PORT}"
 
 BASE_MODELS = {
     "luna-5.3": ("qwen2.5-coder:3b-instruct-q4_K_S", "Luna.Modelfile"),
-    "wun-3.8": ("qwen2.5-coder:3b-instruct-q4_K_S", "Wun.Modelfile"),
+    # Fable is Arch's math + full-stack coding specialist — uses the strongest
+    # 7B code+math model that still runs under 4 GB RAM (~3.25 GB on disk, q3_K_S).
+    "wun-3.8": ("qwen2.5-coder:7b-instruct-q3_K_S", "Wun.Modelfile"),
     "mushy-4.6": ("qwen2.5-coder:3b-instruct-q4_K_S", "Mushy.Modelfile"),
 }
 
@@ -31,6 +33,17 @@ def _env_for_portable():
     env = os.environ.copy()
     env["OLLAMA_MODELS"] = PORTABLE_MODELS
     env["OLLAMA_HOST"] = f"127.0.0.1:{PORTABLE_PORT}"
+    # Keep models loaded in RAM for up to 4 hours between requests (avoids slow reloads)
+    env["OLLAMA_KEEP_ALIVE"] = "4h"
+    # Only ONE model resident at a time: with ~3 GB free, two models
+    # (e.g. 1 GB Luna + 3.3 GB Fable) thrash the pagefile and decode
+    # collapses (~0.2 tok/s measured). Single residency decodes ~18x faster;
+    # switching models costs one reload, which the thinking orb covers.
+    env["OLLAMA_MAX_LOADED_MODELS"] = "1"
+    # Disable GPU features to save memory on low-end PCs
+    env["OLLAMA_GPU_OVERHEAD"] = "0"
+    # Flash attention: faster prompt processing + smaller KV cache on CPU
+    env["OLLAMA_FLASH_ATTENTION"] = "1"
     return env
 
 
@@ -86,6 +99,55 @@ def _start_portable_serve():
     return _is_reachable(PORTABLE_HOST)
 
 
+def _pids_listening_on(port):
+    """PIDs with a TCP LISTEN socket on 127.0.0.1:port (Windows netstat)."""
+    pids = set()
+    try:
+        out = subprocess.run(
+            ["netstat", "-ano"], capture_output=True, timeout=15,
+            creationflags=0x08000000 if os.name == 'nt' else 0,
+        )
+        for line in (out.stdout or b"").decode("utf-8", "replace").splitlines():
+            if "LISTENING" not in line:
+                continue
+            parts = line.split()
+            if len(parts) >= 5 and parts[0].upper() == "TCP" \
+                    and parts[1].rsplit(":", 1)[-1] == str(port) \
+                    and parts[4].isdigit() and parts[4] != "0":
+                pids.add(parts[4])
+    except Exception:
+        pass
+    return pids
+
+
+def stop_portable():
+    """Stop the bundled portable Ollama server and free its RAM. Best-effort.
+
+    Only kills the process tree listening on PORTABLE_PORT, so a system-wide
+    Ollama on 11434 is never touched. Returns True when the port is free.
+    """
+    try:
+        for pid in _pids_listening_on(PORTABLE_PORT):
+            if pid == str(os.getpid()):
+                continue
+            try:
+                subprocess.run(
+                    ["taskkill", "/F", "/PID", pid, "/T"],
+                    capture_output=True, timeout=30,
+                    creationflags=0x08000000 if os.name == 'nt' else 0,
+                )
+            except Exception:
+                pass
+        for _ in range(10):
+            if not _is_reachable(PORTABLE_HOST) and not _pids_listening_on(PORTABLE_PORT):
+                _wlog("portable ollama stopped")
+                return True
+            time.sleep(0.5)
+    except Exception as e:
+        _wlog(f"stop err={str(e)[:120]}")
+    return not _is_reachable(PORTABLE_HOST)
+
+
 def start_system_ollama():
     try:
         path = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "Ollama", "ollama.exe")
@@ -106,7 +168,11 @@ def ensure_ollama():
     Bundled portable Ollama (this folder -> ollama\\ollama.exe), which keeps all
     models inside the folder so it works on any PC, is preferred. Falls back to a
     system-wide Ollama install on localhost:11434.
+
+    This is the lazy-restart entry point: if the idle watchdog already stopped
+    Ollama, this call restarts it on demand.
     """
+    touch_activity()
     if is_portable():
         if _start_portable_serve():
             return PORTABLE_HOST
@@ -129,6 +195,139 @@ def get_active_host():
             return SYSTEM_HOST
         return PORTABLE_HOST
     return SYSTEM_HOST
+
+
+# --- Idle-stop watchdog: stop Ollama after a configurable idle period ---
+# Saves RAM when the user isn't actively asking questions. Ollama is lazily
+# restarted on the next request via ensure_ollama().
+IDLE_TIMEOUT_SECONDS = 600  # 10 minutes idle -> stop Ollama
+_tts_last_activity = 0.0
+_idle_watchdog_running = False
+
+
+def touch_activity():
+    """Update the last-activity timestamp so the idle watchdog knows the
+    user is still interacting with the model."""
+    global _tts_last_activity
+    _tts_last_activity = time.time()
+
+
+def _idle_watchdog():
+    """Background thread: stop Ollama after IDLE_TIMEOUT_SECONDS of inactivity.
+
+    Calls ensure_ollama() again (which restarts the server) only when the
+    next chat request arrives — this is the lazy-restart side of the cycle.
+    """
+    global _idle_watchdog_running
+    _wlog("idle-watchdog started")
+    while _idle_watchdog_running:
+        time.sleep(30)
+        if not _idle_watchdog_running:
+            break
+        try:
+            elapsed = time.time() - _tts_last_activity
+            if elapsed > IDLE_TIMEOUT_SECONDS and _is_reachable(PORTABLE_HOST):
+                _wlog(f"idle {elapsed:.0f}s > {IDLE_TIMEOUT_SECONDS}s — stopping ollama")
+                stop_portable()
+            elif elapsed > IDLE_TIMEOUT_SECONDS and _is_reachable(SYSTEM_HOST):
+                _wlog(f"idle {elapsed:.0f}s — stopping system ollama")
+                _stop_system_ollama()
+        except Exception:
+            pass
+    _wlog("idle-watchdog exited")
+
+
+def start_idle_watchdog():
+    """Start the idle-stop watchdog thread (idempotent)."""
+    global _idle_watchdog_running
+    if _idle_watchdog_running:
+        return
+    _idle_watchdog_running = True
+    import threading
+    t = threading.Thread(target=_idle_watchdog, daemon=True)
+    t.start()
+
+
+def stop_idle_watchdog():
+    """Signal the idle-stop watchdog to exit."""
+    global _idle_watchdog_running
+    _idle_watchdog_running = False
+
+
+def _stop_system_ollama():
+    """Kill the system-level Ollama server (port 11434)."""
+    try:
+        import os as _os
+        if _os.name != "nt":
+            out = subprocess.run(["pkill", "-f", "ollama"], capture_output=True, timeout=10)
+        else:
+            for pid in _pids_listening_on(SYSTEM_PORT):
+                if pid == str(_os.getpid()):
+                    continue
+                subprocess.run(
+                    ["taskkill", "/F", "/PID", str(pid), "/T"],
+                    capture_output=True, timeout=10,
+                    creationflags=0x08000000 if os.name == "nt" else 0,
+                )
+    except Exception:
+        pass
+
+
+def _wlog(msg):
+    try:
+        with open(os.path.join(APP_DIR, "warmup.log"), "a", encoding="utf-8") as f:
+            f.write(time.strftime("%H:%M:%S") + " " + str(msg)[:300] + "\n")
+    except Exception:
+        pass
+
+
+def warmup_model(model="luna-5.3", timeout=240):
+    """Pre-load `model` into RAM so the first real question answers fast.
+
+    Runs in a background thread at startup: waits for Ollama to be reachable,
+    then issues a tiny 1-token generate that forces the weights to load while
+    the user is still on the home screen. Best-effort — never raises.
+    """
+    try:
+        _wlog(f"warmup start model={model}")
+        time.sleep(15)  # let ensure_ollama/ensure_custom_models settle first
+        for _attempt in range(8):
+            host = None
+            for _ in range(120):
+                try:
+                    host = get_active_host()
+                    if _is_reachable(host):
+                        break
+                except Exception:
+                    pass
+                host = None
+                time.sleep(0.5)
+            if not host:
+                _wlog(f"attempt {_attempt}: ollama not reachable")
+                return False
+            try:
+                body = json.dumps({
+                    "model": model,
+                    "prompt": "hi",
+                    "stream": False,
+                    "keep_alive": "4h",
+                    "options": {"num_predict": 1, "num_ctx": 1536, "num_batch": 128},
+                }).encode("utf-8")
+                req = urllib.request.Request(
+                    host.rstrip("/") + "/api/generate", data=body, method="POST",
+                    headers={"Content-Type": "application/json"},
+                )
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    if resp.status == 200:
+                        _wlog(f"attempt {_attempt}: warm OK host={host}")
+                        return True
+                    _wlog(f"attempt {_attempt}: status={resp.status}")
+            except Exception as e:
+                _wlog(f"attempt {_attempt}: err={str(e)[:150]}")
+            time.sleep(45)
+        return False
+    except Exception:
+        return False
 
 
 def _cli(args, env=None, timeout=600):
@@ -201,7 +400,7 @@ def _is_offline():
             "https://registry.ollama.ai/v2/", method="HEAD",
             headers={"User-Agent": "arch-assistant/1.0"},
         )
-        with urllib.request.urlopen(req, timeout=3) as resp:
+        with urllib.request.urlopen(req, timeout=1) as resp:
             return False
     except _uerr.HTTPError:
         # Got an HTTP response (4xx/5xx) → we have internet
@@ -228,9 +427,12 @@ def ensure_custom_models(host=None, existing=None):
     if existing is None:
         existing = fetch_models(host)
     created = []
-    offline = _is_offline()
     # Normalize existing model names (strip :latest suffix for comparison)
     existing_norm = set(m.split(":")[0] for m in existing)
+    # Only check offline status if at least one model is missing (avoids network
+    # call on every startup when models are already present)
+    all_present = all(name in existing_norm and _model_has_blobs(name) for name, (base, mfile) in BASE_MODELS.items())
+    offline = _is_offline() if not all_present else False
     for name, (base, mfile) in BASE_MODELS.items():
         if name in existing_norm and _model_has_blobs(name):
             created.append(name)

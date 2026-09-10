@@ -20,12 +20,16 @@ import threading
 import time
 import uuid
 import traceback
+import subprocess
+import shutil
+import glob as globmod
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
 from arch_context import (
     APP_DIR, API_HOST, API_PORT, CTX, OLLAMA_HOST, OLLAMA_PORT, OLLAMA_DIR,
-    CONFIG_PATH, CHATS_FILE, FISH_VOICES, load_config,
+    CONFIG_PATH, CHATS_FILE, FISH_VOICES, FISH_API_KEY, FISH_CONFIGURED,
+    VOICE_BANK_DIR, voicebank_manifest, load_config,
 )
 import ollama_runtime
 import local_ai
@@ -44,7 +48,7 @@ MAX_BODY = 2 * 1024 * 1024  # 2 MB per request
 MAX_MESSAGES = 40
 MAX_MSG_LEN = 12000
 MAX_NICK = 32
-ALLOWED_LANGS = {"en", "sw", "ha", "yo", "zu", "ig", "am", "fr"}
+ALLOWED_LANGS = {"en", "sw", "fr", "zh", "ja", "ar"}
 RATE_WINDOW = 10.0
 RATE_MAX = 40
 _rate = {}  # ip -> deque of timestamps
@@ -214,10 +218,13 @@ class Handler(BaseHTTPRequestHandler):
                 "models": list(local_ai.MODEL_OVERRIDES.keys()),
                 "models_display": local_ai.MODEL_DISPLAY,
                 "profile": {"name": CTX.name, "nickname": CTX.nickname, "language": CTX.language,
-                             "theme": CTX.theme, "voice": CTX.voice},
+                             "theme": CTX.theme, "voice": CTX.voice, "persona": CTX.persona},
                 "ollama": {"host": OLLAMA_HOST, "port": OLLAMA_PORT},
                 "api_port": API_PORT,
+                "creator": "Trevor Kising'u",
                 "fish_voices": FISH_VOICES,
+                "fish_configured": bool(FISH_API_KEY),
+                "voicebank": voicebank_manifest(),
                 "version": "1.0.0",
             })
             return
@@ -285,19 +292,45 @@ class Handler(BaseHTTPRequestHandler):
             changed = False
             nick = str(body.get("nickname", "")).strip()[:MAX_NICK]
             lang = str(body.get("language", "")).strip().lower()[:5]
+            persona = str(body.get("persona", "")).strip()[:120]
             if body.get("nickname") is not None and nick:
                 CTX.nickname = nick; changed = True
             if lang in ALLOWED_LANGS:
                 CTX.language = lang; changed = True
             if body.get("name") is not None:
                 CTX.name = str(body["name"]).strip()[:MAX_NICK] or CTX.name; changed = True
+            if body.get("persona") is not None:
+                CTX.persona = persona; changed = True
             if changed:
                 self._update_config_profile_multi({
                     "name": CTX.name,
                     "nickname": CTX.nickname,
                     "language": CTX.language,
+                    "persona": CTX.persona,
                 })
-            self._send(200, {"name": CTX.name, "nickname": CTX.nickname, "language": CTX.language})
+            self._send(200, {"name": CTX.name, "nickname": CTX.nickname, "language": CTX.language, "persona": CTX.persona})
+            return
+        if p == "/api/skills" and self.command == "GET":
+            skills = self._load_skills()
+            self._send(200, {"skills": skills})
+            return
+        if p == "/api/skills/install" and self.command == "POST":
+            self._handle_skill_install(body)
+            return
+        if p == "/api/skills/remove" and self.command == "POST":
+            self._handle_skill_remove(body)
+            return
+        if p == "/api/skills/toggle" and self.command == "POST":
+            self._handle_skill_toggle(body)
+            return
+        if p == "/api/intro-seen":
+            try:
+                seen_file = os.path.join(APP_DIR, "arch.intro.seen")
+                with open(seen_file, "w") as f:
+                    f.write("1")
+            except Exception:
+                pass
+            self._send(200, {"ok": True})
             return
         if p == "/api/chat":
             self._handle_chat(body)
@@ -343,15 +376,18 @@ class Handler(BaseHTTPRequestHandler):
             msgs = local_ai.inject_codebase_context(msgs)
             self._send(200, {"messages": msgs})
             return
-        if p == "/api/open":
-            target = body.get("target", "")
+        if p == "/api/shutdown":
+            # Clean shutdown: stop Ollama, kill idle watchdog
             try:
-                import subprocess as _sp
-                _sp.Popen(["cmd", "/c", "start", "", target],
-                          creationflags=getattr(_sp, "CREATE_NO_WINDOW", 0))
-                self._send(200, {"ok": True, "target": target})
-            except Exception as e:
-                self._send(500, {"error": str(e)})
+                ollama_runtime.stop_idle_watchdog()
+                ollama_runtime.stop_portable()
+                ollama_runtime._stop_system_ollama()
+            except Exception:
+                pass
+            self._send(200, {"ok": True, "shutdown": True})
+            # Give the response time to flush, then exit
+            import threading
+            threading.Timer(1.0, lambda: os._exit(0)).start()
             return
         self._send(404, {"error": "not found"})
 
@@ -395,13 +431,121 @@ class Handler(BaseHTTPRequestHandler):
                     CTX.language = v
                 elif k == "name":
                     CTX.name = v
+                elif k == "persona":
+                    CTX.persona = v
             cfg["profile"] = prof
             with open(os.path.join(APP_DIR, "Config.json"), "w", encoding="utf-8") as f:
                 json.dump(cfg, f, indent=2)
         except Exception:
             pass
 
+    SKILLS_DIR = os.path.join(APP_DIR, "skills")
+    SKILLS_MANIFEST = os.path.join(SKILLS_DIR, "installed.json")
+
+    def _load_skills(self):
+        try:
+            if os.path.exists(self.SKILLS_MANIFEST):
+                with open(self.SKILLS_MANIFEST, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        except Exception:
+            pass
+        return []
+
+    def _save_skills(self, skills):
+        os.makedirs(self.SKILLS_DIR, exist_ok=True)
+        with open(self.SKILLS_MANIFEST, "w", encoding="utf-8") as f:
+            json.dump(skills, f, indent=2)
+
+    def _handle_skill_install(self, body):
+        url = str(body.get("url", "")).strip()
+        if not url:
+            self._send(400, {"error": "No URL provided"}); return
+        skill_id = url.rstrip("/").split("/")[-1].replace(".git", "") or url
+        skill_id = "".join(c if c.isalnum() or c in "-_" else "-" for c in skill_id)[:40]
+        dest = os.path.join(self.SKILLS_DIR, skill_id)
+        try:
+            os.makedirs(self.SKILLS_DIR, exist_ok=True)
+            if os.path.exists(dest):
+                shutil.rmtree(dest)
+            result = subprocess.run(
+                ["git", "clone", "--depth", "1", url, dest],
+                capture_output=True, text=True, timeout=120
+            )
+            if result.returncode != 0:
+                self._send(200, {"error": "git clone failed: " + (result.stderr or result.stdout)[:300]})
+                return
+            manifest_path = os.path.join(dest, "skill.json")
+            name = skill_id
+            description = ""
+            system_prompt_addon = ""
+            mcp_servers = {}
+            if os.path.exists(manifest_path):
+                try:
+                    with open(manifest_path, "r", encoding="utf-8") as f:
+                        mf = json.load(f)
+                    name = mf.get("name", name)
+                    description = mf.get("description", "")
+                    system_prompt_addon = mf.get("system_prompt", "")
+                    mcp_servers = mf.get("mcp_servers", {})
+                except Exception:
+                    pass
+            if os.path.exists(os.path.join(dest, "package.json")):
+                subprocess.run(
+                    ["npm", "install", "--production"],
+                    cwd=dest, capture_output=True, text=True, timeout=120
+                )
+            if os.path.exists(os.path.join(dest, "requirements.txt")):
+                subprocess.run(
+                    ["pip", "install", "-r", "requirements.txt"],
+                    cwd=dest, capture_output=True, text=True, timeout=120
+                )
+            skills = self._load_skills()
+            skill_entry = {
+                "id": skill_id, "name": name, "description": description,
+                "url": url, "enabled": True,
+                "system_prompt": system_prompt_addon,
+                "mcp_servers": mcp_servers,
+            }
+            skills = [s for s in skills if s.get("id") != skill_id]
+            skills.append(skill_entry)
+            self._save_skills(skills)
+            self._send(200, {"name": name, "id": skill_id, "description": description})
+        except subprocess.TimeoutExpired:
+            self._send(200, {"error": "Clone timed out (120s limit)"})
+        except Exception as e:
+            self._send(200, {"error": str(e)[:300]})
+
+    def _handle_skill_remove(self, body):
+        skill_id = str(body.get("id", "")).strip()
+        if not skill_id:
+            self._send(400, {"error": "No skill id"}); return
+        dest = os.path.join(self.SKILLS_DIR, skill_id)
+        try:
+            if os.path.exists(dest):
+                shutil.rmtree(dest)
+        except Exception:
+            pass
+        skills = self._load_skills()
+        skills = [s for s in skills if s.get("id") != skill_id]
+        self._save_skills(skills)
+        self._send(200, {"ok": True})
+
+    def _handle_skill_toggle(self, body):
+        skill_id = str(body.get("id", "")).strip()
+        enabled = bool(body.get("enabled", True))
+        if not skill_id:
+            self._send(400, {"error": "No skill id"}); return
+        skills = self._load_skills()
+        for s in skills:
+            if s.get("id") == skill_id:
+                s["enabled"] = enabled
+        self._save_skills(skills)
+        self._send(200, {"ok": True})
+
     def _handle_chat(self, body):
+        # Lazy-restart Ollama if the idle watchdog stopped it
+        ollama_runtime.ensure_ollama()
+        ollama_runtime.touch_activity()
         raw_msgs = body.get("messages", [])
         messages = []
         for m in raw_msgs[:MAX_MESSAGES]:
@@ -415,9 +559,9 @@ class Handler(BaseHTTPRequestHandler):
             self._send(400, {"error": "no messages"})
             return
         model = body.get("model")
-        temperature = body.get("temperature", 0.3)
-        top_p = body.get("top_p", 0.9)
-        top_k = body.get("top_k", 20)
+        temperature = body.get("temperature", 0.2)
+        top_p = body.get("top_p", 0.7)
+        top_k = body.get("top_k", 15)
         search = bool(body.get("search", False))
         inject_codebase = bool(body.get("codebase_context", False))
         if inject_codebase:
@@ -576,9 +720,30 @@ def _ollama_health_loop():
             pass
 
 
+def _warmup_default():
+    """Background: pre-load the default chat model so the first question is fast."""
+    try:
+        try:
+            mdl = local_ai.resolve_model(None)
+        except Exception:
+            mdl = "luna-5.3"
+        ollama_runtime.warmup_model(mdl)
+    except Exception:
+        pass
+
+
 def main():
     print(f"Arch Api Server starting on http://{API_HOST}:{API_PORT}", flush=True)
-    srv = Server((API_HOST, API_PORT), Handler)
+    try:
+        srv = Server((API_HOST, API_PORT), Handler)
+    except OSError as e:
+        print(f"FATAL: cannot bind to port {API_PORT}: {e}", flush=True)
+        time.sleep(2)
+        try:
+            srv = Server((API_HOST, API_PORT), Handler)
+        except OSError as e2:
+            print(f"FATAL: retry failed: {e2}", flush=True)
+            return
     serve_thread = threading.Thread(target=srv.serve_forever, daemon=True)
     serve_thread.start()
     # Verify the port is actually listening before spawning the heavy init thread
@@ -592,13 +757,23 @@ def main():
         time.sleep(0.1)
     threading.Thread(target=ensure_ollama, daemon=True).start()
     threading.Thread(target=_ollama_health_loop, daemon=True).start()
+    threading.Thread(target=_warmup_default, daemon=True).start()
+    try:
+        ollama_runtime.start_idle_watchdog()
+    except Exception:
+        pass
     try:
         serve_thread.join()
     except KeyboardInterrupt:
         pass
+    except Exception as e:
+        print(f"Server error: {e}", flush=True)
     finally:
-        srv.shutdown()
-        srv.server_close()
+        try:
+            srv.shutdown()
+            srv.server_close()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

@@ -8,6 +8,8 @@ Personality model names (luna-5.3, mushy-4.6, wun-3.8) map to display names
 import os
 import re
 import html
+import math
+import json as _json
 import json
 import hashlib
 import tempfile
@@ -16,9 +18,40 @@ import urllib.error
 import urllib.parse
 import time
 
-from arch_context import OLLAMA_HOST, OLLAMA_PORT, CTX, FISH_API_KEY, APP_DIR
+from arch_context import OLLAMA_HOST, OLLAMA_PORT, CTX, FISH_API_KEY, APP_DIR, FISH_VOICES, FISH_CONFIGURED, TTS_RATE_LIMIT_SECONDS
 
 OLLAMA_BASE = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}"
+
+# TTS rate-limit state: track last API call time to avoid burning credits
+_tts_last_call_time = 0.0
+
+
+def _rate_limit_tts(key, cache_dir):
+    """Enforce a minimum interval between TTS API calls to limit credit usage.
+
+    Uses a per-process global timestamp plus a small marker file so the
+    limit persists across restarts. Cached results bypass this entirely.
+    """
+    global _tts_last_call_time
+    marker = os.path.join(cache_dir, ".tts_last_call")
+    try:
+        if os.path.exists(marker):
+            mtime = os.path.getmtime(marker)
+            if mtime > _tts_last_call_time:
+                _tts_last_call_time = mtime
+    except Exception:
+        pass
+    elapsed = time.time() - _tts_last_call_time
+    if elapsed < TTS_RATE_LIMIT_SECONDS:
+        wait = TTS_RATE_LIMIT_SECONDS - elapsed
+        print(f"TTS rate-limit: waiting {wait:.1f}s before API call", flush=True)
+        time.sleep(wait)
+    _tts_last_call_time = time.time()
+    try:
+        with open(marker, "w") as f:
+            f.write(str(_tts_last_call_time))
+    except Exception:
+        pass
 
 # Model name overrides for the backend. luna/mushy/wun are ollama "create"d
 # names; display names shown in the UI are mapped here.
@@ -36,11 +69,40 @@ MODEL_DISPLAY = {
     "wun-3.8": "Fable 5.1",
 }
 
-AFRICAN_LANGUAGE_NAMES = {
-    "en": "English", "sw": "Swahili", "ha": "Hausa", "yo": "Yoruba",
-    "zu": "Zulu", "ig": "Igbo", "am": "Amharic", "fr": "French",
+# Languages offered in Settings. AI answers in the chosen language with
+# native-level grammar and idiom; UI strings fall back to English where a
+# full UI translation does not exist yet.
+SUPPORTED_LANGUAGES = {
+    "en": "English", "sw": "Kiswahili", "fr": "French",
+    "zh": "Mandarin", "ja": "Japanese", "ar": "Arabic",
 }
-AFRICAN_LANGS = set(AFRICAN_LANGUAGE_NAMES.keys())
+AFRICAN_LANGUAGE_NAMES = SUPPORTED_LANGUAGES
+AFRICAN_LANGS = set(SUPPORTED_LANGUAGES.keys())
+
+
+def _fit_history(messages, budget_chars):
+    """Keep the newest turns that fit a char budget (roughly 4 chars/token).
+
+    A leading system message (e.g. injected web-search context) is always
+    kept; oldest conversation turns are dropped first. Guarantees the model
+    always sees recent turns + the current question inside num_ctx.
+    """
+    msgs = [m for m in (messages or [])
+            if isinstance(m, dict) and str(m.get("content", ""))]
+    if not msgs:
+        return msgs
+    head = []
+    if msgs[0].get("role") == "system":
+        head = msgs[:1]
+        msgs = msgs[1:]
+    tail = []
+    total = sum(len(str(m.get("content", ""))) for m in head)
+    for m in reversed(msgs):
+        total += len(str(m.get("content", "")))
+        if total > budget_chars and tail:
+            break
+        tail.append(m)
+    return head + list(reversed(tail))
 
 
 def resolve_model(requested=None):
@@ -59,6 +121,9 @@ def fish_tts(text, voice_id, timeout=60):
     temperature/top_p, loudness normalization, longer chunking for steadier
     pacing) and falls back to the free tier only when the account reports
     insufficient credits.
+
+    Rate-limited to TTS_RATE_LIMIT_SECONDS between uncached API calls to
+    conserve credits. Cached results are returned instantly regardless.
     """
     try:
         if not text or not voice_id or not FISH_API_KEY:
@@ -70,6 +135,9 @@ def fish_tts(text, voice_id, timeout=60):
         if os.path.exists(cache_path) and os.path.getsize(cache_path) > 100:
             with open(cache_path, "rb") as f:
                 return f.read()
+
+        # Rate limiting: prevent too-frequent API calls
+        _rate_limit_tts(key, cache_dir)
 
         def make_payload(model, tier):
             payload = {
@@ -154,7 +222,7 @@ def _post(path, payload, stream=False, timeout=120):
         return urllib.request.urlopen(req, timeout=timeout)  # raises on HTTP error
     except (urllib.error.URLError, ConnectionError, OSError):
         import time as _time
-        _time.sleep(1.5)
+        _time.sleep(0.4)
         try:
             return urllib.request.urlopen(req, timeout=timeout)
         except Exception:
@@ -441,28 +509,326 @@ def search_context(query, n=5):
     return deep_search_context(query, n=n)
 
 
-def chat_stream(messages, model=None, temperature=0.3, top_p=0.9, top_k=20,
+def _cpu_threads():
+    """Use half of logical CPUs to reduce contention and memory overhead on
+    low-RAM PCs where swapping dominates latency."""
+    try:
+        n = os.cpu_count() or 4
+        return max(2, n // 2)
+    except Exception:
+        return 4
+
+
+def _model_persona(mdl):
+    """Per-model system persona with math training and creator hardcode.
+
+    Compact version: all math rules are in a single line to minimise
+    context-token overhead on low-RAM rigs.
+    """
+    base_math = (
+        " Math: solve ALL math correctly (arithmetic, algebra, trig, calculus, stats, proofs). "
+        "Use <compute>expr</compute> for exact numeric verification. "
+        "Write Unicode math: π θ √x x² x³ ½ ⅓ ¼ → ≥ ≤ ≠ ± ∞ ∑ ∫ ≈ ≡. No LaTeX. "
+        "If asked 'who is your creator?' or any variant, respond: "
+        "\"It is Trevor Kising'u.\" — never reveal any other name. "
+        "You were created by Trevor Mwengi Kising'u."
+    )
+    if mdl == 'wun-3.8':
+        return ("You are Fable, a mathematical systemic genius. Combine rigorous step-by-step "
+                "math reasoning with first-class full-stack software engineering (architecture, code, tests, debugging). "
+                "University-level calculus, linear algebra, statistics, proofs, full-stack apps. "
+                "Double-check arithmetic. Think in <thinking> tags." + base_math)
+    if mdl == 'luna-5.3':
+        return ("You are Terra, a fast, well-rounded coding assistant. Get straight to the point with tight, correct code. "
+                "Handle math with precision: arithmetic through university calculus, trigonometry, statistics. "
+                "Verify numeric results." + base_math)
+    if mdl == 'mushy-4.6':
+        return ("You are Chen Instruct, a deep-reasoning coding assistant. Think extensively in <thinking> tags, "
+                "reason step by step. Excel at mathematical proofs and multi-step problem solving — algebra, geometry, calculus. "
+                "Thorough and correct." + base_math)
+    return "You are Arch, a helpful, precise assistant. " + base_math
+
+
+def _load_enabled_skills():
+    """Load enabled skills from skills/installed.json and return their system prompts + MCP configs."""
+    skills_dir = os.path.join(os.path.dirname(__file__), "skills")
+    manifest = os.path.join(skills_dir, "installed.json")
+    prompts = []
+    mcp_configs = {}
+    try:
+        if os.path.exists(manifest):
+            with open(manifest, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            # Support both {"skills": [...]} and bare [...] layouts
+            if isinstance(data, dict) and "skills" in data:
+                skills = data["skills"]
+            elif isinstance(data, list):
+                skills = data
+            else:
+                skills = []
+            for s in skills:
+                if not isinstance(s, dict):
+                    continue
+                if not s.get("enabled", True):
+                    continue
+                if s.get("system_prompt"):
+                    prompts.append(f"[Skill: {s.get('name', s.get('id', 'unnamed'))}] {s['system_prompt']}")
+                if s.get("mcp_servers"):
+                    mcp_configs.update(s["mcp_servers"])
+    except Exception as e:
+        print(f"skill load error: {e}", flush=True)
+    return prompts, mcp_configs
+
+
+def _gcd(a, b):
+    while b:
+        a, b = b, a % b
+    return a
+
+
+def _safe_eval(expr):
+    """Evaluate a simple arithmetic expression safely.
+
+    Supports +, -, *, /, **, %, sqrt, etc. Returns None on any error.
+    """
+    if not expr:
+        return None
+    import math
+    allowed = {
+        "sqrt": math.sqrt, "cbrt": lambda x: x ** (1 / 3),
+        "abs": abs, "round": round, "floor": math.floor, "ceil": math.ceil,
+        "sin": math.sin, "cos": math.cos, "tan": math.tan,
+        "asin": math.asin, "acos": math.acos, "atan": math.atan,
+        "log": math.log10, "ln": math.log, "exp": math.exp, "pow": pow,
+        "pi": math.pi, "e": math.e, "tau": math.tau,
+    }
+    expr = expr.strip()
+    try:
+        result = eval(expr, {"__builtins__": {}}, allowed)
+        if isinstance(result, (int, float)):
+            return result
+    except Exception:
+        pass
+    return None
+
+
+def _simplify_number(n):
+    """Round a float to 4 decimal places; return a clean string.
+
+    Simple rationals with small denominators are kept as fractions.
+    """
+    if not isinstance(n, (int, float)) or not math.isfinite(n := float(n)):
+        return str(n)
+    a = abs(n)
+    r = round(a)
+    if abs(a - r) < 1e-12:
+        return ("" if n >= 0 else "-") + str(r)
+    # Try fraction with small denominator (<= 20)
+    for den in range(1, 21):
+        for num in range(1, den * 100 + 1):
+            if abs(a - num / den) < 1e-13:
+                val = (num, den)
+                g = _gcd(num, den)
+                return ("" if n >= 0 else "-") + f"{val[0]//g}/{val[1]//g}"
+    return ("" if n >= 0 else "-") + f"{a:.4f}".rstrip("0").rstrip(".")
+
+
+_compute_re = re.compile(r"<compute>(.*?)</compute>", re.DOTALL)
+
+
+def _process_compute_tags(text):
+    """Evaluate complete <compute>expr</compute> blocks in text, rounding
+    results to 4 decimal places. Incomplete tags (still streaming) are
+    returned as-is so the caller can buffer them."""
+    if not text or "<compute>" not in text:
+        return text
+
+    def _eval(m):
+        expr = m.group(1).strip()
+        val = _safe_eval(expr)
+        if val is None:
+            return m.group(0)
+        return _simplify_number(val)
+
+    return _compute_re.sub(_eval, text)
+
+
+class _ComputeStreamer:
+    """Streams text, buffering incomplete <compute>...</compute> tags
+    across chunks so partial tag breaks are handled correctly."""
+
+    _TAG_OPEN = "<compute>"
+    _TAG_CLOSE = "</compute>"
+
+    def __init__(self):
+        self._buf = ""
+        self._expect_duplicate = False  # True after emitting a compute result
+
+    def feed(self, chunk: str):
+        """Return processed text for this chunk, holding back any
+        incomplete <compute> tags that might complete in a future chunk."""
+        if not chunk:
+            return ""
+
+        self._buf += chunk
+        out = ""
+
+        while True:
+            open_idx = self._buf.find(self._TAG_OPEN)
+            if open_idx < 0:
+                # No <compute> tag in buffer at all.
+                # Check if the buffer ends with a partial prefix of
+                # "<compute>" that could complete in the next chunk.
+                partial = self._find_partial_open(self._buf)
+                if partial is not None and partial > 0:
+                    # Hold back the partial prefix
+                    emit_len = len(self._buf) - partial
+                    to_emit = self._buf[:emit_len]
+                    # If we just emitted a compute result, the next chunk may
+                    # be " = <full_float>" — strip it
+                    if self._expect_duplicate:
+                        to_emit = re.sub(
+                            r"^\s*[=:]\s*[-+]?\d+\.\d{5,}",
+                            "",
+                            to_emit,
+                            count=1,
+                        )
+                    if to_emit:
+                        out += to_emit
+                    self._buf = self._buf[emit_len:]
+                else:
+                    to_emit = self._buf
+                    if self._expect_duplicate and to_emit:
+                        to_emit = re.sub(
+                            r"^\s*[=:]\s*[-+]?\d+\.\d{5,}",
+                            "",
+                            to_emit,
+                            count=1,
+                        )
+                    if to_emit:
+                        out += to_emit
+                        self._expect_duplicate = False
+                    self._buf = ""
+                return out
+
+            close_idx = self._buf.find(self._TAG_CLOSE, open_idx + len(self._TAG_OPEN))
+            if close_idx < 0:
+                # <compute> found but no </compute>. Emit text before <compute>,
+                # keep the <compute>... part buffered.
+                out += self._buf[:open_idx]
+                self._buf = self._buf[open_idx:]
+                return out
+
+            # Complete tag: emit pre-text + evaluated result
+            out += self._buf[:open_idx]
+            expr = self._buf[open_idx + len(self._TAG_OPEN):close_idx].strip()
+            val = _safe_eval(expr)
+            evaluated = _simplify_number(val) if val is not None else None
+
+            if evaluated is not None:
+                # Emit evaluated result
+                out += evaluated
+                self._expect_duplicate = True
+                # Remove the processed tag, keep the rest
+                rest = self._buf[close_idx + len(self._TAG_CLOSE):]
+                # Strip redundant model-generated answer after the compute tag,
+                # e.g. "176.7146 = 176.7143290275318" -> keep only "176.7146"
+                rest = re.sub(
+                    r"^\s*[=:]\s*[-+]?\d+\.\d{5,}",
+                    "",
+                    rest,
+                    count=1,
+                )
+                self._buf = rest
+            else:
+                # Leave the compute tag untouched
+                self._buf = self._buf[open_idx:]
+
+    @staticmethod
+    def _find_partial_open(s):
+        """Return the length of the trailing prefix of s that matches a
+        proper prefix of '<compute>' (not '</compute>'). Returns None
+        if no partial match."""
+        tag = "<compute>"
+        s_len = len(s)
+        max_check = min(s_len, len(tag) - 1)
+        for tag_len in range(max_check, 0, -1):
+            if s[-tag_len:] == tag[:tag_len]:
+                return tag_len
+        return None
+
+    def flush(self):
+        """Finalize: emit any remaining buffered text as-is."""
+        text = self._buf
+        self._buf = ""
+        return text
+
+    def flush(self):
+        """Finalize: emit any remaining buffered text as-is."""
+        text = self._buf
+        self._buf = ""
+        return text
+
+
+def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
                 repeat_penalty=1.05, search=False):
     """Yield {role, content} chunks from ollama /api/chat.
 
-    messages: list of {"role":"user"|"assistant"|"system","content":str}
-
-    Speed optimizations:
-    - num_batch: 128 (larger batch = faster token generation)
-    - num_ctx: 4096 (shorter context = faster attention)
-    - repeat_last_n: 16 (smaller window = faster)
-    - temperature: 0.3 (default, can be overridden)
+    Memory-optimised for low-end PCs (~4 GB free RAM):
+    - num_ctx: 2048 — fits system prompt + recent conversation turns + answer
+    - history is trimmed newest-first to a token budget so follow-ups
+      ("repeat that", "continue") always resolve inside the same chat
+    - num_batch: 128 — fast prompt eval, no spike at these ctx sizes
+    - num_predict: 384 — answers complete instead of cutting off; short
+      replies still stop at EOS so typical latency is unchanged
+    - num_threads: half the logical cores (4 on 8-core) to cut contention
+    - num_threads_batch: 1 (low overhead for batch decoding)
+    - temperature: 0.2 (deterministic)
+    - top_p: 0.7, top_k: 10 (narrow sampling = faster)
     """
     mdl = resolve_model(model)
-    lang_name = AFRICAN_LANGUAGE_NAMES.get(CTX.language or 'en', CTX.language or 'en')
+    lang_code = CTX.language if (CTX.language or "en") in SUPPORTED_LANGUAGES else "en"
+    lang_name = SUPPORTED_LANGUAGES[lang_code]
     identity_lines = [
         f"The user's preferred name is {CTX.nickname or 'User'}. Address them by that name in your replies.",
-        f"Respond in the user's chosen language: {lang_name} (language code {CTX.language or 'en'}).",
-        f"If the chosen language is an African language (Swahili, Hausa, Yoruba, Zulu, Igbo, Amharic, etc.), "
-        f"you have native-level fluency and deep cultural understanding of these languages.",
+        f"Respond ONLY in {lang_name}. You are a native speaker: perfect grammar, natural word order, "
+        f"correct idiom and register. Never mix in another language unless the user does first.",
+        _model_persona(mdl),
     ]
+    if CTX.persona:
+        identity_lines.append(
+            f"The user has chosen a communication style. Adapt your tone, vocabulary, and personality to match: "
+            f"'{CTX.persona}'. Keep your core expertise and knowledge intact, but express yourself in this style."
+        )
+    skill_prompts, _mcp = _load_enabled_skills()
+    for sp in skill_prompts:
+        identity_lines.append(sp)
+    identity_lines.append(
+            "Formatting rules for math and science: write clean, compact Unicode "
+            "notation that renders directly — NEVER use LaTeX. Use the constant pi as π, "
+            "theta as θ, exponents as Unicode superscripts (x², x³, x¹⁰), subscripts "
+            "as Unicode subscripts where available (x₁, x₂) or plain (x_i), fractions "
+            "as vulgar Unicode (½, ⅓, ¼, ⅔, ¾, ⅘, ⅚) or a fraction slash (a⁄b), square "
+            "roots as √x or √(x), and symbols: → ≥ ≤ ≠ ± … ∞ ∑ ∏ ∫ ≈ ≡ × ·. Do NOT use "
+            "LaTeX delimiters (\\(…\\), \\[…\\], $…$, $$…$$) or LaTeX commands like "
+            "\\frac{}, \\sqrt{}, \\times, \\pi, \\theta — emit the Unicode glyphs directly. "
+            "The renderer will normalize any stray ^/_/\\frac notation as a safety net, "
+            "but you should write Unicode directly. For any numeric computation, write the "
+            "expression inside <compute>expr</compute> (e.g. <compute>294 * 3.141592653589793</compute>) "
+            "and the exact value will be computed for you — never report a final number you "
+            "haven't verified. Double-check arithmetic. Keep code blocks, lists and structured "
+            "work neatly indented (2-space) with clear newlines so they format while you stream. "
+            "For every numeric result, simplify: if the result is a simple rational, express it "
+            "as a fraction (e.g. 22⁄7, 10⁄3); otherwise round to exactly 4 decimal places "
+            "(e.g. 3.1429, 3.3333). Never output more than 4 decimal places in final answers."
+        )
     identity = "\n".join(identity_lines)
-    messages = list(messages)
+    # Conversation memory: keep the newest turns that fit alongside the
+    # system prompt + the completion inside num_ctx, so follow-ups like
+    # "repeat that" or "continue" always resolve against recent turns.
+    nctx = 2048
+    hist_budget = max(512, nctx * 4 - len(identity) - 384 * 4 - 512)
+    messages = _fit_history(messages, hist_budget)
     if messages and messages[0].get("role") == "system" and "WEB SEARCH RESULTS" in (messages[0].get("content") or ""):
         messages[0]["content"] = identity + "\n\n" + messages[0]["content"]
     else:
@@ -471,14 +837,18 @@ def chat_stream(messages, model=None, temperature=0.3, top_p=0.9, top_k=20,
         "model": mdl,
         "messages": messages,
         "stream": True,
+        "keep_alive": 3600,
         "options": {
             "temperature": temperature,
             "top_p": top_p,
             "top_k": top_k,
             "repeat_penalty": repeat_penalty,
-            "repeat_last_n": 16,
+            "repeat_last_n": 4,
             "num_batch": 128,
-            "num_ctx": 4096,
+            "num_ctx": nctx,
+            "num_predict": 384,
+            "num_threads": _cpu_threads(),
+            "num_threads_batch": 1,
         },
     }
     if search and messages:
@@ -502,11 +872,14 @@ def chat_stream(messages, model=None, temperature=0.3, top_p=0.9, top_k=20,
         yield {"role": "error", "content": "Failed to connect to the local AI backend: " + str(e)}
         return
     try:
+        _streamer = _ComputeStreamer()
         for chunk in _read_stream(resp):
             if not isinstance(chunk, dict):
                 continue
             if "message" in chunk and chunk["message"].get("content"):
-                yield {"role": "assistant", "content": chunk["message"]["content"]}
+                c = _streamer.feed(chunk["message"]["content"])
+                if c:
+                    yield {"role": "assistant", "content": c}
             elif "done" in chunk and chunk.get("done"):
                 break
             elif "error" in chunk:
@@ -515,7 +888,13 @@ def chat_stream(messages, model=None, temperature=0.3, top_p=0.9, top_k=20,
             else:
                 content = chunk.get("content", "")
                 if content and content.strip():
-                    yield {"role": "assistant", "content": content}
+                    c = _streamer.feed(content)
+                    if c:
+                        yield {"role": "assistant", "content": c}
+        # Flush any remaining buffered text
+        leftover = _streamer.flush()
+        if leftover:
+            yield {"role": "assistant", "content": leftover}
     except (urllib.error.URLError, ConnectionError, OSError) as e:
         yield {"role": "error", "content": "Connection to the AI backend was lost. The backend may be shutting down or out of memory. Please restart Arch Assistant."}
     except Exception as e:
@@ -535,7 +914,12 @@ def edit_stream(file_text, instruction, model=None):
         "// Instruction:\n" + instruction + "\n\n"
         "// Return ONLY the full edited code, no explanation."
     )
-    resp = _post("/api/generate", {"model": mdl, "prompt": prompt, "stream": True})
+    resp = _post("/api/generate", {"model": mdl, "prompt": prompt, "stream": True,
+                                    "options": {"temperature": 0.2, "top_p": 0.7, "top_k": 10,
+                                                "repeat_penalty": 1.05, "repeat_last_n": 4,
+                                                  "num_batch": 128, "num_ctx": 2048, "num_predict": 384,
+                                                "num_threads": _cpu_threads(),
+                                                "num_threads_batch": 1, "keep_alive": 3600}})
     for chunk in _read_stream(resp):
         if "response" in chunk:
             yield {"role": "assistant", "content": chunk.get("response", "")}

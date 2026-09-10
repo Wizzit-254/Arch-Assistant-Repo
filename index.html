@@ -1,9 +1,17 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob: data:; connect-src http://127.0.0.1:9224 blob: wss://speech.platform.google.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; font-src 'self' data: https:; media-src 'self' blob: data:; connect-src http://127.0.0.1:9332 blob: wss://speech.platform.google.com https://cdn.jsdelivr.net; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJaxScript"></script>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$','$'], ['\\(','\\)']], displayMath: [['$$','$$'], ['\\[','\\]']], processEscapes: true, processEnvironments: true },
+    options: { ignoreHtmlClass: 'tex2jax_ignore', processHtmlClass: 'tex2jax_process' },
+    startup: { ready: () => { return MathJax.startup.defaultReady().then(() => { MathJax.startup.defaultReady = null; }) } }
+  };
+</script>
 <title>Arch</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -172,25 +180,11 @@
     padding: 6px 8px 22px 8px;
   }
 
-  .brand-mark{
-    width:30px; height:30px;
-    flex-shrink:0;
-    border-radius: 9px;
-    overflow:hidden;
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    display:flex; align-items:center; justify-content:center;
-    position:relative;
-  }
-
-  .brand-mark img{ width:100%; height:100%; display:block; object-fit:cover; }
-
-  .brand-mark.fallback::after{
-    content:"A";
-    font-family:'Fraunces', serif;
-    font-weight:600;
-    font-size: 15px;
-    color: var(--accent);
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding: 6px 8px 22px 8px;
   }
 
   .brand-name{
@@ -639,63 +633,9 @@
     transition: background .16s var(--ease), color .16s var(--ease), transform .16s var(--ease);
     flex-shrink:0;
   }
-  .tool-btn svg{ width: 16.5px; height: 16.5px; }
+   .tool-btn svg{ width: 16.5px; height: 16.5px; }
   .tool-btn:hover{ background: var(--panel-2); color: var(--text); }
   .tool-btn:active{ transform: scale(0.92); }
-
-  /* ---- Microphone / voice input animation ---- */
-  .mic-btn{ position:relative; }
-  .mic-ring{
-    position:absolute;
-    inset: -2px;
-    border-radius: 50%;
-    border: 1.5px solid var(--danger);
-    opacity: 0;
-    transform: scale(0.6);
-    pointer-events:none;
-  }
-  .mic-icon{ transition: opacity .18s var(--ease), transform .18s var(--ease); }
-  .mic-wave{
-    position:absolute;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    gap: 2.5px;
-    pointer-events:none;
-  }
-  .mic-wave span{
-    width: 2.5px;
-    border-radius: 2px;
-    background: var(--danger);
-    height: 5px;
-    animation: micBounce 0.9s ease-in-out infinite;
-  }
-  .mic-wave span:nth-child(1){ animation-delay: -0.6s; }
-  .mic-wave span:nth-child(2){ animation-delay: -0.4s; }
-  .mic-wave span:nth-child(3){ animation-delay: -0.2s; }
-  .mic-wave span:nth-child(4){ animation-delay: -0.5s; }
-  .mic-wave span:nth-child(5){ animation-delay: -0.3s; }
-  @keyframes micBounce{
-    0%, 100%{ height: 4px; }
-    50%{ height: 15px; }
-  }
-
-  .mic-btn.recording{ color: var(--danger); background: var(--danger-glow); }
-  .mic-btn.recording .mic-icon{ opacity:0; transform: scale(0.5); }
-  .mic-btn.recording .mic-wave{ display:none; }
-  .mic-btn.recording .mic-ring{
-    opacity: 1;
-    animation: micPulse 1.6s var(--ease) infinite;
-  }
-  .mic-orb{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; }
-  .mic-btn.recording .mic-orb{ display:flex; }
-  .mic-orb .thinking-orb{ width:30px; height:30px; }
-  @keyframes micPulse{
-    0%{ transform: scale(0.85); opacity: 0.9; }
-    70%{ transform: scale(1.5); opacity: 0; }
-    100%{ transform: scale(1.5); opacity: 0; }
-  }
 
   .model-picker{ position:relative; }
 
@@ -809,6 +749,9 @@
 
   .msg-bubble{
     max-width: 78%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     padding: 11px 15px;
     border-radius: 16px;
     font-size: 14px;
@@ -1171,12 +1114,68 @@
    .vp-field select{ padding:8px 10px; border:1px solid var(--border-soft); border-radius:8px; background:var(--bg-panel); color:var(--text-bright); font-size:13px; }
 
 
-  .voice-save-btn{
+   .voice-save-btn{
     padding: 9px 18px; border-radius: 999px; background: var(--text); color: var(--bg);
     font-size: 13px; font-weight: 600; cursor:pointer; transition: background .18s var(--ease), transform .16s var(--ease);
   }
   .voice-save-btn:hover{ background: var(--accent); }
   .voice-save-btn:active{ transform: scale(0.96); }
+
+  /* ---- Personality section ---- */
+  .persona-section{ padding: 14px 24px; border-top: 1px solid var(--border-soft); }
+  .persona-section h3{ font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-faint); margin-bottom: 8px; }
+  .persona-chips{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .persona-chip{
+    padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border-soft); background: var(--bg-panel); color: var(--text-dim);
+    cursor: pointer; transition: all .15s var(--ease); user-select: none;
+  }
+  .persona-chip:hover{ border-color: var(--accent-dim); color: var(--text); }
+  .persona-chip.active{ background: var(--accent-dim); border-color: var(--accent); color: var(--text-bright); }
+  .persona-custom{ width: 100%; padding: 7px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-panel); color: var(--text-bright); font-size: 13px; outline: none; transition: border-color .2s var(--ease); }
+  .persona-custom:focus{ border-color: var(--accent-dim); }
+  .persona-custom::placeholder{ color: var(--text-faint); }
+
+  /* ---- Skills & MCPs section ---- */
+  .skills-section{ padding: 14px 24px; border-top: 1px solid var(--border-soft); }
+  .skills-section h3{ font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-faint); margin-bottom: 8px; }
+  .skill-install-row{ display: flex; gap: 8px; margin-bottom: 10px; }
+  .skill-install-row input{ flex: 1; padding: 7px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-panel); color: var(--text-bright); font-size: 13px; outline: none; transition: border-color .2s var(--ease); }
+  .skill-install-row input:focus{ border-color: var(--accent-dim); }
+  .skill-install-row input::placeholder{ color: var(--text-faint); }
+  .skill-install-btn{
+    padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    background: var(--accent-dim); color: var(--text-bright); border: none; cursor: pointer;
+    transition: background .15s var(--ease), transform .1s var(--ease); white-space: nowrap;
+  }
+  .skill-install-btn:hover{ background: var(--accent); }
+  .skill-install-btn:active{ transform: scale(0.96); }
+  .skill-install-btn:disabled{ opacity: .5; cursor: default; }
+  .skill-list{ display: flex; flex-direction: column; gap: 4px; }
+  .skill-item{
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px;
+    background: var(--bg-panel); border: 1px solid var(--border-soft); font-size: 13px; color: var(--text);
+  }
+  .skill-item-name{ flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .skill-item-desc{ font-size: 11px; color: var(--text-faint); flex-shrink: 0; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .skill-toggle{
+    width: 34px; height: 18px; border-radius: 9px; position: relative; cursor: pointer;
+    background: var(--border); transition: background .2s var(--ease); flex-shrink: 0;
+  }
+  .skill-toggle.on{ background: var(--accent-dim); }
+  .skill-toggle::after{
+    content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
+    border-radius: 50%; background: var(--text-bright); transition: transform .2s var(--ease);
+  }
+  .skill-toggle.on::after{ transform: translateX(16px); }
+  .skill-remove{
+    width: 20px; height: 20px; border-radius: 50%; border: none; background: transparent;
+    color: var(--text-faint); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: color .15s var(--ease), background .15s var(--ease); flex-shrink: 0; font-size: 14px;
+  }
+  .skill-remove:hover{ color: #f55; background: rgba(255,85,85,.12); }
+  .skills-empty{ font-size: 12px; color: var(--text-faint); padding: 6px 0; }
+  .skills-status{ font-size: 11px; color: var(--text-faint); margin-top: 4px; min-height: 16px; }
 
   /* ---- Agent task modal ---- */
   .agent-task-modal{ width: min(520px, 92vw); }
@@ -1238,17 +1237,7 @@
   .narrate-btn:hover{ background: var(--panel-2); color: var(--accent); }
   .narrate-btn.speaking{ color: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
 
-  .listen-btn{
-    width:26px; height:26px; border-radius:8px; flex-shrink:0;
-    display:flex; align-items:center; justify-content:center;
-    color: var(--text-faint); cursor:pointer;
-    transition: background .16s var(--ease), color .16s var(--ease);
-  }
-  .listen-btn svg{ width:13px; height:13px; }
-  .listen-btn:hover{ background: var(--panel-2); color: var(--accent); }
-  .listen-btn.listening{ color: var(--accent); }
-
-  .copy-msg-btn{
+   .copy-msg-btn{
     width:26px; height:26px; border-radius:8px; flex-shrink:0;
     display:flex; align-items:center; justify-content:center;
     color: var(--text-faint); cursor:pointer;
@@ -1333,12 +1322,18 @@
     margin: 0;
     padding: 12px 14px;
     overflow-x: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
   }
   .code-block code{
     font-family: 'JetBrains Mono', monospace;
     font-size: 12.5px;
     line-height: 1.6;
-    white-space: pre;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     color: var(--text);
   }
 
@@ -1382,11 +1377,7 @@
     display:inline-flex; align-items:center; gap:6px;
     font-size:11px; color: var(--accent); margin-left:4px;
   }
-   .search-mode-hint svg{ width:12px; height:12px; }
-
-   /* ===================== CODEBASE TOGGLE ===================== */
-   .codebase-toggle-btn.search-on{ background: var(--accent-glow); color: var(--accent); }
-   .codebase-toggle-btn.search-on:hover{ color: var(--accent); }
+    .search-mode-hint svg{ width:12px; height:12px; }
 
    /* ===================== MESSAGE LINKS ===================== */
    .msg-link{
@@ -1395,35 +1386,49 @@
      cursor: pointer;
    }
    .msg-link:hover{
-     background: var(--accent-glow);
-     border-radius: 3px;
-   }
+      background: var(--accent-glow);
+      border-radius: 3px;
+    }
 
-  /* brand logo */
-  .brand-mark img{ object-fit:cover; }
-
-  @media (prefers-reduced-motion: reduce){ *{ animation: none !important; transition: none !important; } }
+   @media (prefers-reduced-motion: reduce){ *{ animation: none !important; transition: none !important; } }
 
   @media (max-width: 860px){
     .sidebar{ position:absolute; left:0; top:0; height:100%; background:var(--bg); box-shadow: 20px 0 40px rgba(0,0,0,0.3);}
     .agent-grid{ grid-template-columns: 1fr; }
   }
   @media (max-width: 560px){ .voice-grid{ grid-template-columns: 1fr; } }
+
+  /* ===================== MATH / SCIENCE RENDERING ===================== */
+  .math-display{ display:block; text-align:center; margin:0.6em 0; font-size:1.05em; }
+  .frac{ display:inline-block; text-align:center; line-height:1; margin:0 .06em; vertical-align:baseline; }
+  .frac .fnum, .frac .fden{ display:block; font-size:0.72em; }
+  .frac .fden{ border-top:1px solid var(--border); margin-top:1px; padding-top:1px; }
+  .rt{ margin-left:0.05em; }
+  .rtsup{ font-size:0.7em; vertical-align: super; }
+  .msg-bubble sup, .msg-bubble sub{ vertical-align:baseline; }
+  .msg-bubble code{ font-family:'JetBrains Mono',monospace; font-size:0.92em; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word; }
+  pre code sup, pre code sub{ vertical-align:baseline; }
 </style>
 </head>
 <body>
 
 <div class="theme-veil" id="themeVeil"></div>
 
-<div class="app">
+<div id="bootstrapOverlay" style="position:fixed;inset:0;background:rgba(15,15,20,0.92);display:none;align-items:center;justify-content:center;z-index:99999;">
+  <div style="text-align:center;color:var(--text,#e0e0e8);font-family:'Inter',sans-serif;max-width:480px;">
+    <div id="bootstrapSpinner" style="display:inline-block;width:40px;height:40px;border:3px solid rgba(255,255,255,0.2);border-top-color:#4a90d9;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;"></div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    <div style="font-size:18px;font-weight:600;margin-bottom:8px;">Setting up Arch</div>
+    <div id="bootstrapMessage" style="font-size:13px;color:rgba(224,224,232,0.7);">Downloading necessities for Arch-Assistant-App (5.27GB)</div>
+    <div id="bootstrapProgressBar" style="margin-top:16px;width:100%;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;"><div id="bootstrapProgressFill" style="height:100%;width:0%;background:#4a90d9;transition:width 0.3s;"></div></div>
+  </div>
+</div>
 
+<div class="app">
   <!-- ===================== SIDEBAR ===================== -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-inner">
       <div class="brand">
-        <div class="brand-mark" id="brandMark">
-          <img src="Arch.png" alt="Arch logo" onerror="this.style.display='none'; this.parentElement.classList.add('fallback');">
-        </div>
         <div class="brand-name">Arch</div>
         <div class="brand-collapse" id="collapseBtn" title="Collapse sidebar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
@@ -1515,7 +1520,7 @@
       <div class="panel-view visible" id="view-home">
         <div class="content">
           <div class="hero">
-            <div class="hero-eyebrow" id="heroEyebrow"><span class="pulse"></span> Arch is ready <span class="eyebrow-sep">·</span> <span class="eyebrow-time" id="eyebrowTime"></span></div>
+            <div class="hero-eyebrow" id="heroEyebrow"><span class="pulse"></span> Starting backend... <span class="eyebrow-sep">·</span> <span class="eyebrow-time" id="eyebrowTime"></span></div>
             <h1 id="heroHeading">What can I help with, {{name}}? <span class="hero-refresh rippler" id="heroRefresh" title="New prompt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0115.4-6.36M21 12a9 9 0 01-15.4 6.36"/><path d="M3 3v6h6M21 21v-6h-6"/></svg></span></h1>
             <p id="heroSub">Start typing below to begin a new conversation.</p>
           </div>
@@ -1543,18 +1548,12 @@
             <div class="composer" id="composer">
               <textarea class="composer-input" id="input" placeholder="Ask Arch" rows="1"></textarea>
               <div class="attach-chips" id="attachChips"></div>
-              <div class="composer-bar">
-                <div class="composer-left">
-                   <div class="tool-btn attach-btn" id="attachBtn" title="Attach files or folder">
-                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                       <path d="M8.5 11.5l6.2-6.2a3.5 3.5 0 015 5L9.9 20a4.2 4.2 0 01-6-6L14.6 3.4"/>
-                     </svg>
-                   </div>
-                    <div class="tool-btn codebase-toggle-btn" id="codebaseToggle" title="Codebase context: off">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    </div>
-                    <div class="tool-btn open-app-btn" id="openAppBtn" title="Open app or website">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 01-2-2h6"/><path d="M15.5 3.5l5 5M10 12h8"/></svg>
+               <div class="composer-bar">
+                 <div class="composer-left">
+                    <div class="tool-btn attach-btn" id="attachBtn" title="Attach files or folder">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8.5 11.5l6.2-6.2a3.5 3.5 0 015 5L9.9 20a4.2 4.2 0 01-6-6L14.6 3.4"/>
+                      </svg>
                     </div>
                    </div>
                 <div class="composer-right">
@@ -1572,18 +1571,7 @@
                     </div>
                     <div class="model-dropdown" id="modelDropdown"></div>
                   </div>
-                  <div class="tool-btn mic-btn" id="micBtn" title="Voice input">
-                    <span class="mic-ring"></span>
-                    <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="9" y="3" width="6" height="11" rx="3"/>
-                      <path d="M5 11a7 7 0 0014 0M12 18v3"/>
-                    </svg>
-                    <span class="mic-wave">
-                      <span></span><span></span><span></span><span></span><span></span>
-                    </span>
-                    <span class="mic-orb"></span>
-                  </div>
-                  <div class="send-btn" id="sendBtn">
+                   <div class="send-btn" id="sendBtn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M12 19V5M5 12l7-7 7 7"/>
                     </svg>
@@ -1620,24 +1608,10 @@
                    <div class="tool-btn attach-btn" id="attachBtn2" title="Attach files or folder">
                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 11.5l6.2-6.2a3.5 3.5 0 015 5L9.9 20a4.2 4.2 0 01-6-6L14.6 3.4"/></svg>
                    </div>
-                   <div class="tool-btn copy-input-btn" id="copyInputBtn2" title="Copy prompt">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>
-                    </div>
-                    <div class="tool-btn codebase-toggle-btn" id="codebaseToggle2" title="Codebase context: off">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    </div>
-                   <div class="tool-btn mic-btn" id="micBtn2" title="Voice input">
-                    <span class="mic-ring"></span>
-                    <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="9" y="3" width="6" height="11" rx="3"/>
-                      <path d="M5 11a7 7 0 0014 0M12 18v3"/>
-                    </svg>
-                    <span class="mic-wave">
-                      <span></span><span></span><span></span><span></span><span></span>
-                    </span>
-                    <span class="mic-orb"></span>
-                  </div>
-                </div>
+                    <div class="tool-btn copy-input-btn" id="copyInputBtn2" title="Copy prompt">
+                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>
+                     </div>
+                   </div>
                 <div class="composer-right">
                   <div class="tool-btn search-toggle-btn" id="searchToggle2" title="Deep web search: off">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1713,15 +1687,10 @@
               <div class="ac-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/></svg></div>
               <div class="ac-title">Ship a feature</div>
               <div class="ac-desc">Describe the feature; the agent plans, edits across files, and opens a PR.</div>
+             </div>
             </div>
-            <div class="agent-card rippler" data-agent="Refactor" data-placeholder="What module or pattern should the agent restructure?">
-              <div class="ac-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
-              <div class="ac-title">Refactor</div>
-              <div class="ac-desc">Restructure a module or migrate a pattern across the whole codebase safely.</div>
-            </div>
-           </div>
-        </div>
-      </div>
+         </div>
+       </div>
 
     </div>
   </main>
@@ -1737,7 +1706,7 @@
     <div class="intro-text">
       <h1>Fable 5.1</h1>
       <p class="intro-subtitle">The best LLM of the Arch series since release</p>
-      <p class="intro-body">Fable 5.1 delivers state-of-the-art performance across benchmarks and real-world coding tasks. With improved reasoning, faster inference, and better long-context handling, it's the most capable model in the Arch family yet.</p>
+      <p class="intro-body">Fable 5.1 is a mathematical systemic genius able to tackle any question in the mathematics macrocosm. It combines rigorous step-by-step reasoning, careful verified arithmetic, and clean notation with first-class full-stack software engineering. University-level calculus, linear algebra, statistics, proofs, and real-world applications — double-checked and never careless. Conservative, thorough, and native-level fluent in English, Kiswahili, French, Mandarin, Japanese, and Arabic.</p>
     </div>
     <button class="intro-close" id="introClose" title="Close">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -1785,7 +1754,7 @@
     <div class="voice-modal-header">
       <div>
         <h2>Settings</h2>
-        <p>Choose how Arch sounds, and what it calls you.</p>
+        <p>Choose how Arch sounds, acts, and what it calls you.</p>
       </div>
       <div class="modal-close rippler" id="modalClose">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -1800,7 +1769,7 @@
       <div class="voice-preview-bars" id="previewBars">
         <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
       </div>
-      <div class="voice-preview-label">Previewing <b id="previewName">Verity</b></div>
+      <div class="voice-preview-label">Previewing <b id="previewName">Angel</b></div>
     </div>
 
     <div class="voice-grid" id="voiceGrid"></div>
@@ -1814,19 +1783,43 @@
           <label for="languageSelect">Language</label>
           <select id="languageSelect">
             <option value="en">English</option>
-            <option value="sw">Swahili</option>
-            <option value="ha">Hausa</option>
-            <option value="yo">Yoruba</option>
-            <option value="zu">Zulu</option>
-            <option value="ig">Igbo</option>
-            <option value="am">Amharic</option>
+            <option value="sw">Kiswahili</option>
             <option value="fr">French</option>
-          </select>
-        </div>
+            <option value="zh">Mandarin</option>
+            <option value="ja">Japanese</option>
+            <option value="ar">Arabic</option>
+          </select>        </div>
     </div>
 
-    <div class="voice-modal-footer">
-      <div class="footer-hint">Selected voice applies to all spoken responses.</div>
+    <div class="persona-section">
+      <h3>Personality</h3>
+      <div class="persona-chips" id="personaChips">
+        <div class="persona-chip" data-p="default">Default</div>
+        <div class="persona-chip" data-p="Gen-Z">Gen-Z</div>
+        <div class="persona-chip" data-p="Retro">Retro</div>
+        <div class="persona-chip" data-p="Sophisticated">Sophisticated</div>
+        <div class="persona-chip" data-p="Sarcastic">Sarcastic</div>
+        <div class="persona-chip" data-p="Minimalist">Minimalist</div>
+        <div class="persona-chip" data-p="Enthusiastic">Enthusiastic</div>
+        <div class="persona-chip" data-p="Professor">Professor</div>
+        <div class="persona-chip" data-p="Pirate">Pirate</div>
+        <div class="persona-chip" data-p="Poet">Poet</div>
+      </div>
+      <input type="text" class="persona-custom" id="personaCustom" placeholder="Or describe a custom style: e.g. 'warm British librarian'" maxlength="120">
+    </div>
+
+      <div class="skills-section">
+      <h3>Skills &amp; MCPs</h3>
+      <div class="skill-install-row">
+        <input type="text" id="skillUrlInput" placeholder="GitHub URL or npm package name">
+        <button class="skill-install-btn" id="skillInstallBtn">Install</button>
+      </div>
+      <div class="skill-list" id="skillList"><div class="skills-empty">No skills installed yet.</div></div>
+      <div class="skills-status" id="skillStatus"></div>
+    </div>
+
+     <div class="voice-modal-footer">
+      <div class="footer-hint">Created by <b>Trevor Kising'u</b></div>
       <div class="voice-save-btn rippler" id="voiceSave">Save preference</div>
     </div>
   </div>
@@ -1896,7 +1889,7 @@ let sidebarCollapsed = false;
 /* =========================================================
    BACKEND (local AI bridge) + PERSISTENCE + VOICE
 ========================================================= */
-const API_BASE = 'http://127.0.0.1:9224';
+const API_BASE = 'http://127.0.0.1:9332';
 const API_TOKEN = new URLSearchParams(location.search).get('token') || '';
 function apiHeaders(extra){
   const h = Object.assign({}, extra || {});
@@ -1916,7 +1909,7 @@ async function askArch(messages, onChunk, onDone, onError, opts){
     resp = await apiFetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: selectedModel, messages, temperature: 0.3, top_p: 0.9, top_k: 20, codebase_context: codebaseMode, ...(opts.search ? { search: true } : {}) }),
+      body: JSON.stringify({ model: selectedModel, messages, temperature: 0.2, top_p: 0.7, top_k: 10, ...(opts.search ? { search: true } : {}) }),
       signal: opts.signal || null,
     });
   } catch(e){ if(e.name === 'AbortError') return; onError(e); return; }
@@ -2220,22 +2213,8 @@ function copyMsgBtn(bubble){
       fallbackCopy(text, () => { cb.classList.add('copied'); cb.innerHTML = COPIED_SVG; setTimeout(() => { cb.classList.remove('copied'); cb.innerHTML = COPY_SVG; }, 1600); });
     }
   });
-  return cb;
+     return cb;
 }
-
-    function listenBtn(){
-    const lb = document.createElement('div');
-    lb.className = 'listen-btn';
-    lb.title = 'Voice input';
-    lb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>';
-    lb.addEventListener('click', (e) => {
-      e.stopPropagation();
-      var micBtnEl = document.getElementById('micBtn2');
-      if(!micBtnEl){ micBtnEl = document.getElementById('micBtn'); }
-      if(micBtnEl){ micBtnEl.click(); }
-    });
-    return lb;
-  }
 
 function modelQuickSwitcher(){
   const wrap = document.createElement('div');
@@ -2261,49 +2240,282 @@ function modelQuickSwitcher(){
 }
 
 const COPY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>';
-const COPIED_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l6 6L20 6"/></svg>';
+const COPIED_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l6 6 L20 6"/></svg>';
 
-function renderMsgHtml(raw){
-  const esc = escapeHtml(stripThinking(raw));
-  const out = [];
-  const re = /```([^\n`]*)(?:\n)?([\s\S]*?)```/g;
-  let last = 0, m;
-  while((m = re.exec(esc)) !== null){
-    if(m.index > last) out.push(plainToHtml(esc.slice(last, m.index)));
-    const lang = m[1].trim();
-    out.push(
-      '<div class="code-block"><div class="code-header">' +
+function openLink(url){
+  // Use Electron IPC to open URL in default browser
+  if(window.electronAPI && window.electronAPI.openUrl){
+    window.electronAPI.openUrl(url);
+  } else if(window.require){
+    try {
+      const { ipcRenderer } = window.require('electron');
+      ipcRenderer.invoke('open-url', url);
+    } catch(e) {}
+  }
+}
+
+/* =========================================================
+   MATH / SCIENCE FORMATTER
+   The model is instructed to write plain Unicode (π, x², ½, √, →), but
+   this also accepts the common LaTeX-ish forms as a safety net and
+   normalizes them to neat Unicode so the rendered output is always clean.
+   Runs on ALREADY-HTML-ESCAPED text; any inserted tags render as HTML.
+   ========================================================= */
+const SYMBOLS = {
+  // greek
+  pi:'π', theta:'θ', alpha:'α', beta:'β', gamma:'γ', delta:'δ', epsilon:'ε',
+  zeta:'ζ', eta:'η', iota:'ι', kappa:'κ', lambda:'λ', mu:'μ', nu:'ν',
+  xi:'ξ', rho:'ρ', sigma:'σ', tau:'τ', upsilon:'υ', phi:'φ', chi:'χ',
+  psi:'ψ', omega:'ω', inf:'∞', infty:'∞', emptyset:'∅',
+  // operators / relations
+  times:'×', cdot:'·', approx:'≈', neq:'≠', equiv:'≡', le:'≤', ge:'≥',
+  lt:'<', gt:'>', pm:'±', pm:'±'
+};
+const VULGAR = {
+  '1/2':'½','1/3':'⅓','2/3':'⅔','1/4':'¼','3/4':'¾','1/5':'⅕','2/5':'⅖','3/5':'⅗','4/5':'⅘',
+  '1/6':'⅙','5/6':'⅚','1/7':'⅐','1/8':'⅛','3/8':'⅜','5/8':'⅝','7/8':'⅞','1/9':'⅑','1/10':'⅒'
+};
+const SUPER_DIGITS = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','+':'⁺','-':'⁻','=':'⁼'};
+const SUB_DIGITS = {'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉','+':'₊','-':'₋','=':'₌'};
+
+function toSuper(s){
+  let out='', ok=true;
+  for(const c of s){ const m = SUPER_DIGITS[c]; if(m === undefined){ ok=false; break; } out += m; }
+  return ok ? out : '<sup>' + s + '</sup>';
+}
+function toSub(s){
+  let out='', ok=true;
+  for(const c of s){ const m = SUB_DIGITS[c]; if(m === undefined){ ok=false; break; } out += m; }
+  return ok ? out : '<sub>' + s + '</sub>';
+}
+function fracToUnicode(a, b){
+  a = a.trim(); b = b.trim();
+  const key = a + '/' + b;
+  if(VULGAR[key]) return VULGAR[key];
+  if(/^[1-9]$/.test(a) && /^[1-9]$/.test(b) && VULGAR[key]) return VULGAR[key];
+  return a + (a && b ? '⁄' : '') + b;
+}
+
+function formatMath(s){
+  if(!s) return s;
+  // display math \[ ... \] and $$ ... $$
+  s = s.replace(/\\\[([\s\S]*?)\\\]/g, (m, inner) => '<div class="math-display">' + formatMath(inner.trim()) + '</div>');
+  s = s.replace(/\$\$([\s\S]*?)\$\$/g, (m, inner) => '<div class="math-display">' + formatMath(inner.trim()) + '</div>');
+  // inline math $ ... $ and \( ... \) (strip the delimiters)
+  s = s.replace(/\$((?:[^\$\\]|\\.)*)\$/g, (m, inner) => formatMath(inner));
+  s = s.replace(/\\\(\s*([\s\S]*?)\s*\\\)/g, (m, inner) => formatMath(inner.trim()));
+  // remove any leftover LaTeX brackets and whitespace commands
+  s = s.replace(/\\[, ]/g, ' ').replace(/\\text\{([^{}]*)\}/g, '$1');
+  s = s.replace(/\\[(\[\])]/g, '');
+  // fractions: \frac{a}{b}  ->  ½ / ⅓ / a⁄b (compact Unicode, never stacked HTML)
+  s = s.replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, (m, a, b) => fracToUnicode(a, b));
+  // nth root: \sqrt[n]{x}  ->  n√x
+  s = s.replace(/\\sqrt\[(\d+)\]\{([^{}]*)\}/g, (m, n, x) => toSuper(n) + '√' + formatMath(x));
+  // sqrt(x) / sqrt{x} / sqrt x  ->  √x
+  s = s.replace(/(?:\\?sqrt)[\(\[\{]?([^\(\)\[\]\{\}]+)[\)\]\}]?/g, (m, x) => '√' + formatMath(x));
+  // \pi, \theta, \times ... (fallback for when the model uses LaTeX)
+  s = s.replace(/\\[A-Za-z]+/g, (m) => SYMBOLS[m.slice(1).toLowerCase()] || m);
+  // exponents: x^2 -> x², x^{10} -> x¹⁰ (unicode superscripts), else <sup>
+  s = s.replace(/(\w+)\^\{([^{}]*)\}/g, (m, base, exp) => base + toSuper(exp));
+  s = s.replace(/(\w+)\^(\d+)/g, (m, base, exp) => base + toSuper(exp));
+  // subscripts: x_1 -> x₁, x_{i} -> xᵢ? (no unicode for letters) -> otherwise <sub>
+  s = s.replace(/(\w+)_\{([^{}]*)\}/g, (m, base, sub) => base + toSub(sub));
+  s = s.replace(/(\w+)_(\d+)/g, (m, base, sub) => base + toSub(sub));
+  // operator symbols on escaped text (&gt; = >, &lt; = <)
+  s = s.replace(/&gt;=/g, '≥').replace(/&lt;=/g, '≤').replace(/-&gt;/g, '→')
+       .replace(/&lt;-/g, '←').replace(/&gt;=\$|&gt;\$/g, '⇒');
+  s = s.replace(/\+-\//g, '±').replace(/\.\.\./g, '…').replace(/!=/g, '≠');
+  // bare Greek constants used as math terms
+  s = s.replace(/\bpi\b/g, 'π').replace(/\btheta\b/g, 'θ').replace(/\bepsilon\b/g, 'ε')
+       .replace(/\bsigma\b/g, 'σ').replace(/\binf\b/g, '∞').replace(/\binfty\b/g, '∞');
+  // plain numeric fractions 1/2 -> ½
+  s = s.replace(/([1-9])\/([1-9])/g, (m, a, b) => VULGAR[a + '/' + b] || m);
+  return s;
+}
+
+/* ---- exact-arithmetic evaluator for <compute>expr</compute> tags ---- */
+function safeCalc(expr){
+  // Only arithmetic + a whitelist of math function/constant names. No
+  // property access, no statements, no letters except the tokens below.
+  const allowed = ['sqrt','cbrt','abs','round','floor','ceil','sin','cos','tan','asin','acos','atan','log','ln','exp','pow'];
+  const ids = (expr.match(/\b[a-z]+\b/g) || []);
+  for(const id of ids){
+    if(id !== 'pi' && id !== 'e' && !allowed.includes(id)) return null;
+  }
+  // strip allowed identifiers, then only arithmetic chars may remain
+  const skeleton = expr.replace(new RegExp('\\b(' + allowed.join('|') + '|pi|e)\\b', 'g'), '');
+  if(/[^0-9+\-*/().\s,]/.test(skeleton)) return null;
+  try {
+    const fn = new Function(...allowed, 'pi', 'e', 'return (' + expr + ')');
+    const val = fn(...allowed.map(f => Math[f]), Math.PI, Math.E);
+    if(typeof val !== 'number' || !isFinite(val)) return null;
+    return val;
+  } catch(e){ return null; }
+}
+function asFraction(x){
+  // Best rational p/q (q <= 100) matching x within float dust, via continued
+  // fractions. Only true rationals match (tolerance is a few ULPs of x);
+  // ordinary decimals like 123.456 or Math.PI never match. Returns [p,q] or null.
+  const maxDen = 100;
+  const tol = 4 * Math.pow(2, Math.floor(Math.log2(x)) - 52);
+  let n0 = 0, n1 = 1, d0 = 1, d1 = 0, v = x;
+  for(let i = 0; i < 32; i++){
+    const a = Math.floor(v);
+    const h = a * n1 + n0, k = a * d1 + d0;
+    if(k > maxDen) break;
+    n0 = n1; n1 = h; d0 = d1; d1 = k;
+    if(Math.abs(x - h / k) <= tol) return [h, k];
+    const rem = v - a;
+    if(rem < 1e-12) return [h, k];
+    v = 1 / rem;
+    if(!isFinite(v)) break;
+  }
+  return null;
+}
+function formatNumber(n){
+  // Integers stay integers; clean rationals become fractions (1/3, 5/2);
+  // everything else rounds to 4 decimal places with trailing zeros trimmed.
+  if(typeof n !== 'number' || !isFinite(n)) return String(n);
+  if(Math.abs(n) < 1e-9) return '0';
+  const sign = n < 0 ? '-' : '';
+  const a = Math.abs(n);
+  const r = Math.round(a);
+  if(Math.abs(a - r) < 1e-9) return sign + String(r);
+  const fr = (a < 1e6) ? asFraction(a) : null;
+  if(fr) return sign + fr[0] + '/' + fr[1];
+  if(a >= 1e9 || a < 1e-4){
+    const exp = Math.floor(Math.log10(a));
+    const mant = (a / Math.pow(10, exp)).toFixed(4).replace(/\.?0+$/, '');
+    return sign + mant + 'e' + exp;
+  }
+  return sign + a.toFixed(4).replace(/\.?0+$/, '');
+}
+
+/* ---- spoken-form normalizer for TTS: turns math glyphs into words ---- */
+const SUPER_DIGIT = {'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁺':'+','⁻':'-','⁼':'='};
+const SUB_DIGIT = {'₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9','₊':'+','₋':'-','₌':'='};
+const SAY = {
+  '½':'one half','⅓':'one third','⅔':'two thirds','¼':'one quarter','¾':'three quarters',
+  '⅕':'one fifth','⅖':'two fifths','⅗':'three fifths','⅘':'four fifths','⅙':'one sixth','⅚':'five sixths',
+  '⅐':'one seventh','⅛':'one eighth','⅜':'three eighths','⅝':'five eighths','⅞':'seven eighths',
+  '⅑':'one ninth','⅒':'one tenth','⁄':' over ',
+  'π':'pi','θ':'theta','√':'square root','×':'times','→':'to','≥':'greater than or equal to',
+  '≤':'less than or equal to','≠':'not equal to','±':'plus or minus','…':'etc','∞':'infinity',
+  '∑':'sum','∏':'product','∫':'integral','≈':'approximately','≡':'equivalent to'
+};
+function mathSpeak(text){
+  let t = String(text || '').replace(/<[^>]+>/g, ' ');
+  t = t
+    .replace(/²/g, ' squared').replace(/³/g, ' cubed')
+    .replace(/[⁰¹⁴⁵⁶⁷⁸⁹⁺⁻]+/g, m => ' to the ' + m.split('').map(c => SUPER_DIGIT[c] || c).join(''))
+    .replace(/[₀₁₃₄₅₆₇₈₉₊₋]+/g, m => ' sub ' + m.split('').map(c => SUB_DIGIT[c] || c).join(''))
+    .replace(/[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅐⅛⅜⅝⅞⅑⅒⁄πθ√×→≥≤≠±…∞∑∏∫≈≡]/g, m => SAY[m] || m);
+  return t.replace(/\s+/g, ' ').trim();
+}
+
+function proseMath(raw){
+  // escape, shield inline code from math transforms, then format
+  if(!raw) return '';
+  // evaluate <compute>expr</compute> blocks with exact arithmetic first,
+  // so numeric results are always correct (never model-hallucinated).
+  raw = raw.replace(/<compute>([\s\S]*?)<\/compute>/g, (m, expr) => {
+    const val = safeCalc(expr);
+    if(val === null) return m; // leave untouched if it isn't safe arithmetic
+    return formatMath(formatNumber(val));
+  });
+  let esc = escapeHtml(raw);
+  const codes = [];
+  esc = esc.replace(/`([^`]+)`/g, (m, inner) => { codes.push(inner); return '\u0001CODE' + codes.length + '\u0001'; });
+  esc = formatMath(esc);
+  esc = esc.replace(/\u0001CODE(\d+)\u0001/g, (m, i) => '<code>' + codes[Number(i) - 1] + '</code>');
+  return esc;
+}
+
+function proseInline(raw){
+  // URL-aware line: linkify URLs, math-format the prose between them
+  if(!raw) return '';
+  let out = ''; let last = 0; let m;
+  const urlRe = /((?:https?:\/\/|www\.)[^\s]+)/gi;
+  urlRe.lastIndex = 0;
+  while((m = urlRe.exec(raw)) !== null){
+    if(m.index > last) out += proseMath(raw.slice(last, m.index));
+    const match = m[0];
+    const url = match.startsWith('http') ? match : 'https://' + match;
+     out += '<a href="' + url + '" class="msg-link" onclick="openLink(' + JSON.stringify(url) + ');return false;">' + escapeHtml(match) + '</a>';
+    if(m.index === urlRe.lastIndex) urlRe.lastIndex++;
+    last = m.index + match.length;
+  }
+  if(last < raw.length) out += proseMath(raw.slice(last));
+  return out.replace(/\n/g, '<br>');
+}
+
+function proseHtml(raw){
+  if(!raw || !raw.trim()) return '';
+  return raw.split(/\n{2,}/).map(p => p.trim() ? '<p class="msg-par">' + proseInline(p) + '</p>' : '').join('');
+}
+
+/* ---- streaming-safe code-fence parser (handles open fences, indented fences, 3+ backticks) ---- */
+function parseSegments(text){
+  const segs = [];
+  const lines = (text || '').split('\n');
+  let inCode = false, lang = '', buf = [];
+  const flushCode = () => { if(buf.length || inCode) segs.push({type:'code', lang:lang, code:buf.join('\n')}); buf = []; lang = ''; };
+  const flushProse = (b) => { const t = b.join('\n'); if(t.length) segs.push({type:'prose', text:t}); };
+  for(let i = 0; i < lines.length; i++){
+    const line = lines[i];
+    const fm = line.match(/^(\s{0,3})(`{3,})(.*)$/);
+    if(!inCode){
+      if(fm){ flushProse(buf); buf = []; inCode = true; lang = fm[3].trim(); }
+      else buf.push(line);
+    } else {
+      if(fm && fm[3].trim() === ''){ flushCode(); inCode = false; }
+      else buf.push(line);
+    }
+  }
+  if(inCode){ flushCode(); } else { flushProse(buf); }
+  return segs;
+}
+
+function codeBlockHtml(lang, code, withControls){
+  const cls = lang ? ' lang-' + escapeHtml(lang) : '';
+  const header = withControls
+    ? '<div class="code-header">' +
       '<span class="code-lang">' + (lang ? escapeHtml(lang) : 'code') + '</span>' +
       '<button class="code-download" title="Download code"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v-a9 9 0 0 0-9-9 9 9 0 0 0-9 9v9"/><path d="M12 18V3m-3 6l3-3 3 3"/></svg></button>' +
       '<button class="code-copy" title="Copy code">' + COPY_SVG + '<span>Copy</span></button>' +
-      '</div><pre><code>' + m[2] + '</code></pre></div>'
-    );
-    last = m.index + m[0].length;
+      '</div>'
+    : '';
+  return '<div class="code-block' + cls + '">' + header + '<pre><code>' + escapeHtml(code) + '</code></pre></div>';
+}
+
+/* Final, fully-decorated render (with copy/download actions). */
+function renderMsgHtml(raw){
+  const text = stripThinking(raw || '');
+  const segs = parseSegments(text);
+  const out = [];
+  for(const s of segs){
+    if(s.type === 'code'){ out.push(codeBlockHtml(s.lang, s.code, true)); }
+    else { out.push(proseHtml(s.text)); }
   }
-  if(last < esc.length) out.push(plainToHtml(esc.slice(last)));
   return out.join('');
 }
 
-function plainToHtml(esc){
-  if(!esc) return '';
-   return esc.split(/\n{2,}/).map(p => '<p class="msg-par">' + linkifyAndOpen(p.replace(/\n/g, '<br>')) + '</p>').join('');
-}
-
-function linkifyAndOpen(text){
-  // Convert URLs to clickable links that open apps/websites directly
-  const urlRe = /((?:https?:\/\/|www\.)[^\s]+)/gi;
-  return text.replace(urlRe, (match) => {
-    const url = match.startsWith('http') ? match : 'https://' + match;
-    return `<a href="${url}" class="msg-link" onclick="openTarget('${url}'); return false;">${match}</a>`;
-  });
-}
-
-function openTarget(target){
-  apiFetch('/api/open', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ target: target })
-  }).catch(() => {});
+/* Lightweight live render used WHILE the model streams: math + indented
+   code blocks show up immediately, without the per-block controls (which
+   are attached once at the end for performance). */
+function streamRender(raw){
+  const text = stripThinking(raw || '');
+  const segs = parseSegments(text);
+  const out = [];
+  for(const s of segs){
+    if(s.type === 'code'){
+      const cls = s.lang ? ' class="lang-' + escapeHtml(s.lang) + '"' : '';
+      out.push('<pre' + cls + '><code>' + escapeHtml(s.code) + '</code></pre>');
+    } else {
+      out.push(proseHtml(s.text));
+    }
+  }
+  return out.join('');
 }
 
 function fallbackCopy(text, done){
@@ -2373,8 +2585,10 @@ async function askChat(chat, opts){
   }
   activeController = new AbortController();
 
-  // Snapshot ONLY the messages that existed before we add the assistant placeholder
-  const msgs = chat.messages.map(m => ({ role: m.role, content: m.text }));
+  // Snapshot ONLY the messages that existed before we add the assistant placeholder.
+  // Send the newest turns (server also trims to its context budget), so
+  // follow-ups like "repeat that" or "continue" resolve in the same chat.
+  const msgs = chat.messages.slice(-14).map(m => ({ role: m.role, content: m.text }));
   const assistantMsg = { role:'assistant', text:'', _streaming: true, search: !!opts.search };
   chat.messages.push(assistantMsg);
   saveChats();
@@ -2401,13 +2615,13 @@ async function askChat(chat, opts){
     if(lastBubbleEl && last){
       lastBubbleEl.innerHTML = renderMsgHtml(last.text);
       attachCodeInteractions(lastBubbleEl);
+      if(window.MathJax && typeof MathJax.typesetPromise==='function'){try{MathJax.typesetPromise([lastBubbleEl]).catch(()=>{});}catch(e){}}
       const row = lastBubbleEl.closest('.msg-row');
       if(row && last.role === 'assistant' && !row.querySelector('.msg-actions')){
         const actions = document.createElement('div');
         actions.className = 'msg-actions';
-        actions.appendChild(copyMsgBtn(lastBubbleEl));
-        actions.appendChild(listenBtn());
-        actions.appendChild(narrateBtn(lastBubbleEl));
+         actions.appendChild(copyMsgBtn(lastBubbleEl));
+         actions.appendChild(narrateBtn(lastBubbleEl));
         actions.appendChild(modelQuickSwitcher());
         row.appendChild(actions);
       }
@@ -2419,7 +2633,10 @@ async function askChat(chat, opts){
     showView('chat');
     box.scrollTop = box.scrollHeight;
   };
-  // Batch DOM updates for smooth streaming — avoid expensive re-renders per chunk
+  // Batch DOM updates for smooth, formatted streaming. We re-render the
+  // accumulated bubble via the streaming renderer (math + indented code blocks
+  // appear live) on each animation frame — cheap enough because we batch
+  // chunks first and only paint once per frame.
   let pendingChunk = '';
   let renderTimer = null;
   const flushChunk = () => {
@@ -2427,8 +2644,10 @@ async function askChat(chat, opts){
       const last = chat.messages[chat.messages.length - 1];
       if(last && last._streaming) last.text += pendingChunk;
       if(lastBubbleEl){
-        // textContent is ~50x faster than innerHTML for plain text — no HTML parsing
-        lastBubbleEl.textContent = last ? last.text : '';
+        // Stream formatted content live: math symbols, superscripts, fractions
+        // and indented code blocks all appear as the model generates them.
+        lastBubbleEl.innerHTML = streamRender(last ? last.text : '');
+        if(window.MathJax && typeof MathJax.typesetPromise==='function'){try{MathJax.typesetPromise([lastBubbleEl]).catch(()=>{});}catch(e){}}
         box.scrollTop = box.scrollHeight;
       }
       pendingChunk = '';
@@ -2537,45 +2756,41 @@ document.addEventListener('visibilitychange', () => {
   if(document.hidden) saveChats();
 });
 
-let __voicesLoaded = false;
-function refreshVoices(){
-  if(!('speechSynthesis' in window)) return;
-  const loaded = () => { __voicesLoaded = true; };
-  const v = window.speechSynthesis.getVoices();
-  if(v && v.length){ loaded(); }
-  window.speechSynthesis.onvoiceschanged = loaded;
+/* =========================================================
+   VOICE / TEXT-TO-SPEECH ENGINE
+   Primary: fish.audio with the exact reference id for each
+   voice. When fish.audio is unreachable (offline / no API key /
+   quota) Arch replays the locally stored voice-bank reference
+   sample for the selected voice. It NEVER silently falls back to
+   the OS/Microsoft voices.
+   ========================================================= */
+const FISH_MAX_CHARS = 4000;
+function capNarrationText(text){
+  text = String(text || '').trim();
+  if(text.length <= FISH_MAX_CHARS) return text;
+  return text.slice(0, FISH_MAX_CHARS - 1) + '…';
 }
-  function getVoiceFor(name){
-    if(!('speechSynthesis' in window)) return null;
-    const voices = window.speechSynthesis.getVoices();
-    if(voices.length === 0) return null;
-    // Map our custom voice names to browser voices
-    const nameMap = {
-      'Verity': 'Microsoft Zira',
-      'Light': 'Microsoft David',
-      'L': 'Microsoft Mark',
-      'Sabrina': 'Microsoft Zira',
-      'Chinese Voice': 'Microsoft Xiaoxiao',
-    };
-    const mapped = nameMap[name];
-    if(mapped){
-      const match = voices.find(x => x.name.toLowerCase().includes(mapped.toLowerCase()));
-      if(match) return match;
-    }
-    const en = voices.filter(x => /^en/i.test(x.lang));
-    return en[0] || voices[0] || null;
-  }
-  function voiceProfile(name){
-    const profiles = {
-      'Verity': { rate: 0.9, pitch: 1.1 },
-      'Light': { rate: 1.0, pitch: 1.0 },
-      'L': { rate: 1.1, pitch: 0.9 },
-      'Sabrina': { rate: 0.85, pitch: 1.2 },
-      'Chinese Voice': { rate: 0.8, pitch: 1.0 },
-    };
-    return profiles[name] || { rate: 1, pitch: 1 };
-  }
+
+// name -> profile {rate, pitch, fish_id, sample} merged from the
+// backend voicebank manifest and the bundled voices table below.
+let voiceIndex = {};
 let activeFishAudio = null;
+let _sampleAudio = null;
+
+function buildVoiceIndex(){
+  voiceIndex = {};
+  voices.forEach(v => {
+    const prof = (window.__VOICE_MANIFEST && window.__VOICE_MANIFEST[v.name]) || {};
+    voiceIndex[v.name] = {
+      rate: (prof.rate != null) ? prof.rate : (v.rate || 1),
+      pitch: (prof.pitch != null) ? prof.pitch : (v.pitch || 1),
+      fish: v.fish || prof.fish_id,
+      sample: v.sample,
+      trained_locally: !!(v.sample && (v.trained_locally || true)),
+    };
+  });
+}
+
 async function speakFish(text, voiceId){
   try { window.speechSynthesis.cancel(); } catch(e){}
   if(activeFishAudio){ try { activeFishAudio.pause(); } catch(e){} activeFishAudio = null; }
@@ -2586,53 +2801,55 @@ async function speakFish(text, voiceId){
   });
   if(!r.ok) throw new Error('tts http ' + r.status);
   const blob = await r.blob();
+  if(!blob.size || blob.size < 100) throw new Error('tts empty');
   const url = URL.createObjectURL(blob);
   const a = new Audio(url);
   activeFishAudio = a;
+  a.onended = () => { try { URL.revokeObjectURL(url); } catch(e){} if(activeFishAudio === a) activeFishAudio = null; };
   try { await a.play(); } catch(e){ throw e; }
 }
-function speakOutLoudTTS(text){
+
+// Offline fallback: plays the stored voice-bank reference sample.
+// This is the locally trained/stored voice bank, so Arch never
+// silently falls back to the OS/Microsoft voices when offline.
+function playVoiceBankSample(v, text){
+  try { window.speechSynthesis.cancel(); } catch(e){}
+  if(activeFishAudio){ try { activeFishAudio.pause(); activeFishAudio.src = ''; } catch(e){} activeFishAudio = null; }
+  if(_sampleAudio){ try { _sampleAudio.pause(); } catch(e){} _sampleAudio = null; }
+  if(!v || !v.sample) return; // stay silent rather than use a system voice
+  const a = new Audio(v.sample);
+  _sampleAudio = a;
+  const prof = voiceIndex[v.name] || {};
+  a.playbackRate = prof.rate || 1;
+  a.play().catch(() => { _sampleAudio = null; });
+}
+
+function speakOutLoud(text){
   try {
-    if(!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const v = getVoiceFor(selectedVoice);
-    if(v) u.voice = v;
-    const prof = voiceProfile(selectedVoice);
-    u.rate = prof.rate;
-     u.pitch = prof.pitch;
-     window.speechSynthesis.speak(u);
-   } catch(e){}
- }
+    const v = voices.find(x => x.name === selectedVoice) || voices[0];
+    if(!v) return;
+    const capped = capNarrationText(mathSpeak(text));
+    const prof = voiceIndex[selectedVoice] || {};
+    if(prof.fish){
+      speakFish(capped, prof.fish).catch(() => playVoiceBankSample(v, capped));
+      return;
+    }
+    playVoiceBankSample(v, capped);
+  } catch(e){}
+}
+function stopNarration(){
+  try { window.speechSynthesis.cancel(); } catch(e){}
+  if(activeFishAudio){ try { activeFishAudio.pause(); activeFishAudio.src = ''; } catch(e){} activeFishAudio = null; }
+  if(_sampleAudio){ try { _sampleAudio.pause(); } catch(e){} _sampleAudio = null; }
+}
 
- const FISH_MAX_CHARS = 4000;
- function capNarrationText(text){
-   text = String(text || '').trim();
-   if(text.length <= FISH_MAX_CHARS) return text;
-   return text.slice(0, FISH_MAX_CHARS - 1) + '…';
- }
-
- function speakOutLoud(text){
-   try {
-     const v = voices.find(x => x.name === selectedVoice);
-     if(v && v.fish){
-       speakFish(capNarrationText(text), v.fish).catch(() => speakOutLoudTTS(capNarrationText(text)));
-       return;
-     }
-     speakOutLoudTTS(capNarrationText(text));
-   } catch(e){}
- }
- function stopNarration(){
-   try { window.speechSynthesis.cancel(); } catch(e){}
-   if(activeFishAudio){ try { activeFishAudio.pause(); activeFishAudio.src = ''; } catch(e){} activeFishAudio = null; }
- }
-refreshVoices();
+const FISH_MAX_CHARS_REF = FISH_MAX_CHARS; // kept for compat
 
 /* =========================================================
    TRANSLATION SYSTEM – African languages + UI localisation
    ========================================================= */
 const TRANSLATIONS = {
-  en: {
+en: {
     'New chat': 'New chat', 'Search chats': 'Search chats', 'Library': 'Library',
     'Archived': 'Archived', 'Agent': 'Agent', 'Conversation': 'Conversation',
     'Archived chats': 'Archived chats', 'All of your past conversations in one place': 'All of your past conversations in one place',
@@ -2661,10 +2878,29 @@ const TRANSLATIONS = {
     'Delete permanently': 'Delete permanently', 'Voice input': 'Voice input',
     'Listening… click to stop': 'Listening… click to stop',
     'Deep web search: off': 'Deep web search: off', 'Deep web search: on': 'Deep web search: on',
-    'Copied': 'Copied', 'Copy': 'Copy', 'Narrate this response': 'Narrate this response',
-    'Attach files or folder': 'Attach files or folder', 'Tools': 'Tools',
-  },
-  sw: {
+     'Copied': 'Copied', 'Copy': 'Copy', 'Narrate this response': 'Narrate this response',
+     'Attach files or folder': 'Attach files or folder', 'Tools': 'Tools',
+     'Skills & MCPs': 'Skills & MCPs', 'Install': 'Install', 'No skills installed yet.': 'No skills installed yet.',
+     'Pirate': 'Pirate', 'Poet': 'Poet',
+     "Or describe a custom style: e.g. 'warm British librarian'": "Or describe a custom style: e.g. 'warm British librarian'",
+     'GitHub URL or npm package name': 'GitHub URL or npm package name',
+      'Saved ✓': 'Saved ✓', 'New chats…': 'New chats…',
+      'Choose how Arch sounds, acts, and what it calls you.': 'Choose how Arch sounds, acts, and what it calls you.',
+      'Personality': 'Personality', 'Ship a feature': 'Ship a feature', 'Fix a bug': 'Fix a bug',
+      'Default': 'Default', 'Enthusiastic': 'Enthusiastic', 'Gen-Z': 'Gen-Z', 'Minimalist': 'Minimalist',
+      'Retro': 'Retro', 'Sarcastic': 'Sarcastic', 'Sophisticated': 'Sophisticated', 'Professor': 'Professor',
+      'Created by': 'Created by', 'Previewing': 'Previewing',
+      'Restore a chat to your history, or delete it for good': 'Restore a chat to your history, or delete it for good',
+      'The best LLM of the Arch series since release': 'The best LLM of the Arch series since release',
+      'Files': 'Files', 'Folder': 'Folder',
+      'Downloading necessities for Arch-Assistant-App (5.27GB)': 'Downloading necessities for Arch-Assistant-App (5.27GB)',
+      'Starting backend...': 'Starting backend...', 'Setting up Arch': 'Setting up Arch',
+      'English': 'English', 'Kiswahili': 'Kiswahili', 'French': 'French',
+      'Mandarin': 'Mandarin', 'Japanese': 'Japanese', 'Arabic': 'Arabic',
+      'Fable 5.1': 'Fable 5.1', 'Luna 5.3': 'Luna 5.3',
+    },
+
+sw: {
     'New chat': 'Jukwaa mpya', 'Search chats': 'Tafuta mazungumzo', 'Library': 'Maktaba',
     'Archived': 'Imehifadhiwa', 'Agent': 'Mvuvia', 'Conversation': 'Mazungumzo',
     'Archived chats': 'Mazungumzo yaliyohifadhiwa', 'All of your past conversations in one place': 'Mazungumzo yote ya awali katika mahali moja',
@@ -2694,169 +2930,28 @@ const TRANSLATIONS = {
     'Listening… click to stop': 'Inasikiliza… bonyeza ili kuacha',
     'Deep web search: off': 'Tafuta mtanda unaotulivu: zimevuliwa', 'Deep web search: on': 'Tafuta mtanda unaotulivu: wakati',
     'Copied': 'Imeonikwa', 'Copy': 'Nakili', 'Narrate this response': 'Soma majibu haya',
-    'Attach files or folder': 'jiunge na faili au folda', 'Tools': 'Zana',
-  },
-  ha: {
-    'New chat': 'Saya da darussan', 'Search chats': 'Nema darussar', 'Library': 'Kutub',
-    'Archived': 'Ana hifadhi', 'Agent': 'Mai amfani', 'Conversation': 'Hunƴa',
-    'Archived chats': 'Darussar yana hifadhi', 'All of your past conversations in one place': 'Dawan dukkan yin da suka wana a wani wuri',
-    'Continuing this chat': 'Kuma hunsa', 'Hand off a real coding task': 'Bayar da kassi kuma kuma amfani da kamma',
-    'Heavy-duty coding tasks, run end to end': 'Ayam-da kussi kuma kuma da ƙarfiya',
-    "Point at a stack trace, or describe what's failing and where…": "Nuna waincaccen takam, ko wasan kafa…",
-    "Describe the feature you want built…": "Dawakin abil din kuma…",
-    'What module or pattern should the agent restructure?': ' Sabin da wani abinci yana amfani da kuma?',
-    'Start task': 'Fara kamma', 'The agent will plan, edit, and report back.': 'Mai amfani zai kuma kuma kuma.',
-    "What would you like the agent to do?": "Abil din mai amfani yana nuna?",
-    'Describe the task…': 'Dawakin kamma…', 'History': 'Tarihi',
-    'Search your chats…': 'Nema darussarka…', "No chats match": "Babu darussar daidai",
-    'Settings': 'Saiti', 'Call me': 'Kira min', 'Language': 'Harshe',
-    'Save preference': 'Hifadhi abil din', 'Selected voice applies to all spoken responses.': 'Abil din kuma hususan a duka yin da suka saiti.',
-    'Choose how Arch sounds, and what it calls you.': 'Ayya jin Arch, da kuma isemun.',
-    'Reply to Arch': 'Javeri daga Arch', 'Ask Arch': 'Tanya Arch',
-    'Arch can make mistakes. Verify important information.': 'Arch yana iya kusar da kusanci. Tabbatar da habar da yake.',
-    'Start typing below to begin a new conversation.': 'Fara kura daga cikin',
-    'Nothing archived': 'Babu zabu',
-    'Chats you archive will show up here so you can restore or delete them.': 'Darussar yana hifadhi ya zo huna',
-    'No conversations yet': 'Babu yin da suka zo',
-    'Start a new chat and it will show up here.': 'Fara darussar nuna',
-    'Arch is ready': 'Arch ya kammala', 'Debug my shader': 'Tattalashe shadant',
-    'Refactor a file': 'Saita wani fayil', 'Review particle physics': 'Duba membul',
-    'Brainstorm ideas': 'Fikra kusa', 'Restore': 'Saita',
-    'Delete permanently': 'Cacce kuma', 'Voice input': 'Shirin sauti',
-    'Listening… click to stop': 'Yana zama… bonyeza don kusar',
-    'Deep web search: off': 'Tafuta duniya: zima', 'Deep web search: on': 'Tafuta duniya: kuma',
-    'Copied': 'An juye', 'Copy': 'Kopiyon', 'Narrate this response': 'Daura wani',
-    'Attach files or folder': 'Haikay tasiri', 'Tools': 'Tasiri',
-  },
-  yo: {
-    'New chat': 'Ìsìdàgbàsókè tuntun', 'Search chats': 'Wá àsọ', 'Library': 'Ilé-iwé',
-    'Archived': 'Ti a fi sí', 'Agent': 'Aládé', 'Conversation': 'Ìbábò',
-    'Archived chats': 'Àwọn ìbábò ti a fi sí', 'All of your past conversations in one place': 'GBogbo àwọn ìbábòàgbàyìí ní ipo kan',
-    'Continuing this chat': 'Ṣatunṣe ìbábò', 'Hand off a real coding task': 'Fúnun ni ìṣirò kòòkọ',
-    'Heavy-duty coding tasks, run end to end': 'Ìṣirò kọ̀kọ̀ nírìn-àkókò, ṣíṣẹ́ lọ sí osi',
-    "Point at a stack trace, or describe what's failing and where…": "Ṣàkọsíwé iṣawọ, tàbí ṣe àlàyé ohun tí ó ti n ṣàbàbò…",
-    "Describe the feature you want built…": "Ṣe àlàyé àtúnṣe tí o fẹ́ ṣe…",
-    'What module or pattern should the agent restructure?': 'Ṣé ìwé àwọn tó kí aládé ṣe àṣàkójọ?',
-    'Start task': 'Bí a kọ̀kọ̀', 'The agent will plan, edit, and report back.': 'Aládé yóò dàfihàn, ṣàtúnṣe, sí Oúnjẹ.',
-    "What would you like the agent to do?": "O fẹ́ kí aládé ṣeé ṣe?",
-    'Describe the task…': 'Ṣe àlàyé ìṣirò…', 'History': 'Ìtàn',
-    'Search your chats…': 'Wá àwọn ìbábò…', "No chats match": "Kò sí ìbábò tí ó mù",
-    'Settings': 'Ìsàdé', 'Call me': 'Pè mí', 'Language': 'Èdè',
-    'Save preference': 'Fẹ̀wà', 'Selected voice applies to all spoken responses.': 'Ìhùwà tí a yíì sẹ́ dàgbàsókè lórí gbogbo.',
-    'Choose how Arch sounds, and what it calls you.': 'Yan bi Arch yóò sọ, àti kí nímọ̀ nín.',
-    'Reply to Arch': 'Dáhùwá sí Arch', 'Ask Arch': 'Béèrè sí Arch',
-    'Arch can make mistakes. Verify important information.': 'Arch lè ṣe àṣìṣe. Ìmọ̀gbági ni ìdánilójú.',
-    'Start typing below to begin a new conversation.': 'Bẹ̀rẹ̀ sí i kí nípa ìbábò tuntun.',
-    'Nothing archived': 'Kò sí ohun ti a fi sí',
-    'Chats you archive will show up here so you can restore or delete them.': 'Àwọn ìbábò tí o fún sí yóò sí ní bí i rẹ.',
-    'No conversations yet': 'Kò sí ìbábò',
-    'Start a new chat and it will show up here.': 'Tẹ́ ìsìdàgbàsókè tuntun kí ó sí ní bí i rẹ.',
-    'Arch is ready': 'Arch ti dákọ́', 'Debug my shader': 'Ṣàtúnṣe ajánú',
-    'Refactor a file': 'Ṣe àtúnṣe wé', 'Review particle physics': 'Duba ìṣirò',
-    'Brainstorm ideas': 'Ronú ìdá', 'Restore': 'Pa',
-    'Delete permanently': 'Fò kík', 'Voice input': 'Ìwé sauti',
-    'Listening… click to stop': 'N sìtún… bonyeza lati ca',
-    'Deep web search: off': 'TÌM PÈLÚ Òfin: zima', 'Deep web search: on': 'TÌM PÈLÚ Òfin: wà',
-    'Copied': 'Ṕ ́kó', 'Copy': 'Nakopi', 'Narrate this response': 'Sọ nípa ayípadà',
-    'Attach files or folder': 'Tẹ̀ faili tàbí folḍa', 'Tools': 'Aláṣẹ́',
-  },
-  zu: {
-    'New chat': 'Inkulumo emitjintshweni', 'Search chats': 'Search chats', 'Library': 'Lbhulayithi',
-    'Archived': 'Kuhunyushwa', 'Agent': 'Umphenduli', 'Conversation': 'Ingxoxo',
-    'Archived chats': 'Ingxoxo eziputheniwe', 'All of your past conversations in one place': 'Onke amibuzo edlule kule ndawo',
-    'Continuing this chat': 'Eke nangemibuzo', 'Hand off a real coding task': 'Nikelela kazi yoku khiqizwa',
-    'Heavy-duty coding tasks, run end to end': 'Imisebenzi yoku khiqiza ezinkulu, bayithatha kude',
-    "Point at a stack trace, or describe what's failing and where…": "Vocala isikhililo, noma chaza ki kuphela…",
-    "Describe the feature you want built…": "Chaza inhlamvu owifuna ukuiyenza…",
-    'What module or pattern should the agent restructure?': 'Lelizansi malunga noma uhloo leliyengwa?',
-    'Start task': 'Qala kazi', 'The agent will plan, edit, and report back.': 'Umphenduli uzadizayein, kuhreli, kanye nokuqina.',
-    "What would you like the agent to do?": "Osekho ukuba umphenduli afakhe ntoni?",
-    'Describe the task…': 'Chaza kazi…', 'History': 'Imari',
-    'Search your chats…': 'Bheka imibuzo…', "No chats match": "Hayi kuwona mibuzo",
-    'Settings': 'Izilungilelwano', 'Call me': 'Bonga', 'Language': 'Ulwizo',
-    'Save preference': 'Londoloza kwesukhethu', 'Selected voice applies to all spoken responses.': 'Isitimela esikhetiriwe sibeka kuzo zonke.',
-    'Choose how Arch sounds, and what it calls you.': 'Khetha yini Arch isitimela, futhi ndonjani.',
-    'Reply to Arch': 'Phendula ku Arch', 'Ask Arch': 'Bhala ku Arch',
-    'Arch can make mistakes. Verify important information.': 'Arch angase athole inhlalakahle. Mqoka ulwazi olubalulekile.',
-    'Start typing below to begin a new conversation.': 'Qala ukubhalisa ngezansi ukuze wade ibuxoxo.',
-    'Nothing archived': 'Akunathi into eziputheniwe',
-    'Chats you archive will show up here so you can restore or delete them.': 'Izimbuzulu ozihlaziyayo izobonakala la ukuze usileze.',
-    'No conversations yet': 'Awunathi mibuzo',
-    'Start a new chat and it will show up here.': 'Qala inkulumo emitjintshweni kanye izobonakala la.',
-    'Arch is ready': 'Arch iphelele', 'Debug my shader': 'Hlukunze isakhi',
-    'Refactor a file': 'Bheka fayela', 'Review particle physics': 'Cwaninga izifobo',
-    'Brainstorm ideas': 'Bambalangena', 'Restore': 'Sula',
-    'Delete permanently': 'Caca nangoma', 'Voice input': 'Into yosayizi',
-    'Listening… click to stop': 'Ngithanda… bonyeza ukuze ugqibe',
-    'Deep web search: off': 'Kuthenjaniswa kwewebhusayithi: mide', 'Deep web search: on': 'Kuthenjaniswa kwewebhusayithi: phezu',
-    'Copied': 'Kopiyethwe', 'Copy': 'Kopisha', 'Narrate this response': 'Vula le mpendulo',
-    'Attach files or folder': 'Linga faile kanye foda', 'Tools': 'Amathuluzi',
-  },
-  ig: {
-    'New chat': 'Mkparị ọ bụlịa', 'Search chats': 'Chọo njikọta', 'Library': 'Akwukọ',
-    'Archived': 'Kpọtọrọ', 'Agent': 'Okenzi', 'Conversation': 'Okwu',
-    'Archived chats': 'Njikọta kporọ', 'All of your past conversations in one place': 'Ihe ncheta gara aga n\u0254tu ebe',
-    'Continuing this chat': 'Nchọ maka okwu', 'Hand off a real coding task': 'Nweta ihe nsụwa kodu',
-    'Heavy-duty coding tasks, run end to end': 'Ihe nsụwa ọnọ dị mma, rinne kakandu',
-    "Point at a stack trace, or describe what's failing and where…": "Kpọtọrọ ihe ọ bụla, ma ọ bụ gọ…",
-    "Describe the feature you want built…": "Kwuo ihe ị chaa…",
-    'What module or pattern should the agent restructure?': 'Ihe omume gaa?',
-    'Start task': 'Mepụta kodu', 'The agent will plan, edit, and report back.': 'Okenzi ga-dee, mgbapa, ebe.',
-    "What would you like the agent to do?": "O furu ihe oke?",
-    'Describe the task…': 'Kwuo kodu…', 'History': 'Akwukolo',
-    'Search your chats…': 'Chọo njikọta…', "No chats match": "Enwere njikọta",
-    'Settings': 'Ntọchite', 'Call me': 'Pukulu', 'Language': 'Asụsụ',
-    'Save preference': 'Ncheta kodu', 'Selected voice applies to all spoken responses.': 'Asịsị dị iche na nke ọma.',
-    'Choose how Arch sounds, and what it calls you.': 'Họrọ Arch na nke ị na-e, o sị gị.',
-    'Reply to Arch': 'Kpọtọ Arch', 'Ask Arch': 'Biko Arch',
-    'Arch can make mistakes. Verify important information.': 'Arch nwere ike ịbụghị ezigbo ezigbo. Chetara ihe ị dị.',
-    'Start typing below to begin a new conversation.': 'Mepụta nke ọma.',
-    'Nothing archived': 'Enwere ihe ọ bụla',
-    'Chats you archive will show up here so you can restore or delete them.': 'Njikọta kporọ yọsịrị.',
-    'No conversations yet': 'Enwere okwu',
-    'Start a new chat and it will show up here.': 'Mepụta njikọta.',
-    'Arch is ready': 'Arch daa', 'Debug my shader': 'Nweta njikọta',
-    'Refactor a file': 'Hjira faile', 'Review particle physics': 'Chawakite ihe',
-    'Brainstorm ideas': 'Patere okwu', 'Restore': 'Chọọ',
-    'Delete permanently': 'Pukulu nke ọma', 'Voice input': 'Asụsụ ọbụ',
-    'Listening… click to stop': 'N na-e ncheta… pịn pịa',
-    'Deep web search: off': 'Chọo we nna: mide', 'Deep web search: on': 'Chọo we nna: mepu',
-    'Copied': 'Kpọtọrọ', 'Copy': 'Kpọ', 'Narrate this response': 'Gbanwe',
-    'Attach files or folder': 'Jikọ faile n\u0254ka', 'Tools': 'Akwụkwọ',
-  },
-  am: {
-    'New chat': 'አዲስ ቃፋ', 'Search chats': 'ፈትስ ውጭ', 'Library': 'መጽሐፈ ቤት',
-    'Archived': 'ታች መጠበቅ', 'Agent': 'የማንም', 'Conversation': 'ውጭ',
-    'Archived chats': 'ውጭ ዝግጅ', 'All of your past conversations in one place': 'ሁሉም ውጭ በአንድ ቦታ',
-    'Continuing this chat': 'ውጭ ወደደ', 'Hand off a real coding task': 'የሚሆነ ኮይንት አንድ',
-    'Heavy-duty coding tasks, run end to end': 'ብሩኸተቱ ኮይንት በመጠበቅ',
-    "Point at a stack trace, or describe what's failing and where…": "ታዝኛ ዝርዝር፣ ኦሁል ምንም…",
-    "Describe the feature you want built…": "ዝርዝር እና መሮጫ።",
-    'What module or pattern should the agent restructure?': 'የምንድን የመጀመሪያ?',
-    'Start task': 'ጀምር ኮይንት', 'The agent will plan, edit, and report back.': 'አይ ይቅርብ፣ እና ይዘዋል።',
-    "What would you like the agent to do?": "አይ ይቻላል?",
-    'Describe the task…': 'ዝርዝር ኮይንት…', 'History': 'ታሪክ',
-    'Search your chats…': 'ፈትስ ውጭ…', "No chats match": "የለም ምንም",
-    'Settings': 'ቅንብአት', 'Call me': 'አዺናትም', 'Language': 'ቋንቋ',
-    'Save preference': 'አስ save', 'Selected voice applies to all spoken responses.': 'የተመረጠው ዝምቧዊ በሁሉ።',
-    'Choose how Arch sounds, and what it calls you.': 'ዝምብዝ አርክት፣ እና የምንደ.',
-    'Reply to Arch': 'መልሱ አርክት', 'Ask Arch': 'ጠይቀት አርክት',
-    'Arch can make mistakes. Verify important information.': 'አርክት ሊተኛ ይችላል። ወደቅዋል መረጃ።',
-    'Start typing below to begin a new conversation.': 'እርስ በታ ለውጭ አዲስ።',
-    'Nothing archived': 'የለም ታች',
-    'Chats you archive will show up here so you can restore or delete them.': 'ውጭ ዝግጅ ይቆምታል።',
-    'No conversations yet': 'የለም ውጭ',
-    'Start a new chat and it will show up here.': 'አዲስ ቃፋ ይቆምታል።',
-    'Arch is ready': 'አርክት የተደረገ', 'Debug my shader': 'የማዕበል መተካት',
-    'Refactor a file': 'ፋይል ለውጭ', 'Review particle physics': 'ፍሪ አይነት ይለውጡ',
-    'Brainstorm ideas': 'አይደረገ', 'Restore': 'ውጭ',
-    'Delete permanently': 'ለውጭ አጠፋ', 'Voice input': 'ዝምጃ አይነት',
-    'Listening… click to stop': 'በሞልታ… አንገባ',
-    'Deep web search: off': 'ውጭ ፈትስ: አይደለም', 'Deep web search: on': 'ውጭ ፈትስ: ነው',
-    'Copied': 'ትይታል', 'Copy': 'ዲያክ', 'Narrate this response': 'መረጃ ይቧል',
-    'Attach files or folder': 'አዘም ፋይል ወይም ፋይል', 'Tools': 'ሳራንች',
-  },
-  fr: {
+     'Attach files or folder': 'jiunge na faili au folda', 'Tools': 'Zana',
+     'Skills & MCPs': 'Vifunzo na MCPs', 'Install': 'Sakinisha', 'No skills installed yet.': 'Hakuna vifunzo vilivosakinishwa.',
+     'Pirate': 'Kabuda', 'Poet': 'Mshororo',
+     "Or describe a custom style: e.g. 'warm British librarian'": "Au_eleza mtindo wa pekee: kwa mfano 'mkutano wa kiingereza mwepesi'",
+     'GitHub URL or npm package name': 'Anwani ya GitHub au jina la kifurushi cha npm',
+      'Saved ✓': 'Imehifadhiwa ✓', 'New chats…': 'Mazungumzo mapya…',
+      'Choose how Arch sounds, acts, and what it calls you.': 'Chagua jinsi Arch inavyopiga kelele, tabia, na jinsi inavyokuita wewe.',
+      'Personality': 'Binashati', 'Ship a feature': 'Tuma kipengele', 'Fix a bug': 'Kurrekodisha kosa',
+      'Default': 'Chaguo temba', 'Enthusiastic': 'Mpenzi', 'Gen-Z': 'Kizazi K', 'Minimalist': 'Binafsi',
+      'Retro': 'Nyuma', 'Sarcastic': 'Kivinjari', 'Sophisticated': 'Lina kasi', 'Professor': 'Mwalimu',
+      'Created by': 'Imetengenezwa na', 'Previewing': 'Inaangalia',
+      'Restore a chat to your history, or delete it for good': 'Rejea mazungumzo kwenye historia yako, au futa kwa kudumu',
+      'The best LLM of the Arch series since release': 'Bora kwa ajili ya Arch tangu utolewaji',
+      'Files': 'Faili', 'Folder': 'Folda',
+      'Downloading necessities for Arch-Assistant-App (5.27GB)': ' Inapopakua vyanzo muhimu kwa Arch-Assistant-App (5.27GB)',
+      'Starting backend...': 'Inanisha hatua ya nyuma...', 'Setting up Arch': 'Kunaanza Arch',
+      'English': 'Kiingereza', 'Kiswahili': 'Kiswahili', 'French': 'Kifaransa',
+      'Mandarin': 'Kichina', 'Japanese': 'Kijapani', 'Arabic': 'Kiarabu',
+      'Fable 5.1': 'Fable 5.1', 'Luna 5.3': 'Luna 5.3',
+    },
+
+fr: {
     'New chat': 'Nouvelle discussion', 'Search chats': 'Rechercher des discussions', 'Library': 'Bibliothèque',
     'Archived': 'Archivé', 'Agent': 'Agent', 'Conversation': 'Conversation',
     'Archived chats': 'Discussions archivées', 'All of your past conversations in one place': 'Toutes vos conversations passées en un lieu',
@@ -2886,22 +2981,210 @@ const TRANSLATIONS = {
     'Listening… click to stop': 'Écoute… cliquez pour arrêter',
     'Deep web search: off': 'Recherche web approfondie: désactivé', 'Deep web search: on': 'Recherche web approfondie: activé',
     'Copied': 'Copié', 'Copy': 'Copier', 'Narrate this response': 'Narrer cette réponse',
-    'Attach files or folder': 'Attacher des fichiers ou dossier', 'Tools': 'Outils',
-  },
-};
+     'Attach files or folder': 'Attacher des fichiers ou dossier', 'Tools': 'Outils',
+     'Skills & MCPs': 'Compétences & MCPs', 'Install': 'Installer', 'No skills installed yet.': 'Aucune compétence installée pour le moment.',
+     'Pirate': 'Pirate', 'Poet': 'Poète',
+     "Or describe a custom style: e.g. 'warm British librarian'": "Ou décrivez un style personnalisé : ex. « bibliothécaire britannique chaleureux »",
+     'GitHub URL or npm package name': "URL GitHub ou nom de paquet npm",
+      'Saved ✓': 'Enregistré ✓', 'New chats…': 'Nouvelles discussions…',
+      'Choose how Arch sounds, acts, and what it calls you.': 'Choisissez comment Arch sonne, se comporte, et ce qu\'il vous appelle.',
+      'Personality': 'Personnalité', 'Ship a feature': 'Livrer une fonctionnalité', 'Fix a bug': 'Corriger un bug',
+      'Default': 'Par défaut', 'Enthusiastic': 'Enthousiaste', 'Gen-Z': 'Génération Z', 'Minimalist': 'Minimaliste',
+      'Retro': 'Rétro', 'Sarcastic': 'Sarcastique', 'Sophisticated': 'Sophistiqué', 'Professor': 'Professeur',
+      'Created by': 'Créé par', 'Previewing': 'Prévisualisation',
+      'Restore a chat to your history, or delete it for good': 'Restaurer un chat dans votre historique, ou supprimez-le définitivement',
+      'The best LLM of the Arch series since release': 'Le meilleur LLM de la série Arch depuis sa sortie',
+      'Files': 'Fichiers', 'Folder': 'Dossier',
+      'Downloading necessities for Arch-Assistant-App (5.27GB)': 'Téléchargement des éléments nécessaires pour Arch-Assistant-App (5,27 Go)',
+      'Starting backend...': 'Démarrage du backend...', 'Setting up Arch': 'Configuration d\'Arch',
+      'English': 'Anglais', 'Kiswahili': 'Swahili', 'French': 'Français',
+      'Mandarin': 'Mandarin', 'Japanese': 'Japonais', 'Arabic': 'Arabe',
+      'Fable 5.1': 'Fable 5.1', 'Luna 5.3': 'Luna 5.3',
+    },
+  zh: {
+      'New chat': '新聊天', 'Search chats': '搜索聊天', 'Library': '资料库',
+      'Archived': '已存档', 'Agent': '代理', 'Conversation': '对话',
+      'Archived chats': '已存档的聊天', 'All of your past conversations in one place': '所有过去的对话都在这里',
+      'Continuing this chat': '继续这个对话', 'Hand off a real coding task': '交付一个真实的编码任务',
+      'Heavy-duty coding tasks, run end to end': '重型编码任务，端到端执行',
+      "Point at a stack trace, or describe what's failing and where…": "指向堆栈跟踪，或描述什么在失败和在哪里…",
+      "Describe the feature you want built…": "描述你想要构建的功能…",
+      'What module or pattern should the agent restructure?': '代理应该重组哪个模块或模式？',
+      'Start task': '开始任务', 'The agent will plan, edit, and report back.': '代理将计划、编辑并报告回来。',
+      "What would you like the agent to do?": "你希望代理做什么？",
+      'Describe the task…': '描述任务…', 'History': '历史',
+      'Search your chats…': '搜索您的聊天…', "No chats match": "没有匹配的聊天",
+      'Settings': '设置', 'Call me': '叫我', 'Language': '语言',
+      'Save preference': '保存偏好', 'Selected voice applies to all spoken responses.': '选定的声音适用于所有讲话回答。',
+      'Choose how Arch sounds, and what it calls you.': '选择 Arch 的声音和称呼。',
+      'Reply to Arch': '回复 Arch', 'Ask Arch': '问 Arch',
+      'Arch can make mistakes. Verify important information.': 'Arch 可能会犯错。验证重要信息。',
+      'Start typing below to begin a new conversation.': '开始输入以开始新的对话。',
+      'Nothing archived': '没有存档',
+      'Chats you archive will show up here so you can restore or delete them.': '你存档的聊天会显示在这里，你可以恢复或删除它们。',
+      'No conversations yet': '还没有对话',
+      'Start a new chat and it will show up here.': '开始一个新的聊天，它会显示在这里。',
+      'Arch is ready': 'Arch 已准备就绪', 'Debug my shader': '调试我的着色器',
+      'Refactor a file': '重构文件', 'Review particle physics': '审查粒子物理',
+      'Brainstorm ideas': '头脑风暴', 'Restore': '恢复',
+      'Delete permanently': '永久删除', 'Voice input': '语音输入',
+      'Listening… click to stop': '正在听… 点击停止',
+      'Deep web search: off': '深网搜索：关闭', 'Deep web search: on': '深网搜索：开启',
+      'Copied': '已复制', 'Copy': '复制', 'Narrate this response': '朗读加这个回复',
+      'Attach files or folder': '附加文件或文件夹', 'Tools': '工具',
+      'Skills & MCPs': '技能 & MCPs', 'Install': '安装', 'No skills installed yet.': '尚未安装任何技能。',
+      'Pirate': '海盗', 'Poet': '诗人',
+      "Or describe a custom style: e.g. 'warm British librarian'": "或者描述自定义风格，例如：'温暖的英国图书管理员'",
+      'GitHub URL or npm package name': 'GitHub 网址或 npm 包名',
+      'Saved ✓': '已保存 ✓', 'New chats…': '新聊天…',
+      'Choose how Arch sounds, acts, and what it calls you.': '选择 Arch 的声音、行为和称呼。',
+      'Personality': '个性', 'Ship a feature': '发布功能', 'Fix a bug': '修复错误',
+      'Default': '默认', 'Enthusiastic': '热情', 'Gen-Z': 'Z世代', 'Minimalist': '极简',
+      'Retro': '复古', 'Sarcastic': '讽刺', 'Sophisticated': '精致', 'Professor': '教授',
+      'Created by': '创建者', 'Previewing': '预览中',
+      'Restore a chat to your history, or delete it for good': '将聊天恢复到历史记录中，或永久删除',
+      'The best LLM of the Arch series since release': '自发布以来 Arch 系列中最好的 LLM',
+      'Files': '文件', 'Folder': '文件夹',
+      'Downloading necessities for Arch-Assistant-App (5.27GB)': '正在下载 Arch-Assistant-App 的必要文件 (5.27GB)',
+      'Starting backend...': '启动后端...', 'Setting up Arch': '设置 Arch',
+      'English': '英语', 'Kiswahili': '斯瓦希里语', 'French': '法语',
+      'Mandarin': '普通话', 'Japanese': '日语', 'Arabic': '阿拉伯语',
+      'Fable 5.1': 'Fable 5.1', 'Luna 5.3': 'Luna 5.3',
+    },
+  ja: {
+      'New chat': '新しいチャット', 'Search chats': 'チャットを検索', 'Library': 'ライブラリ',
+      'Archived': 'アーカイブ済み', 'Agent': 'エージェント', 'Conversation': '会話',
+      'Archived chats': 'アーカイブ済みチャット', 'All of your past conversations in one place': '過去の会話はすべてここにあります',
+      'Continuing this chat': 'このチャットを続ける', 'Hand off a real coding task': '実際のコーディングタスクを依頼',
+      'Heavy-duty coding tasks, run end to end': 'ヘビードューティコーディングタスクを最初から最後まで',
+      "Point at a stack trace, or describe what's failing and where…": "スタックトレースを示すか、何が失敗しているかを説明…",
+      "Describe the feature you want built…": "作成する機能を説明…",
+      'What module or pattern should the agent restructure?': 'エージェントが再構築すべきモジュールやパターンは？',
+      'Start task': 'タスクを開始', 'The agent will plan, edit, and report back.': 'エージェントが計画し、編集し、報告します。',
+      "What would you like the agent to do?": "エージェントに何をしてほしいですか？",
+      'Describe the task…': 'タスクを説明…', 'History': '履歴',
+      'Search your chats…': 'チャットを検索…', "No chats match": "一致するチャットがありません",
+      'Settings': '設定', 'Call me': '呼び名', 'Language': '言語',
+      'Save preference': '設定を保存', 'Selected voice applies to all spoken responses.': '選択した声はすべての音声応答に適用されます。',
+      'Choose how Arch sounds, and what it calls you.': 'Arch の音声と呼び名を選択してください。',
+      'Reply to Arch': 'Arch に返信', 'Ask Arch': 'Arch に質問',
+      'Arch can make mistakes. Verify important information.': 'Arch は間違いを犯す可能性があります。重要な情報を確認してください。',
+      'Start typing below to begin a new conversation.': '新しい会話を始めるには以下に入力してください。',
+      'Nothing archived': 'アーカイブされたものはありません',
+      'Chats you archive will show up here so you can restore or delete them.': 'アーカイブしたチャットはここに表示され、復元または削除できます。',
+      'No conversations yet': 'まだ会話がありません',
+      'Start a new chat and it will show up here.': '新しいチャットを開始すると、ここに表示されます。',
+      'Arch is ready': 'Arch の準備ができました', 'Debug my shader': 'シェーダーをデバッグ',
+      'Refactor a file': 'ファイルをリファクター', 'Review particle physics': '粒子物理学をレビュー',
+      'Brainstorm ideas': 'ブレインストーミング', 'Restore': '復元',
+      'Delete permanently': '完全に削除', 'Voice input': '音声入力',
+      'Listening… click to stop': '聴中…停止するにはクリック',
+      'Deep web search: off': 'ディープウェブ検索：オフ', 'Deep web search: on': 'ディープウェブ検索：オン',
+      'Copied': 'コピー済み', 'Copy': 'コピー', 'Narrate this response': 'この応答を朗読',
+      'Attach files or folder': 'ファイルまたはフォルダーを添付', 'Tools': 'ツール',
+      'Skills & MCPs': 'スキル & MCPs', 'Install': 'インストール', 'No skills installed yet.': 'スキルはまだインストールされていません。',
+      'Pirate': '海賊', 'Poet': '詩人',
+      "Or describe a custom style: e.g. 'warm British librarian'": "カスタムスタイルを記述するか、例：'温かな英国の司書'",
+      'GitHub URL or npm package name': 'GitHub URL または npm パッケージ名',
+      'Saved ✓': '保存済み ✓', 'New chats…': '新しいチャット…',
+      'Choose how Arch sounds, acts, and what it calls you.': 'Arch の音声、動作、および呼び名を選択してください。',
+      'Personality': '性格', 'Ship a feature': '機能をリリース', 'Fix a bug': 'バグを修正',
+      'Default': 'デフォルト', 'Enthusiastic': '熱心', 'Gen-Z': 'Z世代', 'Minimalist': 'ミニマリスト',
+      'Retro': 'レトロ', 'Sarcastic': '皮肉', 'Sophisticated': '洗練', 'Professor': '教授',
+      'Created by': '作成者', 'Previewing': 'プレビュー中',
+      'Restore a chat to your history, or delete it for good': 'チャットを履歴に復元するか、完全に削除します',
+      'The best LLM of the Arch series since release': 'リリース以来最高の Arch シリーズ LLM',
+      'Files': 'ファイル', 'Folder': 'フォルダー',
+      'Downloading necessities for Arch-Assistant-App (5.27GB)': 'Arch-Assistant-App の必要ファイルをダウンロード中 (5.27GB)',
+      'Starting backend...': 'バックエンドを起動中...', 'Setting up Arch': 'Arch を設定中',
+      'English': '英語', 'Kiswahili': 'スワヒリ語', 'French': 'フランス語',
+      'Mandarin': '普通語', 'Japanese': '日本語', 'Arabic': 'アラビア語',
+      'Fable 5.1': 'Fable 5.1', 'Luna 5.3': 'Luna 5.3',
+    },
+  ar: {
+      'New chat': 'دردشة جديدة', 'Search chats': 'بحث عن المحادثات', 'Library': 'المكتبة',
+      'Archived': 'مؤرشف', 'Agent': 'وكيل', 'Conversation': 'محادثة',
+      'Archived chats': 'المحادثات المؤرشفة', 'All of your past conversations in one place': 'كل محادثاتك السابقة في مكان واحد',
+      'Continuing this chat': 'مواصلة هذه المحادثة', 'Hand off a real coding task': 'سلم مهمة برمجة حقيقية',
+      'Heavy-duty coding tasks, run end to end': 'مهام برمجة ثقيلة، من البداية للنهاية',
+      "Point at a stack trace, or describe what's failing and where…": "أشر إلى تتبع المكدس، أو اوصف ما يفشل وأين…",
+      "Describe the feature you want built…": "وصف الميزة التي تريد بناءها…",
+      'What module or pattern should the agent restructure?': 'أي وحدة أو نمط يجب على الوكيل إعادة هيكله؟',
+      'Start task': 'ابدأ المهمة', 'The agent will plan, edit, and report back.': 'سيخطط ويعدل ويعد تقريرًا.',
+      "What would you like the agent to do?": "ماذا تريد أن يفعل الوكيل؟",
+      'Describe the task…': 'وصف المهمة…', 'History': 'التاريخ',
+      'Search your chats…': 'ابحث في محادثاتك…', "No chats match": "لا توجد محادثات مطابقة",
+      'Settings': 'الإعدادات', 'Call me': 'ادعِني', 'Language': 'اللغة',
+      'Save preference': 'حفظ التفضيل', 'Selected voice applies to all spoken responses.': 'الصوت المحدد ينطبق على جميع الردود الصوتية.',
+      'Choose how Arch sounds, and what it calls you.': 'اختر كيف يبدو Arch، وما يطلق عليك.',
+      'Reply to Arch': 'رد على Arch', 'Ask Arch': 'اسأل Arch',
+      'Arch can make mistakes. Verify important information.': 'قد يجعل Arch أخطاءً. تحقق من المعلومات المهمة.',
+      'Start typing below to begin a new conversation.': 'ابدأ في الكتابة أدناه لبدء محادثة جديدة.',
+      'Nothing archived': 'لا شيء مؤرشف',
+      'Chats you archive will show up here so you can restore or delete them.': 'ستظهر المحادثات التي تأرشفها هنا حتى تتمكن من استعادتها أو حذفها.',
+      'No conversations yet': 'لا توجد محادثات حتى الآن',
+      'Start a new chat and it will show up here.': 'ابدأ محادثة جديدة وسيظهر هنا.',
+      'Arch is ready': 'Arch جاهز', 'Debug my shader': 'أصلح شيلدراتي',
+      'Refactor a file': 'إعادة تنظيف ملف', 'Review particle physics': 'مراجعة فيزياء الجسيمات',
+      'Brainstorm ideas': 'ولد أفكارًا', 'Restore': 'استعادة',
+      'Delete permanently': 'حذف نهائي', 'Voice input': 'إدخال صوتي',
+      'Listening… click to stop': 'أستمع… انقر للإنهاء',
+      'Deep web search: off': 'بحث الويب العميق: إيقاف', 'Deep web search: on': 'بحث الويب العميق: تشغيل',
+      'Copied': 'تم النسخ', 'Copy': 'نسخ', 'Narrate this response': 'شرح هذه الاستجابة',
+      'Attach files or folder': 'إرفاق ملفات أو مجلد', 'Tools': 'أدوات',
+      'Skills & MCPs': 'المهارات والوظائف الإضافية', 'Install': 'تثبيت', 'No skills installed yet.': 'لم يتم تثبيت أي مهارات بعد.',
+      'Pirate': 'قرصان', 'Poet': 'شاعر',
+      "Or describe a custom style: e.g. 'warm British librarian'": "أو اكتب نمطًا مخصصًا، مثل: 'أمين مكتبة بريطاني دافئ'",
+      'GitHub URL or npm package name': 'رابط GitHub أو اسم حزمة npm',
+      'Saved ✓': 'تم الحفظ ✓', 'New chats…': 'دردشات جديدة…',
+      'Choose how Arch sounds, acts, and what it calls you.': 'اختر كيف يبدو Arch، ويتصرف، وما يطلق عليك.',
+      'Personality': 'الشخصية', 'Ship a feature': 'نقل ميزة', 'Fix a bug': 'إصلاح خطأ',
+      'Default': 'افتراضي', 'Enthusiastic': 'حماسي', 'Gen-Z': 'جيل زد', 'Minimalist': 'منحدر',
+      'Retro': 'ريترو', 'Sarcastic': 'ساخر', 'Sophisticated': 'رفيع الذوق', 'Professor': 'أستاذ',
+      'Created by': 'أنشئ بواسطة', 'Previewing': 'معاينة',
+      'Restore a chat to your history, or delete it for good': 'استعادة دردشة إلى تاريخك، أو حذفها نهائيًا',
+      'The best LLM of the Arch series since release': 'أفضل نموذج لغوي لسلسلة Arch منذ الإصدار',
+      'Files': 'ملفات', 'Folder': 'مجلد',
+      'Downloading necessities for Arch-Assistant-App (5.27GB)': 'تنزيل المتطلبات اللازمة لـ Arch-Assistant-App (5.27 جيجابايت)',
+      'Starting backend...': 'بدء التشغيل الخلفي...', 'Setting up Arch': 'إعداد Arch',
+      'English': 'الإنجليزية', 'Kiswahili': 'السواهيلية', 'French': 'الفرنسية',
+      'Mandarin': 'الصينية', 'Japanese': 'اليابانية', 'Arabic': 'العربية',
+      'Fable 5.1': 'Fable 5.1', 'Luna 5.3': 'Luna 5.3',
+    },
+  };
 
 let currentLang = 'en';
 
 function applyLanguage(lang){
   currentLang = lang || 'en';
   const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
-  // Translate specific elements by their text content
+  const enDict = TRANSLATIONS.en || {};
+  // Build reverse maps: for any language, map translated text -> English key
+  const reverseMap = {};
+  for (const code of Object.keys(TRANSLATIONS)) {
+    const d = TRANSLATIONS[code];
+    if (typeof d !== 'object') continue;
+    for (const k of Object.keys(d)) {
+      if (typeof d[k] === 'string') {
+        reverseMap[d[k]] = k;  // translated_text -> english_key
+      }
+    }
+  }
+  // Translate: first try direct key match (English text), then reverse lookup
   const translateEl = (el) => {
-    if(!el || !el.nodeType === 3) return;
+     if(!el || el.nodeType !== 1) return;
     const txt = el.textContent.trim();
-    if(txt && dict[txt]){
-      if(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return; // don't touch placeholders via this
+    if(!txt) return;
+    if(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return;
+    // First try: current text matches a key in our dict (English -> target)
+    if(dict[txt]){
       el.textContent = dict[txt];
+      return;
+    }
+    // Second try: reverse lookup — current text is a translation, find the key
+    const key = reverseMap[txt];
+    if(key && dict[key]){
+      el.textContent = dict[key];
     }
   };
   // Element-specific translations
@@ -2919,52 +3202,96 @@ function applyLanguage(lang){
     const el = document.getElementById(id);
     if(!el) return;
     const key = idMap[id];
-    if(dict[key]){
+    const targetText = dict[key];
+    if(targetText){
       if(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT'){
         // Don't translate placeholder text via this mechanism
       } else {
-        el.textContent = dict[key];
+        el.textContent = targetText;
       }
     }
   });
   // Section labels and panel subs
   const sectionLabels = document.querySelectorAll('.section-label');
-  sectionLabels.forEach(el => { if(dict[el.textContent.trim()]) el.textContent = dict[el.textContent.trim()]; });
+  sectionLabels.forEach(el => {
+    const txt = el.textContent.trim();
+    const key = dict[txt] ? txt : (reverseMap[txt] || txt);
+    if(dict[key]) el.textContent = dict[key];
+  });
   const panelSubs = document.querySelectorAll('.panel-sub');
-  panelSubs.forEach(el => { if(dict[el.textContent.trim()]) el.textContent = dict[el.textContent.trim()]; });
+  panelSubs.forEach(el => {
+    const txt = el.textContent.trim();
+    const key = dict[txt] ? txt : (reverseMap[txt] || txt);
+    if(dict[key]) el.textContent = dict[key];
+  });
   // Panel titles
   const panelTitles = document.querySelectorAll('.panel-title');
-  panelTitles.forEach(el => { if(dict[el.textContent.trim()]) el.textContent = dict[el.textContent.trim()]; });
+  panelTitles.forEach(el => {
+    const txt = el.textContent.trim();
+    const key = dict[txt] ? txt : (reverseMap[txt] || txt);
+    if(dict[key]) el.textContent = dict[key];
+  });
   // Agent hero
   const agentHero = document.querySelector('.agent-hero h2');
-  if(agentHero && dict[agentHero.textContent.trim()]) agentHero.textContent = dict[agentHero.textContent.trim()];
+  if(agentHero){
+    const txt = agentHero.textContent.trim();
+    const key = dict[txt] ? txt : (reverseMap[txt] || txt);
+    if(dict[key]) agentHero.textContent = dict[key];
+  }
   const agentPara = document.querySelector('.agent-hero p');
-  if(agentPara && dict[agentPara.textContent.trim()]) agentPara.textContent = dict[agentPara.textContent.trim()];
+  if(agentPara){
+    const txt = agentPara.textContent.trim();
+    const key = dict[txt] ? txt : (reverseMap[txt] || txt);
+    if(dict[key]) agentPara.textContent = dict[key];
+  }
   // Agent cards titles and descriptions
   document.querySelectorAll('.ac-title').forEach(el => {
-    const key = el.textContent.trim();
+    const txt = el.textContent.trim();
+    const key = dict[txt] ? txt : (reverseMap[txt] || txt);
     if(dict[key]) el.textContent = dict[key];
   });
   document.querySelectorAll('.ac-desc').forEach(el => {
-    const key = el.textContent.trim();
+    const txt = el.textContent.trim();
+    const key = dict[txt] ? txt : (reverseMap[txt] || txt);
     if(dict[key]) el.textContent = dict[key];
   });
   // Chips
   document.querySelectorAll('#view-home .chip').forEach(el => {
-    const key = el.textContent.trim();
+    const txt = el.textContent.trim();
+    const key = dict[txt] ? txt : (reverseMap[txt] || txt);
     if(dict[key]) el.textContent = dict[key];
   });
   // Footer hint
   const footerHints = document.querySelectorAll('.footer-hint');
-  footerHints.forEach(el => { if(dict[el.textContent.trim()]) el.textContent = dict[el.textContent.trim()]; });
+  footerHints.forEach(el => {
+    const txt = el.textContent.trim();
+    const key = dict[txt] ? txt : (reverseMap[txt] || txt);
+    if(dict[key]) el.textContent = dict[key];
+  });
   // Voice modal header
   const vmHeader = document.querySelector('#voiceModal .voice-modal-header h2');
-  if(vmHeader && dict[vmHeader.textContent.trim()]) vmHeader.textContent = dict[vmHeader.textContent.trim()];
+  if(vmHeader){
+    const txt = vmHeader.textContent.trim();
+    const key = dict[txt] ? txt : (reverseMap[txt] || txt);
+    if(dict[key]) vmHeader.textContent = dict[key];
+  }
   const vmSub = document.querySelector('#voiceModal .voice-modal-header p');
-  if(vmSub && dict[vmSub.textContent.trim()]) vmSub.textContent = dict[vmSub.textContent.trim()];
+  if(vmSub){
+    const txt = vmSub.textContent.trim();
+    const key = dict[txt] ? txt : (reverseMap[txt] || txt);
+    if(dict[key]) vmSub.textContent = dict[key];
+  }
   // Voice card names and descs
-  document.querySelectorAll('.voice-name').forEach(el => { if(dict[el.textContent.trim()]) el.textContent = dict[el.textContent.trim()]; });
-  document.querySelectorAll('.voice-desc').forEach(el => { if(dict[el.textContent.trim()]) el.textContent = dict[el.textContent.trim()]; });
+  document.querySelectorAll('.voice-name').forEach(el => {
+    const txt = el.textContent.trim();
+    const key = dict[txt] ? txt : (reverseMap[txt] || txt);
+    if(dict[key]) el.textContent = dict[key];
+  });
+  document.querySelectorAll('.voice-desc').forEach(el => {
+    const txt = el.textContent.trim();
+    const key = dict[txt] ? txt : (reverseMap[txt] || txt);
+    if(dict[key]) el.textContent = dict[key];
+  });
   const previewLabel = document.getElementById('previewName');
   // Voice card names and descs - already handled above
    // Composer placeholder
@@ -2987,31 +3314,69 @@ function applyLanguage(lang){
   }
   // Re-apply greeting with translated text
   applyGreeting(_pickGreetingForLang(currentLang), false);
+  
+  // Translate language dropdown option labels
+  const langSelect = document.getElementById('languageSelect');
+  if (langSelect) {
+    const langNames = { en: 'English', sw: 'Kiswahili', fr: 'French', zh: 'Mandarin', ja: 'Japanese', ar: 'Arabic' };
+    for (const opt of langSelect.options) {
+      const langCode = opt.value;
+      const englishName = langNames[langCode] || opt.textContent;
+      opt.textContent = dict[englishName] || englishName;
+    }
+  }
+  
+  // Full DOM sweep: translate ALL text nodes in the visible UI
+  const ignoreTags = ['SCRIPT', 'STYLE', 'TEXTAREA', 'CODE'];
+  const walk = document.createTreeWalker(
+    document.body,
+    NodeFilter.SHOW_ELEMENT,
+    {
+      acceptNode: (node) => {
+        if (!node.textContent.trim()) return NodeFilter.FILTER_SKIP;
+        if (ignoreTags.includes(node.tagName)) return NodeFilter.FILTER_SKIP;
+        if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA' || node.tagName === 'SELECT') {
+          // Handle placeholders separately
+          const ph = node.getAttribute('placeholder');
+          if (ph) {
+            const key = reverseMap[ph] || ph;
+            if (dict[key]) node.setAttribute('placeholder', dict[key]);
+          }
+          return NodeFilter.FILTER_SKIP;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    }
+  );
+  const elements = [];
+  let node = walk.nextNode();
+  while (node) { elements.push(node); node = walk.nextNode(); }
+  elements.forEach(el => translateEl(el));
 }
 
 const TRANSLATION_PLACEHOLDERS = {
+  en: { ask: 'Ask Arch', reply: 'Reply to Arch', task: 'Describe the task…', search: 'Search your chats...' },
   sw: { ask: 'Uliza Arch', reply: 'Jibu Arch', task: 'Eleza kazi…', search: 'Tafuta mazungumzo…' },
-  ha: { ask: 'Tanya Arch', reply: 'Javeri daga Arch', task: 'Dawakin kamma…', search: 'Nema darussarka…' },
-  yo: { ask: 'Béèrè sí Arch', reply: 'Dáhùwá sí Arch', task: 'Kwuo ìṣirò…', search: 'Wá àwọn ìbábò…' },
-  zu: { ask: 'Bhala ku Arch', reply: 'Phendula ku Arch', task: 'Chaza kazi…', search: 'Bheka imibuzo…' },
-  ig: { ask: 'Biko Arch', reply: 'Kpọtọ Arch', task: 'Kwuo kodu…', search: 'Chọo njikọta…' },
-  am: { ask: 'ጠይቀት አርክት', reply: 'መልሱ አርክት', task: 'ዝርዝር ኮይንት…', search: 'ፈትስ ውጭ…' },
   fr: { ask: 'Demander à Arch', reply: 'Répondre à Arch', task: 'Décrire la tâche…', search: 'Rechercher vos discussions…' },
+  zh: { ask: '问 Arch', reply: '回复 Arch', task: '描述任务…', search: '搜索您的聊天…' },
+  ja: { ask: 'Arch に質問', reply: 'Arch に返信', task: 'タスクを説明…', search: 'チャットを検索…' },
+  ar: { ask: 'اسأل Arch', reply: 'رد على Arch', task: 'وصف المهمة…', search: 'ابحث في دردشاتك…' },
 };
 
 /* =========================================================
    DYNAMIC INTRODUCTION
 ========================================================= */
 const GREETING_TRANSLATIONS = {
-  en: [
+en: [
     { h: `Where were we, {{name}}?`, sub: `Last session ended mid-fix on the spiral-arm velocity clamp. Pick that back up, or point me at something new.` },
     { h: `Let's break something beautiful, {{name}}.`, sub: `Shaders, particle fields, hand-tracked interaction — bring the half-finished idea, I'll help you push it through.` },
     { h: `Good to see you, {{name}}.`, sub: `Whether it's a stubborn bug in the render loop or a whole new system to sketch out, I'm ready when you are.` },
     { h: `Ready when the physics gets weird, {{name}}.`, sub: `Singularities, decay curves, softened gravity — the messy math is exactly where I'm most useful.` },
     { h: `What are we building today, {{name}}?`, sub: `From a one-line fix to a full architectural rewrite, describe it below and we'll get moving.` },
     { h: `Back at it, {{name}}?`, sub: `I've still got context on the ASCII shader work and the galaxy sim. Say the word, or start fresh.` },
+    { h: `Ready to dive back in, {{name}}?`, sub: `Created by Trevor Kising'u. Arch is here to help with code, math, or any half-built idea — just say the word.` },
   ],
-  sw: [
+sw: [
     { h: `Alipokuwe, {{name}}?`, sub: `Hiiri ya awali ilishabidhi shule ya kupungua kwa kasi ya kupendekeza. Anza hapo, au wone kelele la kitu kipya.` },
     { h: `Tuanze kitu kupendeza, {{name}}.`, sub: `Shaders, seheamu za magogo, uhusiano wa mkono —leta wazo la nusu kamili, nitakusaidia kupitia.` },
     { h: `Mmekuja vizuri, {{name}}.`, sub: `Iwe ni makosa ya kupiga kwenye mzigo au mfumo mzima wa kuandika, mimi tayari ninakusubiri.` },
@@ -3019,7 +3384,7 @@ const GREETING_TRANSLATIONS = {
     { h: `Unajenga nini leo, {{name}}?`, sub: `Kutoka moja kwa moja hadi toleo kamili la usanifu, eleza hapa chini na tutaanze.` },
     { h: `Tenagain kuweza, {{name}}?`, sub: `Bado nina mazungumzo kuhusu kazi ya shader ya ASCII na mwizi wa galaksi. Sema neno, au anza upya.` },
   ],
-  fr: [
+fr: [
     { h: `Où étions-nous, {{name}} ?`, sub: `La dernière session s'est arrêtée au milieu d'une correction sur la courbure de vitesse du bras spirale. Reprenez-y ou montrez-moi quelque chose de nouveau.` },
     { h: `Cassons quelque chose de beau, {{name}}.`, sub: `Shaders, champs de particules, interaction par le toucher — apportez l'idée à moitié terminée, je vous aiderai à la pousser.` },
     { h: `Ravi de vous voir, {{name}}.`, sub: `Que ce soit un bug persistant dans la boucle de rendu ou un nouveau système à esquisser, je suis prêt quand vous l'êtes.` },
@@ -3027,14 +3392,32 @@ const GREETING_TRANSLATIONS = {
     { h: `Que construisons-nous aujourd'hui, {{name}} ?`, sub: `D'une correction d'une ligne à une réécriture architecturale complète, décrivez-le ci-dessous et on commence.` },
     { h: `De retour, {{name}} ?`, sub: `J'ai toujours le contexte du travail sur les shaders ASCII et de la simulation galactique. Dites le mot, ou commencez fraîchement.` },
   ],
-  yo: [
-    { h: `Níbo a ti wà, {{name}}?`, sub: `Awọn ìṣirò sísha ti ṣí padà síwájú lórí ìtúnilẹ̀ ara ẹrọ. Ṣe àwọn náà padà, tàbí fún mí ní something tuntun.` },
-    { h: `Jẹ́ kí a dúró nǹkan dálayé, {{name}}.`, sub: `Shaders, àwọn ẹgbẹ́ awọn ìṣáyẹ̀, ìwọ̀n ìmọ́ máwọ́ — máa bí iwe tí ó ti kẹ́rẹ́, máa rù ẹ̀sí.` },
-    { h: `Ó dá Bí i, {{name}}.`, sub: `Bẹ́lẹ̀ sí i pé kí o sì ń ṣiṣẹ́ nínàwó, tàbí ẹni tó tó lẹ́nyìn, é kúnrẹ́rẹ́ láti ṣe i.` },
-    { h: `Pẹ̀lú tó ti wá, {{name}}?`.replace('p','p'), sub: `Ìtúnṣe, àwọn e̩kó̩, ìwó ogun — eyi ni ibi ibi tí n jẹ́ dáadáa fún mi.` },
+zh: [
+    { h: `Où étions-nous, {{name}} ?`, sub: `La dernière session s'est arrêtée au milieu d'une correction sur la courbure de vitesse du bras spirale. Reprenez-y ou montrez-moi quelque chose de nouveau.` },
+    { h: `Cassons quelque chose de beau, {{name}}.`, sub: `Shaders, champs de particules, interaction par le toucher — apportez l'idée à moitié terminée, je vous aiderai à la pousser.` },
+    { h: `Ravi de vous voir, {{name}}.`, sub: `Que ce soit un bug persistant dans la boucle de rendu ou un nouveau système à esquisser, je suis prêt quand vous l'êtes.` },
+    { h: `Prêt quand la physique devient bizarre, {{name}}.`, sub: `Singularités, courbes de décroissance, gravité adoucie — c'est exactement là où je suis le plus utile.` },
+    { h: `Que construisons-nous aujourd'hui, {{name}} ?`, sub: `D'une correction d'une ligne à une réécriture architecturale complète, décrivez-le ci-dessous et on commence.` },
+    { h: `De retour, {{name}} ?`, sub: `J'ai toujours le contexte du travail sur les shaders ASCII et de la simulation galactique. Dites le mot, ou commencez fraîchement.` },
+  ],
+ja: [
+    { h: `Où étions-nous, {{name}} ?`, sub: `La dernière session s'est arrêtée au milieu d'une correction sur la courbure de vitesse du bras spirale. Reprenez-y ou montrez-moi quelque chose de nouveau.` },
+    { h: `Cassons quelque chose de beau, {{name}}.`, sub: `Shaders, champs de particules, interaction par le toucher — apportez l'idée à moitié terminée, je vous aiderai à la pousser.` },
+    { h: `Ravi de vous voir, {{name}}.`, sub: `Que ce soit un bug persistant dans la boucle de rendu ou un nouveau système à esquisser, je suis prêt quand vous l'êtes.` },
+    { h: `Prêt quand la physique devient bizarre, {{name}}.`, sub: `Singularités, courbes de décroissance, gravité adoucie — c'est exactement là où je suis le plus utile.` },
+    { h: `Que construisons-nous aujourd'hui, {{name}} ?`, sub: `D'une correction d'une ligne à une réécriture architecturale complète, décrivez-le ci-dessous et on commence.` },
+    { h: `De retour, {{name}} ?`, sub: `J'ai toujours le contexte du travail sur les shaders ASCII et de la simulation galactique. Dites le mot, ou commencez fraîchement.` },
+  ],
+ar: [
+    { h: `Où étions-nous, {{name}} ?`, sub: `La dernière session s'est arrêtée au milieu d'une correction sur la courbure de vitesse du bras spirale. Reprenez-y ou montrez-moi quelque chose de nouveau.` },
+    { h: `Cassons quelque chose de beau, {{name}}.`, sub: `Shaders, champs de particules, interaction par le toucher — apportez l'idée à moitié terminée, je vous aiderai à la pousser.` },
+    { h: `Ravi de vous voir, {{name}}.`, sub: `Que ce soit un bug persistant dans la boucle de rendu ou un nouveau système à esquisser, je suis prêt quand vous l'êtes.` },
+    { h: `Prêt quand la physique devient bizarre, {{name}}.`, sub: `Singularités, courbes de décroissance, gravité adoucie — c'est exactement là où je suis le plus utile.` },
+    { h: `Que construisons-nous aujourd'hui, {{name}} ?`, sub: `D'une correction d'une ligne à une réécriture architecturale complète, décrivez-le ci-dessous et on commence.` },
+    { h: `De retour, {{name}} ?`, sub: `J'ai toujours le contexte du travail sur les shaders ASCII et de la simulation galactique. Dites le mot, ou commencez fraîchement.` },
   ],
 };
-let _greetingCache = {};
+
 
 function _getGreetingsForLang(lang){
   if(_greetingCache[lang]) return _greetingCache[lang];
@@ -3097,10 +3480,41 @@ function applyGreeting(g, animate){
   }
 }
 
+ 
+
+function getContextAwareGreeting(){
+  // Pick a greeting based on the user's recent chat history topics
+  const recent = chats.slice(-5).map(c => c.title + ' ' + (c.messages || []).map(m => m.text || '').join(' ')).join(' ').toLowerCase();
+  const name = profileNick || 'User';
+  
+  if(recent.includes('math') || recent.includes('calcul') || recent.includes('equation') || recent.includes('sqrt') || recent.includes('log') || recent.includes('trig')) {
+    return { h: `Back to math, {{name}}?`, sub: `Ready to tackle more calculus, linear algebra, or trig. I've got the context from your last session.` };
+  }
+  if(recent.includes('shader') || recent.includes('render') || recent.includes('particle') || recent.includes('gpu')) {
+    return { h: `Shaders again, {{name}}?`, sub: `The render loop, particle systems, or something new — your call.` };
+  }
+  if(recent.includes('debug') || recent.includes('bug') || recent.includes('error') || recent.includes('trace')) {
+    return { h: `More bugs to squash, {{name}}?`, sub: `Stack traces, test failures, or runtime issues — paste and I'll trace it back.` };
+  }
+  if(recent.includes('git') || recent.includes('commit') || recent.includes('pr') || recent.includes('branch')) {
+    return { h: `Back to the repo, {{name}}?`, sub: `Commits, branches, PRs — whatever the git workflow needs, I'm here.` };
+  }
+  if(recent.includes('api') || recent.includes('http') || recent.includes('endpoint') || recent.includes('server')) {
+    return { h: `API work again, {{name}}?`, sub: `Endpoints, auth, rate limits, databases — let's get it wired up.` };
+  }
+  if(chats.length <= 1) {
+    return { h: `What's the plan, {{name}}?`, sub: `Created by Trevor Kising'u. From a quick fix to a full project, just tell me what you need.` };
+  }
+  return _pickGreetingForLang(currentLang);
+}
+
 function rotateGreeting(e){
   if(e){ e.stopPropagation(); fireRipple(e, e.currentTarget); }
-  applyGreeting(_pickGreetingForLang(currentLang), true);
+  const contextG = getContextAwareGreeting();
+  applyGreeting(contextG, true);
 }
+
+
 
 let profileNick = 'User';
 applyGreeting(pickGreeting(), false);
@@ -3219,17 +3633,17 @@ function openChat(id, evt){
      bubbleWrap.appendChild(nameEl);
      const bubble = document.createElement('div');
      bubble.className = 'msg-bubble';
-     bubble.innerHTML = renderMsgHtml(m.text);
-     bubbleWrap.appendChild(bubble);
+      bubble.innerHTML = renderMsgHtml(m.text);
+      if(window.MathJax && typeof MathJax.typesetPromise==='function'){try{MathJax.typesetPromise([bubble]).catch(()=>{});}catch(e){}}
+      bubbleWrap.appendChild(bubble);
      content.appendChild(bubbleWrap);
      row.appendChild(content);
      attachCodeInteractions(row);
       if(m.role === 'assistant' && !m._streaming){
         const actions = document.createElement('div');
         actions.className = 'msg-actions';
-        actions.appendChild(copyMsgBtn(bubble));
-        actions.appendChild(listenBtn());
-        actions.appendChild(narrateBtn(bubble));
+         actions.appendChild(copyMsgBtn(bubble));
+         actions.appendChild(narrateBtn(bubble));
         actions.appendChild(modelQuickSwitcher());
         row.appendChild(actions);
       }
@@ -3460,146 +3874,6 @@ document.getElementById('collapseBtn').addEventListener('click', toggleSidebar);
 document.getElementById('menuBtn').addEventListener('click', toggleSidebar);
 
 /* =========================================================
-   MICROPHONE / VOICE INPUT
-========================================================= */
-const micBtn = document.getElementById('micBtn');
-const micOrb = micBtn.querySelector('.mic-orb');
-const micBtn2 = document.getElementById('micBtn2');
-const micOrb2 = micBtn2.querySelector('.mic-orb');
-let micRecording = false;
-
-function activeInputEl(){
-  const chatVisible = document.getElementById('view-chat').classList.contains('visible');
-  return chatVisible ? document.getElementById('input2') : document.getElementById('input');
-}
-
-function setMicUI(btn, orb, on){
-  btn.classList.toggle('recording', on);
-  btn.title = on ? 'Listening… click to stop' : 'Voice input';
-  if(on){
-    orb.innerHTML = '';
-    orb.appendChild(makeOrb('breathing'));
-  } else {
-    stopOrb(orb.querySelector('.thinking-orb'));
-    orb.innerHTML = '';
-  }
-}
-
-let _speechRecognition = null;
-
-function getSpeechRecognition(){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR) return null;
-  if(_speechRecognition) return _speechRecognition;
-  const rec = new SR();
-  rec.continuous = true;
-  rec.interimResults = true;
-  rec.maxAlternatives = 3;
-  rec.lang = (currentLang === 'en') ? 'en-US' : (currentLang + '-US');
-  _speechRecognition = rec;
-  return rec;
-}
-
-function listenOnce(){
-  return new Promise((resolve, reject) => {
-    const rec = getSpeechRecognition();
-    if(!rec){
-      reject(new Error('Speech recognition not supported in this browser'));
-      return;
-    }
-    rec.lang = (currentLang === 'en') ? 'en-US' : (currentLang + '-US');
-    rec.interimResults = true;
-    let done = false;
-    let bestText = '';
-    let interimText = '';
-    rec.onresult = (e) => {
-      if(done) return;
-      for(let i = e.resultIndex; i < e.results.length; i++){
-        const result = e.results[i];
-        if(result && result.isFinal){
-          // Pick the longest hypothesis as the most likely
-          let best = '';
-          for(let j = 0; j < result.length; j++){
-            const t = result[j].transcript.trim();
-            if(t.length > best.length) best = t;
-          }
-          if(best && best.length > 2){
-            bestText = best;
-            done = true;
-            resolve(bestText);
-            return;
-          }
-        } else {
-          // interim
-          let best = '';
-          for(let j = 0; j < result.length; j++){
-            const t = result[j].transcript.trim();
-            if(t.length > best.length) best = t;
-          }
-          interimText = best;
-        }
-      }
-    };
-    rec.onerror = (e) => {
-      if(done) return;
-      done = true;
-      if(e.error === 'no-speech' || e.error === 'aborted'){
-        resolve('');
-      } else {
-        reject(new Error(e.error));
-      }
-    };
-    rec.onend = () => {
-      if(done) return;
-      done = true;
-      resolve(bestText || interimText || '');
-    };
-    try {
-      rec.start();
-    } catch(err){
-      reject(err);
-    }
-  });
-}
-
-async function toggleMic(btn, orb){
-  micRecording = !micRecording;
-  setMicUI(btn, orb, micRecording);
-  if(!micRecording){
-    if(_speechRecognition){
-      try { _speechRecognition.abort(); } catch(e){}
-    }
-    return;
-  }
-  const target = activeInputEl();
-  const MAX_TOTAL = 25000;
-  const started = Date.now();
-  while(micRecording && Date.now() - started < MAX_TOTAL){
-    try {
-      const phrase = await listenOnce();
-      if(!micRecording) return;
-      if(phrase){
-        setMicUI(btn, orb, false);
-        micRecording = false;
-        target.value = phrase;
-        target.dispatchEvent(new Event('input'));
-        target.focus();
-        return;
-      }
-    } catch(err){
-      if(!micRecording) return;
-    }
-  }
-  if(micRecording){
-    setMicUI(btn, orb, false);
-    micRecording = false;
-  }
-}
-
-micBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMic(micBtn, micOrb); });
-micBtn2.addEventListener('click', (e) => { e.stopPropagation(); toggleMic(micBtn2, micOrb2); });
-
-/* =========================================================
    DEEP WEB SEARCH TOGGLE
 ========================================================= */
 let searchMode = false;
@@ -3619,41 +3893,8 @@ document.querySelectorAll('.search-toggle-btn').forEach(b => {
 });
 
 /* =========================================================
-   CODEBASE CONTEXT TOGGLE
-========================================================= */
-let codebaseMode = false;
-function applyCodebaseMode(){
-  document.querySelectorAll('.codebase-toggle-btn').forEach(b => {
-    b.classList.toggle('search-on', codebaseMode);
-    b.title = 'Codebase context: ' + (codebaseMode ? 'on' : 'off');
-  });
-}
-document.querySelectorAll('.codebase-toggle-btn').forEach(b => {
-   b.addEventListener('click', (e) => {
-     e.stopPropagation();
-     codebaseMode = !codebaseMode;
-     applyCodebaseMode();
-     try { localStorage.setItem('arch.codebase.v1', codebaseMode ? '1' : '0'); } catch(err){}
-   });
-});
-
-/* =========================================================
-   OPEN APP / WEBSITE
-========================================================= */
-let openAppPrompt = false;
-document.querySelectorAll('.open-app-btn').forEach(b => {
-   b.addEventListener('click', (e) => {
-     e.stopPropagation();
-     const target = prompt('Enter an app name, file path, or URL to open:');
-     if(target && target.trim()){
-       postApi('/api/open', { target: target.trim() });
-     }
-   });
-});
-
-/* =========================================================
-   ATTACH (files / folder)
-========================================================= */
+    ATTACH (files / folder)
+   ========================================================= */
 let attachments = [];
 const attachMenu = document.getElementById('attachMenu');
 const attachFiles = document.getElementById('attachFiles');
@@ -3731,7 +3972,7 @@ function renderAttachChips(){
 function withAttachments(text){
   if(!attachments.length) return text;
   const blocks = attachments.map(a => {
-    const ext = a.name.rsplit('.', 1)[1] || '';
+     const ext = (a.name.split('.').pop() || '');
     const lang = LANG_BY_EXT[ext] || ext;
     return `**FILE: ${a.name}**\n\`\`\`${lang}\n${a.content}\n\`\`\``;
   }).join('\n\n');
@@ -3757,7 +3998,7 @@ const LANG_BY_EXT = {
 const models = [
   { name: 'Terra 5.3', desc: 'Fast, well-rounded default — great for everyday coding and quick iteration.' },
   { name: 'Chen Instruct 3', desc: 'Deeper reasoning for multi-step problems — slower, but thorough.' },
-  { name: 'Fable 5.1', desc: 'Tuned for large codebases and long-context refactors.' },
+  { name: 'Fable 5.1', desc: 'Mathematical systemic genius — university-level math + full-stack coding specialist. Best in the line-up for code AND math.' },
 ];
 let selectedModel = 'Terra 5.3';
 
@@ -4060,15 +4301,17 @@ searchInput.addEventListener('input', () => renderSearchResults(searchInput.valu
    VOICE SETTINGS MODAL
 ========================================================= */
 const voices = [
-  { name: 'Verity',   color: '#7f9fd6', desc: 'Real fish.audio voice (Verity voice bank).', sample: 'voicebank/verity.mp3', fish: '8d21b053e2804e2a890e1cf62f267b6f' },
-  { name: 'Light',    color: '#e0b04f', desc: 'Real fish.audio voice (Light voice bank).', sample: 'voicebank/light.mp3', fish: '8e577d805bcf479fa50b21e6f565c268' },
-  { name: 'L',        color: '#5fb8a8', desc: 'Real fish.audio voice (L voice bank).', sample: 'voicebank/l.mp3', fish: '52d9d3c3b6f845aea0a0a03c7ad9a61d' },
-  { name: 'Sabrina',  color: '#d97ba0', desc: 'Real fish.audio voice (Sabrina Carpenter bank).', sample: 'voicebank/sabrina.mp3', fish: '4cf07afcf2ae4aa1ae4da28ddf479c9e' },
-  { name: 'Chinese Voice', color: '#a577c9', desc: 'Real fish.audio voice (Chinese voice bank).', sample: 'voicebank/japanese.mp3', fish: '95880cb661f54c4d968c996e2a225a65' },
+  { name: 'Jesse',   color: '#7f9fd6', desc: 'fish.audio voice — Jesse (ID 8d21b…267b6f).', sample: 'voicebank/verity.mp3', fish: '8d21b053e2804e2a890e1cf62f267b6f', rate: 0.9, pitch: 1.1, trained_locally: true },
+  { name: 'Sol',    color: '#e0b04f', desc: 'fish.audio voice — Sol (ID 8e577…565c268).', sample: 'voicebank/light.mp3', fish: '8e577d805bcf479fa50b21e6f565c268', rate: 1.0, pitch: 1.0, trained_locally: true },
+  { name: 'Khan',   color: '#5fb8a8', desc: 'fish.audio voice — Khan (ID 52d9d…9a61d).', sample: 'voicebank/l.mp3', fish: '52d9d3c3b6f845aea0a0a03c7ad9a61d', rate: 1.1, pitch: 0.9, trained_locally: true },
+  { name: 'Angel',  color: '#d97ba0', desc: 'fish.audio voice — Angel (ID 4cf0…c9e).', sample: 'voicebank/sabrina.mp3', fish: '4cf07afcf2ae4aa1ae4da28ddf479c9e', rate: 0.85, pitch: 1.2, trained_locally: true },
+  { name: 'Miwa',   color: '#a577c9', desc: 'fish.audio voice — Miwa (ID 95880…225a65).', sample: 'voicebank/japanese.mp3', fish: '95880cb661f54c4d968c996e2a225a65', rate: 0.8, pitch: 1.0, trained_locally: true },
 ];
 
 const voiceGrid = document.getElementById('voiceGrid');
-let selectedVoice = 'Verity';
+let selectedVoice = 'Angel';
+
+buildVoiceIndex();
 
 function renderVoices(){
   voiceGrid.innerHTML = '';
@@ -4109,14 +4352,25 @@ modalClose.addEventListener('click', closeModal);
 modalOverlay.addEventListener('click', (e) => { if(e.target === modalOverlay) closeModal(); });
 
 async function loadProfile(populateForm){
-  try {
-    const r = await apiFetch('/api/config');
-    if(!r.ok) return;
-    const cfg = await r.json();
-    const p = cfg.profile || {};
-    if(p.nickname) profileNick = p.nickname;
-    if(p.language){
-      currentLang = p.language || 'en';
+  // Update eyebrow status
+  setBackendStatus('connecting');
+  let attempts = 0;
+  const maxAttempts = 15;
+  while (attempts < maxAttempts) {
+    try {
+      const r = await apiFetch('/api/config');
+      if(!r.ok) {
+        if (r.status === 401) break; // token mismatch, backend IS up
+        attempts++;
+        if (attempts >= maxAttempts) setBackendStatus('offline');
+        await new Promise(r2 => setTimeout(r2, 2000));
+        continue;
+      }
+      const cfg = await r.json();
+      const p = cfg.profile || {};
+      if(p.nickname) profileNick = p.nickname;
+      if(p.language){
+        currentLang = p.language || 'en';
     }
     if(populateForm){
       const nick = document.getElementById('nicknameInput');
@@ -4133,10 +4387,52 @@ async function loadProfile(populateForm){
       const el = document.getElementById('previewName');
       if(el) el.textContent = p.voice;
     }
+    // Merge the backend voicebank manifest (fish ids + rate/pitch + local sample flags)
+    // so the local voice index is always in sync with what the server reports.
+    if(cfg.voicebank){
+      const man = {};
+      cfg.voicebank.forEach(vb => { man[vb.name] = vb; });
+      window.__VOICE_MANIFEST = man;
+    }
+    if(cfg.fish_configured != null){
+      window.__FISH_CONFIGURED = !!cfg.fish_configured;
+      const hint = document.getElementById('voiceFishStatus');
+      if(hint){ hint.textContent = cfg.fish_configured ? 'Online (fish.audio)' : 'Offline voice bank (reference sample)'; }
+    }
+    buildVoiceIndex();
+    // Load persona
+    loadPersonaUI(p.persona || '');
+    // Load skills
+    loadSkills();
     // Apply language translation and refresh greeting with the loaded nickname
-    applyLanguage(currentLang);
-    // applyLanguage already re-applies a translated greeting; no need for a second call
-  } catch(e){}
+      applyLanguage(currentLang);
+      // applyLanguage already re-applies a translated greeting; no need for a second call
+      setBackendStatus('ready');
+      return;
+    } catch(e) {
+      attempts++;
+      if (attempts >= maxAttempts) setBackendStatus('offline');
+      await new Promise(r2 => setTimeout(r2, 2000));
+    }
+  }
+  setBackendStatus('offline');
+}
+
+function setBackendStatus(status){
+  const eyebrow = document.getElementById('heroEyebrow');
+  if(!eyebrow) return;
+  const text = eyebrow.firstChild;
+  const pulse = eyebrow.querySelector('.pulse');
+  if(status === 'ready'){
+    if(text) text.nodeValue = 'Arch is ready  ';
+    if(pulse){ pulse.style.display = 'inline-block'; }
+  } else if(status === 'connecting'){
+    if(text) text.nodeValue = 'Starting backend...  ';
+    if(pulse){ pulse.style.display = 'none'; }
+  } else if(status === 'offline'){
+    if(text) text.nodeValue = 'Backend offline — retrying...  ';
+    if(pulse){ pulse.style.display = 'none'; }
+  }
 }
 
 function closeModal(){
@@ -4151,13 +4447,126 @@ document.getElementById('voiceSave').addEventListener('click', () => {
   postApi('/api/voice', { voice: selectedVoice });
   const nick = document.getElementById('nicknameInput').value.trim();
   const lang = document.getElementById('languageSelect').value;
-  postApi('/api/profile', { nickname: nick, language: lang });
+  const persona = currentPersona;
+  postApi('/api/profile', { nickname: nick, language: lang, persona });
   profileNick = nick || 'User';
   currentLang = lang || 'en';
   try { localStorage.setItem('arch.lang.v1', currentLang); } catch(err){}
+  try { localStorage.setItem('arch.persona.v1', persona); } catch(err){}
   applyLanguage(currentLang);
   setTimeout(() => { btn.textContent = original; closeModal(); }, 700);
 });
+
+/* ===================== PERSONALITY ===================== */
+let currentPersona = '';
+const personaChips = document.getElementById('personaChips');
+const personaCustom = document.getElementById('personaCustom');
+
+personaChips.addEventListener('click', (e) => {
+  const chip = e.target.closest('.persona-chip');
+  if (!chip) return;
+  const val = chip.dataset.p;
+  document.querySelectorAll('.persona-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  if (val === 'default') {
+    personaCustom.value = '';
+    currentPersona = '';
+  } else {
+    personaCustom.value = val;
+    currentPersona = val;
+  }
+});
+
+personaCustom.addEventListener('input', () => {
+  currentPersona = personaCustom.value.trim();
+  document.querySelectorAll('.persona-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.p === currentPersona || (currentPersona === '' && c.dataset.p === 'default'));
+  });
+});
+
+function loadPersonaUI(persona) {
+  currentPersona = persona || '';
+  personaCustom.value = currentPersona;
+  document.querySelectorAll('.persona-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.p === currentPersona || (currentPersona === '' && c.dataset.p === 'default'));
+  });
+}
+
+/* ===================== SKILLS / MCPs ===================== */
+const skillList = document.getElementById('skillList');
+const skillUrlInput = document.getElementById('skillUrlInput');
+const skillInstallBtn = document.getElementById('skillInstallBtn');
+const skillStatus = document.getElementById('skillStatus');
+let installedSkills = [];
+
+async function loadSkills() {
+  try {
+    const r = await apiFetch('/api/skills');
+    if (!r.ok) return;
+    const data = await r.json();
+    installedSkills = data.skills || [];
+    renderSkills();
+  } catch(e) {}
+}
+
+function renderSkills() {
+  if (!installedSkills.length) {
+    skillList.innerHTML = '<div class="skills-empty">No skills installed yet.</div>';
+    return;
+  }
+  skillList.innerHTML = '';
+  for (const s of installedSkills) {
+    const item = document.createElement('div');
+    item.className = 'skill-item';
+    item.innerHTML = `
+      <div class="skill-item-name" title="${esc(s.name)}">${esc(s.name)}</div>
+      <div class="skill-item-desc" title="${esc(s.description || '')}">${esc(s.description || 'skill')}</div>
+      <div class="skill-toggle ${s.enabled ? 'on' : ''}" data-id="${esc(s.id)}"></div>
+      <button class="skill-remove" data-id="${esc(s.id)}" title="Remove">&times;</button>
+    `;
+    item.querySelector('.skill-toggle').addEventListener('click', async function() {
+      const id = this.dataset.id;
+      const enable = !this.classList.contains('on');
+      this.classList.toggle('on', enable);
+      await postApi('/api/skills/toggle', { id, enabled: enable });
+    });
+    item.querySelector('.skill-remove').addEventListener('click', async function() {
+      const id = this.dataset.id;
+      item.style.opacity = '0.3';
+      item.style.pointerEvents = 'none';
+      await postApi('/api/skills/remove', { id });
+      installedSkills = installedSkills.filter(s => s.id !== id);
+      renderSkills();
+    });
+    skillList.appendChild(item);
+  }
+}
+
+skillInstallBtn.addEventListener('click', async () => {
+  const url = skillUrlInput.value.trim();
+  if (!url) return;
+  skillInstallBtn.disabled = true;
+  skillInstallBtn.textContent = 'Installing...';
+  skillStatus.textContent = 'Cloning and installing dependencies...';
+  try {
+    const r = await postApi('/api/skills/install', { url });
+    if (r && r.ok) {
+      const data = await r.json();
+      if (data.error) { skillStatus.textContent = 'Error: ' + data.error; }
+      else {
+        skillStatus.textContent = 'Installed: ' + (data.name || url);
+        skillUrlInput.value = '';
+        await loadSkills();
+      }
+    } else {
+      skillStatus.textContent = 'Install failed (status ' + (r ? r.status : '?') + ')';
+    }
+  } catch(e) { skillStatus.textContent = 'Install failed: ' + e.message; }
+  skillInstallBtn.disabled = false;
+  skillInstallBtn.textContent = 'Install';
+});
+
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 const previewPlay = document.getElementById('previewPlay');
 const previewBars = document.getElementById('previewBars');
@@ -4176,14 +4585,19 @@ function startPreview(){
   clearTimeout(previewTimer);
   previewTimer = setTimeout(stopPreview, 6000);
   const v = voices.find(x => x.name === selectedVoice);
-  const line = 'Hello ' + (profileNick || 'User') + ', this is how I sound as ' + selectedVoice + '.';
+  const line = mathSpeak('Hello ' + (profileNick || 'User') + ', this is how I sound as ' + selectedVoice + '.');
   if(v && v.fish){
-    speakFish(line, v.fish)
-      .catch(() => playSample(v));
+    speakFish(line, v.fish).catch(() => playVoiceBankSample(v, line));
   } else if(v && v.sample){
-    playSample(v);
-  } else {
-    speakOutLoudTTS(line);
+    playVoiceBankSample(v, line);
+  }
+  function playVoiceBankSample(v, text){
+    try { window.speechSynthesis.cancel(); } catch(e){}
+    if(activeFishAudio){ try { activeFishAudio.pause(); } catch(e){} activeFishAudio = null; }
+    if(previewAudio){ previewAudio.pause(); previewAudio = null; }
+    previewAudio = new Audio(v.sample);
+    previewAudio.playbackRate = (voiceIndex[v.name] && voiceIndex[v.name].rate) || 1;
+    previewAudio.play().catch(() => { previewAudio = null; });
   }
 }
 function playSample(v){
@@ -4191,7 +4605,8 @@ function playSample(v){
   if(activeFishAudio){ try { activeFishAudio.pause(); } catch(e){} activeFishAudio = null; }
   if(previewAudio){ previewAudio.pause(); previewAudio = null; }
   previewAudio = new Audio(v.sample);
-  previewAudio.play().catch(() => { previewAudio = null; speakOutLoudTTS('Hello ' + (profileNick || 'User') + ', this is how I sound as ' + selectedVoice + '.'); });
+  previewAudio.playbackRate = (voiceIndex[v.name] && voiceIndex[v.name].rate) || 1;
+  previewAudio.play().catch(() => { previewAudio = null; });
 }
 function stopPreview(){
   previewBars.classList.remove('playing');
@@ -4238,18 +4653,39 @@ loadChats();  // async — fetches from backend and renders when ready
       searchMode = localStorage.getItem('arch.search.v1') === '1';
       applySearchMode();
    } catch(e){}
-   try {
-      codebaseMode = localStorage.getItem('arch.codebase.v1') === '1';
-      applyCodebaseMode();
-   } catch(e){}
     loadProfile(false);
-  })();
+   })();
+
+  window._bootstrapStatus = function(msg){
+    const overlay = document.getElementById('bootstrapOverlay');
+    const text = document.getElementById('bootstrapMessage');
+    const progressFill = document.getElementById('bootstrapProgressFill');
+    if(!overlay) return;
+    if(msg === 'Ready' || msg === 'Offline mode'){
+      overlay.style.display = 'none';
+      return;
+    }
+    overlay.style.display = 'flex';
+    if(text) text.textContent = msg;
+    if(progressFill){
+      const steps = ['Downloading backend runtimes', 'Installing Python packages', 'Downloading language packs', 'Finalizing VC++ runtime', 'Ready'];
+      let pct = 0;
+      if(msg.includes('Python packages')) pct = 30;
+      else if(msg.includes('language packs')) pct = 60;
+      else if(msg.includes('VC++')) pct = 85;
+      else if(msg.includes('backend runtimes')) pct = 15;
+      progressFill.style.width = pct + '%';
+    }
+  };
 
   // Show Fable 5.1 intro notification on first launch (non-blocking — app stays usable)
   (function showIntroOnFirstLaunch(){
     try {
       const seen = localStorage.getItem('arch.intro.seen');
-      if(seen === '1') return;
+      // Portable copies can force the notification every launch via an
+      // ALWAYS_SHOW_INTRO marker file (passed as ?intro=1 by main.js).
+      const forceIntro = new URLSearchParams(location.search).get('intro') === '1';
+      if(!forceIntro && seen === '1') return;
       const notify = document.getElementById('introNotify');
       const video = document.getElementById('introVideo');
       if(!notify) return;
@@ -4269,7 +4705,9 @@ loadChats();  // async — fetches from backend and renders when ready
       });
        // Stay visible until user explicitly dismisses
       const startIntro = () => {
-        localStorage.setItem('arch.intro.seen', '1');
+        if(!forceIntro){ try { localStorage.setItem('arch.intro.seen', '1'); } catch(e){} }
+        // Also persist to main process via API so first-run detection works next time
+        try { postApi('/api/intro-seen', {}); } catch(e){}
         notify.classList.remove('show');
       };
       const closeBtn = document.getElementById('introClose');

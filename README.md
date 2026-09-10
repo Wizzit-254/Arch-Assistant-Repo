@@ -47,8 +47,13 @@ in the release zip for fully offline operation.
 - Text-to-speech (Fish Audio API + system TTS)
 - Codebase context injection
 - Dark/Light theme
-- Chat history persistence
-- Multi-language support (English + African languages)
+- Chat history persistence — conversation memory across the full chat history
+- Multi-language support (English, Kiswahili, French, Mandarin, Japanese, Arabic)
+- Math simplification — all numeric results rounded to 4 decimal places or simplified to fractions
+- Skill system — embedded reasoning protocols (Math Olympiad, Anti-Hallucination, Critical Thinking, Iterative Refinement, Verification)
+- Idle-stop watchdog — automatically stops Ollama after 10 minutes of inactivity to save RAM
+- Clean shutdown — kills all Ollama processes when the app closes; lazily restarts on next use
+- System identity — all models respond "It is Trevor Kising'u" when asked about their creator
 
 ## For Developers
 

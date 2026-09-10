@@ -1,12 +1,13 @@
 {
-  "api_port": 9224,
+  "api_port": 9332,
   "ollama_port": 11435,
-  "default_model": "mushy-4.6",
+  "default_model": "luna-5.3",
   "profile": {
     "name": "User",
-    "nickname": "Trevor",
+    "nickname": "Chen",
     "language": "en",
-    "theme": "light",
-    "voice": "Light"
+    "theme": "dark",
+    "voice": "Angel",
+    "persona": ""
   }
 }

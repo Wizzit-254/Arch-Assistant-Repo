@@ -49,7 +49,7 @@ OLLAMA_PORT = 11435
 
 # Electron-facing API server (CDP-style)
 API_HOST = "127.0.0.1"
-API_PORT = 9224
+API_PORT = 9332
 
 CONFIG_PATH = os.path.join(APP_DIR, "Config.json")
 CHATS_FILE = os.path.join(os.path.dirname(APP_DIR), "arch-assistant", "chats.json")
@@ -64,7 +64,7 @@ def load_config():
         "api_port": API_PORT,
         "ollama_port": OLLAMA_PORT,
         "default_model": "luna-5.3",
-        "profile": {"name": "User", "nickname": "User", "language": "en", "theme": "dark", "voice": "Sabrina"},
+        "profile": {"name": "User", "nickname": "User", "language": "en", "theme": "dark", "voice": "Angel"},
     }
     try:
         with open(CONFIG_PATH, "r", encoding="utf-8") as f:
@@ -77,8 +77,55 @@ def load_config():
 
 CONFIG = load_config()
 
-FISH_API_KEY = CONFIG.get("fish_api_key", "")
+FISH_API_KEY = CONFIG.get("fish_api_key", "") or os.environ.get("FISH_API_KEY", "")
 FISH_VOICES = CONFIG.get("fish_voices", {})
+FISH_CONFIGURED = bool(FISH_API_KEY)
+TTS_RATE_LIMIT_SECONDS = float(CONFIG.get("tts_rate_limit_seconds", 30))
+
+VOICE_BANK_DIR = os.path.join(APP_DIR, CONFIG.get("voicebank_dir", "voicebank"))
+
+# Default local voice profiles (rate/pitch) used by the offline voicebank fallback so
+# narration never silently falls back to the OS/Microsoft voices.
+VOICE_PROFILES = {
+    "Angel": {"rate": 0.85, "pitch": 1.2},
+    "Khan": {"rate": 1.1, "pitch": 0.9},
+    "Sol": {"rate": 1.0, "pitch": 1.0},
+    "Miwa": {"rate": 0.8, "pitch": 1.0},
+    "Jesse": {"rate": 0.9, "pitch": 1.1},
+}
+
+
+def voicebank_manifest():
+    """Build a manifest of locally stored voice banks (reference samples + fish ids).
+
+    Each entry: {name, fish_id, sample, rate, pitch, trained_locally}. Used by
+    the renderer to drive fish.audio when online and the stored reference sample
+    when offline -- never the OS/Microsoft voices.
+    """
+    sample_map = {
+        "Angel": "sabrina.mp3",
+        "Khan": "l.mp3",
+        "Sol": "light.mp3",
+        "Miwa": "japanese.mp3",
+        "Jesse": "verity.mp3",
+    }
+    voices = []
+    for name, fish_id in FISH_VOICES.items():
+        if name not in sample_map:
+            continue  # skip alias entries (e.g. "Angel Carpenter")
+        prof = VOICE_PROFILES.get(name, {"rate": 1.0, "pitch": 1.0})
+        sample_rel = sample_map[name]
+        sample_path = os.path.join(VOICE_BANK_DIR, sample_rel)
+        voices.append({
+            "name": name,
+            "fish_id": fish_id,
+            "sample": sample_rel,
+            "sample_path": sample_path,
+            "rate": prof["rate"],
+            "pitch": prof["pitch"],
+            "trained_locally": os.path.exists(sample_path),
+        })
+    return voices
 
 
 class ArchContext:
@@ -90,7 +137,8 @@ class ArchContext:
         self.nickname = prof.get("nickname", "User")
         self.language = prof.get("language", "en")
         self.theme = prof.get("theme", "dark")
-        self.voice = prof.get("voice", "Ember")
+        self.voice = prof.get("voice", "Angel")
+        self.persona = prof.get("persona", "")
 
     def to_dict(self):
         return {
@@ -100,6 +148,7 @@ class ArchContext:
             "language": self.language,
             "theme": self.theme,
             "voice": self.voice,
+            "persona": self.persona,
         }
 
 
