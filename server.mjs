@@ -31,19 +31,16 @@ try { fs.mkdirSync(DOWNLOAD_DIR, { recursive: true }); } catch { /* exists */ }
 // platform -> installer filename expected inside DOWNLOAD_DIR
 const PLATFORMS = { windows: 'ArchAssistantSetup-x64.exe', macos: 'ArchAssistant.dmg' };
 // Optional: serve a platform from an upstream URL (e.g. a GitHub release asset)
-// instead of a local file. Still gated by PoW ticket — the server 302s there
-// only after the ticket checks pass. Restricted to github.com hosts.
+// instead of a local file. Still gated by PoW ticket.
 function pickUpstream(name, def) {
-  // Unset var -> default. Explicit none/off/local (or empty) -> local-file mode.
-  // (Checks `in` because some shells delete vars assigned an empty string.)
   if (!Object.prototype.hasOwnProperty.call(process.env, name)) return def;
   const v = (process.env[name] || '').trim();
   if (!v || /^(none|off|local)$/i.test(v)) return '';
   return v;
 }
 const UPSTREAM = {
-  windows: pickUpstream('UPSTREAM_WINDOWS', 'https://github.com/Wizzit-254/Arch-Assistant-Repo/releases/latest/download/ArchAssistantSetup-x64.exe'),
-  macos: pickUpstream('UPSTREAM_MACOS', 'https://github.com/Wizzit-254/Arch-Assistant-Repo/releases/latest/download/ArchAssistant-LightInstaller-macOS.sh'),
+  windows: pickUpstream('UPSTREAM_WINDOWS', ''),
+  macos: pickUpstream('UPSTREAM_MACOS', ''),
 };
 for (const [plat, u] of Object.entries(UPSTREAM)) {
   if (!u) continue;

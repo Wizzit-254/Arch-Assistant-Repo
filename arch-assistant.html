@@ -247,41 +247,26 @@ body.doc-open .site-header,body.doc-open main,body.doc-open .site-footer,body.do
   <!-- installs — end of page -->
   <section class="wrap install" id="download">
     <h2 class="reveal" data-i18n="inst.title">Get <span class="arch-word">Arch</span> for your machine</h2>
-    <p class="install-sub reveal" data-i18n="inst.sub">Two-stage installers: lightweight first, then 5GB of AI models. No account needed. Pick your system and you're chatting in minutes.</p>
+    <p class="install-sub reveal" data-i18n="inst.sub">Two installers: Windows (.exe with guided setup) and macOS (.dmg). No account needed. Pick your system and you're chatting in minutes.</p>
     <div class="os-grid reveal">
       <div class="os-card">
         <h3>Windows</h3>
-        <p>Windows 10 / 11 · x64 · lightweight installer (~6MB)</p>
+        <p>Windows 10 / 11 · x64 · installer with guided setup</p>
         <a class="btn-install" href="/dl/windows" data-dl="windows" download="ArchAssistantSetup-x64.exe">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-          <span data-i18n="btn.win">Download for Windows</span> <small>(~6MB installer)</small>
+          <span data-i18n="btn.win">Download for Windows</span>
         </a>
       </div>
       <div class="os-card">
         <h3>macOS</h3>
-        <p>macOS 10.15+ · Intel &amp; Apple Silicon · lightweight installer (~7MB)</p>
-        <a class="btn-install" href="/dl/macos" data-dl="macos" download="ArchAssistant-LightInstaller-macOS.sh">
+        <p>macOS 10.15+ · Intel &amp; Apple Silicon · .dmg with guided setup</p>
+        <a class="btn-install" href="/dl/macos" data-dl="macos" download="ArchAssistant.dmg">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-          <span data-i18n="btn.mac">Download for macOS</span> <small>(~7MB installer)</small>
+          <span data-i18n="btn.mac">Download for macOS</span>
         </a>
       </div>
     </div>
     <p class="dl-meta reveal" data-i18n="inst.meta">Offline after first launch. Requires ~5GB free space for self hosting</p>
-    <div class="dl-security reveal" style="margin-top:14px;font-size:12px;color:var(--faint);display:flex;align-items:center;gap:12px;justify-content:center">
-      <span style="display:inline-flex;align-items:center;gap:4px">✓ <span>SHA-256 checksums published</span></span>
-      <span style="display:inline-flex;align-items:center;gap:4px">✓ <span>Code-signed installers</span></span>
-      <span style="display:inline-flex;align-items:center;gap:4px">✓ <span>Served over HTTPS</span></span>
-    </div>
-    <p class="dl-security reveal" style="margin-top:10px;font-size:12px;color:var(--faint)">
-        <a href="https://github.com/Wizzit-254/Arch-Assistant-Repo/releases/latest/download/checksums.sha256" download="checksums.sha256" style="color:var(--accent);text-decoration:underline">Verify SHA-256 checksums</a> · 
-        <a href="#" id="sigStatusLink" style="color:var(--accent);text-decoration:underline">Signature status</a> · 
-        <a href="https://www.virustotal.com/gui/file/archassistant" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:underline">VirusTotal scan</a>
-    </p>
-    <p class="dl-security reveal" style="margin-top:8px;font-size:11px;color:var(--faint);max-width:520px;margin-left:auto;margin-right:auto;text-align:center;line-height:1.6">
-        Installers are code-signed and served over HTTPS with HSTS. 
-        Windows SmartScreen-ready · macOS notarized via Apple notarytool.
-        Check our <a href="https://github.com/Wizzit-254/Arch-Assistant-Repo/releases" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">GitHub releases</a> for the full security model.
-    </p>
   </section>
 </main>
 
