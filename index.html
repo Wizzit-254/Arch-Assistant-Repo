@@ -3420,6 +3420,8 @@ ar: [
 };
 
 
+const _greetingCache = {};
+
 function _getGreetingsForLang(lang){
   if(_greetingCache[lang]) return _greetingCache[lang];
   const g = GREETING_TRANSLATIONS[lang];
