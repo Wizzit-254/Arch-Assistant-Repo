@@ -34,6 +34,10 @@ echo.
 choice /C YN /M "  Proceed with installation? [Y/N]"
 if errorlevel 2 goto :cancelled
 
+echo.
+echo [2/5] Downloading Arch Assistant application (small)...
+echo.
+
 set "REPO_URL=https://github.com/Wizzit-254/Arch-Assistant-Repo/releases/latest/download/Arch-Assistant-App.zip"
 set "TEMP_DIR=%LOCALAPPDATA%\Temp\arch-assistant-setup"
 
@@ -41,7 +45,7 @@ if exist "%TEMP_DIR%" rmdir /s /q "%TEMP_DIR%" 2>nul
 mkdir "%TEMP_DIR%" 2>nul
 
 echo.
-echo [1/4] Checking Python...
+echo [1/5] Checking Python...
 echo.
 
 REM Check Python availability
@@ -144,9 +148,65 @@ if errorlevel 1 (
 )
 
 echo.
-echo [3/4] Extracting files...
+echo [3/5] Downloading AI models (5.27 GB)...
+echo.
+echo  This downloads pre-trained model weights for offline operation.
+echo  No separate Ollama install required.
 echo.
 
+set "MODELS_URL=https://github.com/Wizzit-254/Arch-Assistant-Repo/releases/latest/download/Arch-Assistant-Models.zip"
+set "MODELS_OUT=%TEMP_DIR%\Arch-Assistant-Models.zip"
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$ErrorActionPreference = 'Stop'; " ^
+  "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; " ^
+  "$url = '%MODELS_URL%'; " ^
+  "$out = '%MODELS_OUT%'; " ^
+  "Write-Host '  Connecting to GitHub releases...'; " ^
+  "$req = [System.Net.HttpWebRequest]::Create($url); " ^
+  "$req.UserAgent = 'ArchAssistant-Installer/1.0'; " ^
+  "$req.AllowAutoRedirect = $true; " ^
+  "$req.Timeout = 600000; " ^
+  "$req.ReadWriteTimeout = 600000; " ^
+  "$resp = $req.GetResponse(); " ^
+  "$total = $resp.ContentLength; " ^
+  "$rs = $resp.GetResponseStream(); " ^
+  "$fs = [System.IO.File]::Create($out); " ^
+  "$buf = New-Object byte[] 65536; " ^
+  "$got = 0; $lastPct = -1; " ^
+  "while (($n = $rs.Read($buf, 0, $buf.Length)) -gt 0) { " ^
+  "  $fs.Write($buf, 0, $n); " ^
+  "  $got += $n; " ^
+  "  if ($total -gt 0) { " ^
+  "    $pct = [math]::Floor($got / $total * 100); " ^
+  "    if ($pct -ne $lastPct) { " ^
+  "      $gb = [math]::Round($got / 1GB, 2); " ^
+  "      $totalGb = [math]::Round($total / 1GB, 2); " ^
+  "      Write-Host ('.r  Downloading models: ' + $gb + ' / ' + $totalGb + ' GB') -NoNewtext; " ^
+  "      $lastPct = $pct; " ^
+  "    } " ^
+  "  } " ^
+  "} " ^
+  "$fs.Close(); $rs.Close(); $resp.Close(); " ^
+  "Write-Host ''; Write-Host ''"
+
+if errorlevel 1 (
+    echo.
+    echo  -----------------------------------------------
+    echo   Model download failed. Check your internet.
+    echo   App will start but models will download on
+    echo   first run instead.
+    echo  -----------------------------------------------
+    echo.
+    pause
+    goto :extract_only
+)
+
+echo.
+echo [4/5] Extracting application files...
+echo.
+
+:extract_only
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "Add-Type -Assembly System.IO.Compression.FileSystem; " ^
   "$zip = '%TEMP_DIR%\Arch-Assistant-App.zip'; " ^
@@ -169,7 +229,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [4/4] Installing to %INSTALL_DIR%...
+echo [5/5] Installing to %INSTALL_DIR%...
 echo.
 
 if exist "%INSTALL_DIR%" rmdir /s /q "%INSTALL_DIR%" 2>nul
@@ -184,6 +244,19 @@ if errorlevel 8 (
     echo.
     pause
     goto :cleanup
+)
+
+REM Extract AI models if downloaded
+if exist "%TEMP_DIR%\Arch-Assistant-Models.zip" (
+    echo  Extracting AI models...
+    powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+      "Add-Type -Assembly System.IO.Compression.FileSystem; " ^
+      "$zip = '%TEMP_DIR%\Arch-Assistant-Models.zip'; " ^
+      "$dest = '%INSTALL_DIR%\ollama\models'; " ^
+      "if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }; " ^
+      "New-Item -ItemType Directory -Path $dest -Force | Out-Null; " ^
+      "[System.IO.Compression.ZipFile]::ExtractToDirectory($zip, $dest); " ^
+      "Write-Host '  Models extracted.'"
 )
 
 echo  Creating shortcuts...
@@ -205,8 +278,11 @@ echo.
 echo   Installed to: %INSTALL_DIR%
 echo   Desktop shortcut created.
 echo.
-echo   First launch uses AI models included in the download (~2 GB).
-echo   Models are bundled — no separate download needed after install.
+echo   App files: ~200 MB
+echo   AI models: 5.27 GB (bundled for offline operation)
+echo   Total: ~5.5 GB
+echo.
+echo   All AI models included — no separate download needed after install.
 echo.
 
 choice /C YN /M "  Launch Arch Assistant now? [Y/N]"

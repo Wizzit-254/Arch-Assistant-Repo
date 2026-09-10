@@ -5,7 +5,7 @@
 ; Prerequisites:
 ;   - Inno Setup (free from https://jrsoftware.org/isinfo.php)
 ;   - A code-signing certificate (from DigiCert, Sectigo, etc.)
-;   - The Arch-Assistant-App.zip release asset on GitHub
+;   - The Arch-Assistant-App.zip and Arch-Assistant-Models.zip (5.27 GB) release assets on GitHub
 ;
 ; To sign the installer (bypasses SmartScreen "Unknown Publisher"):
 ;   1. Set SignToolPath in Inno Setup Preferences -> Compiler -> Tools
