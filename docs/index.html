@@ -1,0 +1,1193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1E1D1C">
+<meta name="description" content="Download Arch Assistant for Windows and macOS. A local mind that stays on your machine.">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Arch Assistant">
+<meta property="og:title" content="Download Arch Assistant">
+<meta property="og:description" content="Chat, Vibe and get work done without internet, all in one session. Private by design, free for Windows and macOS.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Download Arch Assistant">
+<meta name="twitter:description" content="Chat, Vibe and get work done without internet, all in one session.">
+<script>try{var c=document.createElement('link');c.rel='canonical';c.href=location.origin+'/';document.head.appendChild(c);}catch(e){}</script>
+<title>Download Arch Assistant</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='26' fill='%231E1D1C'/%3E%3Cellipse cx='50' cy='78' rx='46' ry='38' fill='%23F5F0E8'/%3E%3Crect x='32' y='52' width='13' height='32' rx='6.5' fill='%231E1D1C' transform='rotate(18 38 68)'/%3E%3Crect x='57' y='50' width='13' height='32' rx='6.5' fill='%231E1D1C' transform='rotate(18 63 66)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1E1D1C;
+  --surface:#262524;
+  --surface-2:#2E2C2B;
+  --line:rgba(245,240,232,.12);
+  --ink:#F5F0E8;
+  --muted:rgba(245,240,232,.62);
+  --faint:rgba(245,240,232,.42);
+  --accent:#D97757;
+  --accent-deep:#B85C3E;
+  --btn:#FFFFFF;
+  --btn-ink:#1E1D1C;
+  --serif:"Fraunces",Georgia,serif;
+  --sans:"Inter",-apple-system,Arial,sans-serif;
+  --black:"Archivo Black","Inter",Arial,sans-serif;
+  --ease:cubic-bezier(.32,.72,0,1);
+  --r-lg:22px; --r-md:16px; --r-sm:12px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:clip}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+h1,h2,h3,p{margin:0}
+::selection{background:var(--accent);color:#fff}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+.wrap{width:min(1060px,100% - 48px);margin:0 auto}
+
+/* header — slim, claude-like */
+.site-header{position:sticky;top:0;z-index:50;background:rgba(30,29,28,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.header-inner{width:min(1060px,100% - 48px);margin:0 auto;height:64px;display:flex;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;gap:10px;font-size:17px;letter-spacing:0}
+.brand .arch-word{font-family:var(--black);font-size:19px;letter-spacing:.01em}
+.brand .assistant-word{font-family:var(--serif);font-style:italic;color:var(--muted)}
+.brand-mark{width:30px;height:30px;border-radius:9px;background:#141312;display:grid;place-items:center;overflow:hidden;flex:none;border:1px solid var(--line)}
+.top-nav{display:flex;gap:26px;margin:0 auto}
+.top-nav button{font-size:14px;color:var(--muted);transition:color .2s}
+.top-nav button:hover{color:var(--ink)}
+.btn-small{display:inline-flex;align-items:center;height:38px;padding:0 18px;border-radius:999px;background:var(--btn);color:var(--btn-ink);font-size:13.5px;font-weight:600;transition:transform .25s var(--ease),opacity .2s}
+.btn-small:hover{transform:translateY(-1px);opacity:.94}
+@media(max-width:720px){.top-nav{display:none}.header-inner{justify-content:space-between}}
+
+/* hero — roomy, centered like claude.com/download */
+.hero{text-align:center;padding:120px 0 90px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:8px 16px;background:var(--surface)}
+.eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block}
+.hero h1{font-family:var(--serif);font-weight:500;font-size:clamp(46px,6vw,80px);line-height:1.04;letter-spacing:-.02em;margin:30px 0 20px}
+.hero h1 .arch-word{font-family:var(--black);letter-spacing:0;color:var(--ink)}
+.hero h1{color:var(--ink)}
+.hero .sub{max-width:600px;margin:0 auto;color:var(--muted);font-size:18px;line-height:1.7}
+.dl-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px}
+.btn-install{display:inline-flex;align-items:center;gap:10px;min-height:54px;padding:0 26px;border-radius:999px;background:var(--btn);color:var(--btn-ink);font-size:15px;font-weight:600;transition:transform .25s var(--ease),opacity .2s}
+.btn-install:hover{transform:translateY(-1px);opacity:.94}
+.btn-install svg{width:17px;height:17px;flex:none}
+.btn-install small{font-weight:500;opacity:.55;font-size:12.5px}
+.dl-meta{margin-top:16px;font-size:12.5px;color:var(--faint)}
+.dl-meta b{color:var(--muted);font-weight:500}
+
+/* features — airy */
+.features{padding:20px 0 70px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:26px;padding:34px 30px;text-align:left}
+.card h3{font-family:var(--serif);font-size:21px;font-weight:500;letter-spacing:-.01em;margin-bottom:10px}
+.card p{font-size:14.5px;color:var(--muted);line-height:1.7}
+.card .tick{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;background:rgba(217,119,87,.14);color:var(--accent);font-size:15px;margin-bottom:16px}
+@media(max-width:760px){.cards{grid-template-columns:1fr}}
+
+/* install — lives at the end of the page */
+.install{text-align:center;padding:90px 0 100px;border-top:1px solid var(--line);margin-top:30px}
+.install h2{font-family:var(--serif);font-size:clamp(32px,4.4vw,52px);font-weight:500;letter-spacing:-.02em}
+.install h2 .arch-word{font-family:var(--black);letter-spacing:0}
+.install .install-sub{color:var(--muted);font-size:16px;margin:16px auto 0;max-width:520px;line-height:1.7}
+.os-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:680px;margin:38px auto 0;text-align:left}
+.os-card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:26px 24px;display:flex;flex-direction:column}
+.os-card h3{font-size:16px;font-weight:600}
+.os-card p{font-size:13px;color:var(--muted);margin:6px 0 18px}
+.os-card .btn-install{width:100%;justify-content:center;margin-top:auto}
+@media(max-width:640px){.os-grid{grid-template-columns:1fr}}
+
+/* Q&A — short */
+.qa{padding:70px 0 30px;max-width:760px;margin:0 auto}
+.qa h2{font-family:var(--serif);font-size:clamp(26px,3.4vw,36px);font-weight:500;letter-spacing:-.02em;text-align:center}
+.qa .qa-sub{text-align:center;color:var(--muted);font-size:14.5px;margin:10px 0 22px}
+.faq{border-top:1px solid var(--line)}
+.faq-item{border-bottom:1px solid var(--line)}
+.faq-q{width:100%;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 4px;text-align:left;font-size:15.5px;font-weight:500}
+.faq-q span:last-child{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:16px;color:var(--muted);transition:transform .3s var(--ease)}
+.faq-item[data-open="true"] .faq-q span:last-child{transform:rotate(45deg);color:var(--accent);border-color:var(--accent)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .45s var(--ease)}
+.faq-a p{padding:0 4px 20px;color:var(--muted);font-size:14.5px;max-width:62ch}
+
+/* footer */
+.site-footer{border-top:1px solid var(--line);margin-top:44px;padding:26px 0 90px}
+.foot-inner{width:min(1060px,100% - 48px);margin:0 auto;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.foot-brand{font-size:15px}
+.foot-brand .arch-word{font-family:var(--black);font-size:16px;letter-spacing:.01em}
+footer.site-footer{padding-bottom:120px}
+.foot-links{display:flex;align-items:center;gap:20px;margin-left:auto;flex-wrap:wrap}
+.foot-links a{font-size:13.5px;color:var(--muted);display:inline-flex;align-items:center;gap:7px;transition:color .2s}
+.foot-links a:hover{color:var(--ink)}
+.foot-links svg{width:15px;height:15px;fill:currentColor}
+.foot-copy{width:100%;margin-top:14px;font-size:12px;color:var(--faint)}
+.foot-bottom{width:100%;margin-top:22px;padding-top:20px;border-top:1px solid var(--line);display:flex;align-items:center;gap:16px}
+.lang-wrap{position:relative}
+.lang-pill{display:inline-flex;align-items:center;gap:9px;height:42px;padding:0 18px;border-radius:999px;background:#0d0d0d;border:1px solid rgba(255,255,255,.14);color:#fff;font-size:14px;font-weight:500;transition:border-color .2s,transform .25s var(--ease)}
+.lang-pill:hover{border-color:rgba(255,255,255,.35);transform:translateY(-1px)}
+.lang-pill svg{width:17px;height:17px;flex:none}
+.lang-pill .chev{width:14px;height:14px;opacity:.75;transition:transform .25s var(--ease)}
+.lang-pill[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.lang-menu{position:absolute;left:0;bottom:calc(100% + 10px);min-width:190px;background:var(--surface-2);border:1px solid var(--line);border-radius:16px;padding:6px;box-shadow:0 18px 44px rgba(0,0,0,.5);z-index:60}
+.lang-menu[hidden]{display:none}
+.lang-opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font-size:14px;color:var(--ink);padding:10px 12px;border-radius:10px}
+.lang-opt:hover{background:rgba(245,240,232,.07)}
+.lang-opt .tick{margin-left:auto;color:var(--accent);font-weight:700;visibility:hidden}
+.lang-opt.selected .tick{visibility:visible}
+.foot-ver{margin-left:auto;font-size:12.5px;color:var(--faint);letter-spacing:.04em}
+@media(max-width:640px){.foot-links{margin-left:0}}
+
+/* ============ GROK-BOT — circular corner companion, big visible eyes ============ */
+#grokBot{position:fixed;left:0;bottom:0;z-index:80;width:104px;height:104px;border-radius:0 50% 0 0;padding:14px 0 0 14px;background:transparent;border:0;cursor:pointer}
+#grokBot:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.grok-ball{display:block;position:relative;width:76px;height:76px;border-radius:50%;background:#141314;border:1px solid rgba(255,255,255,.1);box-shadow:0 16px 38px rgba(0,0,0,.5);overflow:hidden;transition:transform .35s var(--ease);animation:grok-bob 4s ease-in-out infinite}
+#grokBot:hover .grok-ball{transform:scale(1.07)}
+#grokBot:active .grok-ball{transform:scale(.92)}
+@keyframes grok-bob{0%,100%{translate:0 0}50%{translate:0 -5px}}
+.grok-blob{position:absolute;left:-12%;right:-12%;bottom:-28%;height:100%;background:radial-gradient(120% 100% at 50% 16%,#ffffff 0%,#f0f0f4 55%,#d5d5dc 100%);border-radius:50% 50% 46% 46% / 64% 64% 30% 30%}
+.eye-wrap{position:absolute;bottom:12px;width:22px;height:40px;display:grid;place-items:center;will-change:transform}
+.eye-wrap.left{left:17px}
+.eye-wrap.right{right:15px}
+.eye-pill{display:block;width:14px;height:38px;border-radius:999px;background:#0b0b0d;transform:rotate(19deg);box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.5);transition:transform .25s var(--ease)}
+#grokBot:hover .eye-pill{transform:rotate(19deg) scale(1.1)}
+#grokBot.blinking .eye-pill{transform:rotate(19deg) scaleY(.08)}
+.grok-hi{position:absolute;left:92px;bottom:62px;background:var(--btn);color:var(--btn-ink);font-size:13px;font-weight:600;padding:8px 14px;border-radius:999px;white-space:nowrap;opacity:0;translate:-8px 0;transition:opacity .25s,translate .3s var(--ease);pointer-events:none}
+#grokBot:hover .grok-hi{opacity:1;translate:0 0}
+@media(max-width:640px){#grokBot{width:88px;height:88px}.grok-ball{width:62px;height:62px}.eye-wrap{bottom:8px;width:19px;height:36px}.eye-wrap.left{left:13px}.eye-wrap.right{right:11px}.eye-pill{width:12px;height:31px}.grok-hi{display:none}}
+
+/* popup */
+.grok-pop{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.grok-pop[hidden]{display:none}
+.grok-scrim{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.grok-card{position:relative;width:min(380px,100%);background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:30px 26px;text-align:center}
+.grok-card h2{font-family:var(--serif);font-size:24px;font-weight:500;margin:12px 0 8px}
+.grok-card p{color:var(--muted);font-size:14.5px}
+.grok-mini{width:64px;height:64px;border-radius:20px;background:#131313;position:relative;overflow:hidden;margin:0 auto;border:1px solid var(--line)}
+.grok-mini::after{content:"";position:absolute;left:-14%;right:-14%;bottom:-38%;height:96%;background:radial-gradient(120% 100% at 50% 18%,#fff 0%,#ececf0 52%,#d3d3d9 100%);border-radius:50% 50% 46% 46% / 62% 62% 30% 30%}
+.grok-mini::before{content:"";position:absolute;z-index:1;left:18px;top:24px;width:10px;height:24px;border-radius:99px;background:#101012;transform:rotate(19deg);box-shadow:14px -1px 0 #101012}
+/* document reader — terms & privacy */
+.doc-modal{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
+.doc-modal[hidden]{display:none}
+body.doc-open .site-header,body.doc-open main,body.doc-open .site-footer,body.doc-open #grokBot,body.doc-open .scroll-progress{display:none}
+.doc-modal.open-page{position:static;display:block;padding:56px 0 90px}
+.doc-modal.open-page[hidden]{display:none}
+.doc-modal.open-page .doc-scrim{display:none}
+.doc-modal.open-page .doc-card{width:min(780px,100% - 40px);margin:0 auto;max-height:none;overflow:visible}
+.doc-scrim{position:absolute;inset:0;background:rgba(0,0,0,.62)}
+.doc-card{position:relative;width:min(740px,100%);max-height:84vh;overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:44px 40px;-webkit-overflow-scrolling:touch}
+.doc-close{position:sticky;top:0;margin-left:calc(100% - 40px);width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font-size:16px;display:grid;place-items:center}
+.doc-close:hover{border-color:var(--accent);color:var(--accent)}
+.doc-card .doc-brand{font-family:var(--black);font-size:20px;letter-spacing:.01em;margin-top:-30px}
+.doc-card .doc-title{font-family:var(--serif);font-size:30px;font-weight:500;letter-spacing:-.02em;margin:6px 0 12px}
+.doc-card .doc-meta{font-size:13px;color:var(--faint);margin:2px 0}
+.doc-card h3{font-family:var(--serif);font-size:21px;font-weight:500;margin:30px 0 10px;letter-spacing:-.01em}
+.doc-card h4{font-size:15.5px;font-weight:600;margin:22px 0 8px}
+.doc-card p{font-size:14.5px;line-height:1.7;color:rgba(245,240,232,.78);margin:10px 0}
+.doc-card ul{margin:10px 0;padding-left:22px;display:grid;gap:8px}
+.doc-card li{font-size:14.5px;line-height:1.65;color:rgba(245,240,232,.78)}
+.doc-card li::marker{color:var(--accent)}
+.doc-card a{color:var(--accent)}
+.doc-card .doc-note{font-size:13px;color:var(--muted);background:rgba(217,119,87,.08);border-left:3px solid var(--accent);border-radius:0 12px 12px 0;padding:12px 16px;margin:14px 0}
+.doc-foot{margin-top:30px;padding-top:20px;border-top:1px solid var(--line);display:flex;justify-content:center}
+.doc-foot .btn-install{min-height:48px;font-size:14px}
+@media(max-width:640px){.doc-card{padding:32px 22px}.doc-card .doc-title{font-size:24px}}
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="#top" data-scrollto="top" aria-label="Back to top">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 100 100"><ellipse cx="50" cy="78" rx="46" ry="38" fill="#F5F0E8"/><rect x="32" y="52" width="13" height="32" rx="6.5" fill="#1E1D1C" transform="rotate(18 38 68)"/><rect x="57" y="50" width="13" height="32" rx="6.5" fill="#1E1D1C" transform="rotate(18 63 66)"/></svg>
+      </span>
+      <span class="arch-word">Arch</span><span class="assistant-word">Assistant</span>
+    </a>
+    <nav class="top-nav" aria-label="Main">
+      <button data-scrollto="download" data-i18n="nav.download">Download</button>
+      <button data-scrollto="features" data-i18n="nav.features">Features</button>
+      <button data-scrollto="faq" data-i18n="nav.faq">Q&amp;A</button>
+    </nav>
+    <button class="btn-small" data-scrollto="download" data-i18n="nav.get">Get Arch</button>
+  </div>
+</header>
+
+<main id="top">
+  <!-- HERO — headline only, installs live at the end -->
+  <section class="wrap hero">
+    <h1 class="reveal" data-i18n="hero.title">Download Arch</h1>
+    <p class="sub reveal" data-i18n="hero.sub">Chat, Vibe and get work done without internet, all in one session. Assistant to get things done with your files and projects.</p>
+    <div class="dl-row reveal">
+      <button class="btn-install" data-scrollto="download"><span data-i18n="hero.cta">Get Arch</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14m0 0 5-5m-5 5-5-5"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- compact features -->
+  <section class="wrap features" id="features">
+    <div class="cards">
+      <div class="card reveal"><span class="tick">✓</span><h3 data-i18n="f1t">Stays private</h3><p data-i18n="f1d">Prompts never leave your device. No account, no cloud, nothing to leak.</p></div>
+      <div class="card reveal"><span class="tick">✓</span><h3 data-i18n="f2t">Stays light</h3><p data-i18n="f2d">Small on-device model tuned for everyday CPUs. No GPU required.</p></div>
+      <div class="card reveal"><span class="tick">✓</span><h3 data-i18n="f3t">Works offline</h3><p data-i18n="f3d">Internet needed once for setup — after that, fully unplugged.</p></div>
+    </div>
+  </section>
+
+  <!-- short Q&A -->
+  <section class="wrap qa" id="faq">
+    <h2 class="reveal" data-i18n="qa.title">Questions, answered</h2>
+    <p class="qa-sub reveal" data-i18n="qa.sub">The short version. Everything else is in the app.</p>
+    <div class="faq reveal" id="faqList"></div>
+  </section>
+
+  <!-- installs — end of page -->
+  <section class="wrap install" id="download">
+    <h2 class="reveal" data-i18n="inst.title">Get <span class="arch-word">Arch</span> for your machine</h2>
+    <p class="install-sub reveal" data-i18n="inst.sub">Two installers: Windows (.exe with guided setup) and macOS (.dmg). No account needed. Pick your system and you're chatting in minutes.</p>
+    <div class="os-grid reveal">
+      <div class="os-card">
+        <h3>Windows</h3>
+        <p>Windows 10 / 11 · x64 · installer with guided setup</p>
+        <a class="btn-install" href="https://github.com/Wizzit-254/Arch-Assistant-Repo/releases/download/v1.0.0/ArchAssistantSetup-x64.exe" download="ArchAssistantSetup-x64.exe">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          <span data-i18n="btn.win">Download for Windows</span>
+        </a>
+      </div>
+      <div class="os-card">
+        <h3>macOS</h3>
+        <p>macOS 10.15+ · Intel &amp; Apple Silicon · .dmg with guided setup</p>
+        <a class="btn-install" href="https://github.com/Wizzit-254/Arch-Assistant-Repo/releases/tag/v1.0.0" download="ArchAssistant.dmg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          <span data-i18n="btn.mac">Download for macOS</span>
+        </a>
+      </div>
+    </div>
+    <p class="dl-meta reveal" data-i18n="inst.meta">Offline after first launch. Requires ~7GB free space during setup (5GB app + installer download)</p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="foot-inner">
+    <span class="foot-brand"><span class="arch-word">Arch</span> Assistant</span>
+    <nav class="foot-links" aria-label="Footer">
+      <a href="#faq" data-scrollto="faq" data-i18n="foot.qa">Q&amp;A</a>
+      <a href="https://www.instagram.com/I_DropK1ckChildren/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.72 3.72 0 0 1-1.38-.9 3.72 3.72 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2m0 3.13a6.67 6.67 0 1 0 0 13.34 6.67 6.67 0 0 0 0-13.34m0 11a4.33 4.33 0 1 1 0-8.66 4.33 4.33 0 0 1 0 8.66m8.49-11.27a1.56 1.56 0 1 1-3.12 0 1.56 1.56 0 0 1 3.12 0"/></svg>
+        Instagram
+      </a>
+      <a href="#" id="termsLink" data-i18n="foot.terms">Terms and conditions</a>
+      <a href="#" id="privacyLink" data-i18n="foot.privacy">Privacy Policy</a>
+    </nav>
+    <p class="foot-copy">© 2026 Arch Assistant · <span data-i18n="foot.tag">Made for rooms with good boundaries.</span></p>
+    <div class="foot-bottom">
+      <div class="lang-wrap">
+        <button class="lang-pill" id="langBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Choose language">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.9 5.7 3.9 9s-1.4 6.4-3.9 9c-2.5-2.6-3.9-5.7-3.9-9S9.5 5.6 12 3z"/></svg>
+          <span id="langLabel">English</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="lang-menu" id="langMenu" role="listbox" aria-label="Language" hidden>
+          <button class="lang-opt selected" role="option" aria-selected="true" data-lang="English"><span>English</span><span class="tick">✓</span></button>
+          <button class="lang-opt" role="option" aria-selected="false" data-lang="Español"><span>Español</span><span class="tick">✓</span></button>
+          <button class="lang-opt" role="option" aria-selected="false" data-lang="Français"><span>Français</span><span class="tick">✓</span></button>
+          <button class="lang-opt" role="option" aria-selected="false" data-lang="Deutsch"><span>Deutsch</span><span class="tick">✓</span></button>
+          <button class="lang-opt" role="option" aria-selected="false" data-lang="Português"><span>Português</span><span class="tick">✓</span></button>
+          <button class="lang-opt" role="option" aria-selected="false" data-lang="Kiswahili"><span>Kiswahili</span><span class="tick">✓</span></button>
+          <button class="lang-opt" role="option" aria-selected="false" data-lang="Italiano"><span>Italiano</span><span class="tick">✓</span></button>
+          <button class="lang-opt" role="option" aria-selected="false" data-lang="中文"><span>中文</span><span class="tick">✓</span></button>
+          <button class="lang-opt" role="option" aria-selected="false" data-lang="العربية"><span>العربية</span><span class="tick">✓</span></button>
+          <button class="lang-opt" role="option" aria-selected="false" data-lang="Filipino"><span>Filipino</span><span class="tick">✓</span></button>
+          <button class="lang-opt" role="option" aria-selected="false" data-lang="日本語"><span>日本語</span><span class="tick">✓</span></button>
+        </div>
+      </div>
+      <span class="foot-ver">V1.0.0</span>
+    </div>
+  </div>
+</footer>
+
+<div class="doc-modal" id="termsModal" role="dialog" aria-modal="true" aria-labelledby="termsHeading" hidden>
+  <div class="doc-scrim" data-close-doc></div>
+  <div class="doc-card">
+    <button class="doc-close" data-close-doc aria-label="Close document">&#10005;</button>
+<p class="doc-brand">Arch</p>
+<h2 class="doc-title" id="termsHeading">Terms and Conditions</h2>
+<p class="doc-meta">Effective date: September 10, 2026</p>
+<p class="doc-meta">Open-source project · License: MIT License</p>
+<p class="doc-meta">Repository: [repository URL, e.g. github.com/yourname/arch]</p>
+<p class="doc-meta">Contact: <a href="mailto:trevorkisingu@gmail.com">trevorkisingu@gmail.com</a></p>
+<h3>1. Introduction and Acceptance of Terms</h3>
+<p>These Terms and Conditions (&quot;Terms&quot;) govern your access to, download of, and use of Arch (the &quot;Software&quot;), an open-source, self-hosted coding agent made available at [repository URL, e.g. github.com/yourname/arch] (the &quot;Repository&quot;). These Terms are entered into between you (&quot;you,&quot; &quot;your,&quot; or &quot;User&quot;) and the maintainer(s) of Arch (&quot;we,&quot; &quot;us,&quot; &quot;our,&quot; or the &quot;Maintainer&quot;).</p>
+<p>By downloading, installing, running, forking, modifying, or otherwise using the Software, you agree to be bound by these Terms. If you do not agree to these Terms, you must not download, install, or use the Software.</p>
+<p>If you are using the Software on behalf of an organization, you represent that you have the authority to bind that organization to these Terms, and &quot;you&quot; will refer to that organization as well as yourself individually.</p>
+<p class="doc-note">Maintainer note: This is a template drafted for a self-hosted, open-source project with no hosted/SaaS component. Replace all bracketed placeholders (repository URL, jurisdiction-specific details) and have it reviewed by a qualified lawyer licensed in Kenya before relying on it, particularly Sections 10–13, 19, and 20.</p>
+<h4>1.1 Relationship to the software license</h4>
+<p>These Terms govern your conduct and legal relationship with us as a user of the project and its associated infrastructure (Repository, issue tracker, communications). They are separate from, and do not replace, the open-source license under which the Software&#x27;s source code is distributed (see Section 3). Where these Terms and the license conflict regarding your rights to use, copy, modify, or distribute the source code itself, the license controls.</p>
+<h3>2. Definitions</h3>
+<h3>3. Open-Source License Grant</h3>
+<p>The Software&#x27;s source code is distributed under the MIT License, a copy of which is included in the Repository (typically as a LICENSE file). The MIT License governs your rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to the conditions stated in that license (including retention of the copyright notice and license text).</p>
+<p>Nothing in these Terms is intended to restrict any right granted to you under the MIT License. In the event of any direct conflict between these Terms and the MIT License regarding your rights to the source code itself, the MIT License controls. These Terms instead address matters the license does not cover, such as acceptable use of the Repository, disclaimers specific to AI-generated Output, and your relationship with the Maintainer as a user or contributor.</p>
+<h4>3.1 No additional restrictions on the licensed code</h4>
+<p>We will not impose additional restrictions on your exercise of the rights granted under the MIT License. However, if you use the Software in a hosted, commercial, or redistributed form, you remain solely responsible for your own compliance with the MIT License&#x27;s conditions (such as including the original copyright and license notice).</p>
+<h4>3.2 Trademarks</h4>
+<p>This license grant does not include any right to use the Arch name, logo, or branding in a way that suggests endorsement or affiliation with the Maintainer without prior written permission, except as reasonably necessary to describe the origin of the Software (e.g., &quot;based on Arch&quot;).</p>
+<h3>4. Eligibility and Acceptable Use</h3>
+<h4>4.1 Eligibility</h4>
+<p>You must have the legal capacity to enter into a binding agreement in your jurisdiction to use the Software. The Software is intended for use by developers and technical users; it is not directed at children, and we do not knowingly permit use by individuals below the age of legal majority without appropriate parental or guardian consent where required by applicable law.</p>
+<h4>4.2 Acceptable use</h4>
+<p>You agree not to use the Software to:</p>
+<ul>
+<li>Develop, generate, or facilitate malware, ransomware, exploits, or other tools designed to gain unauthorized access to systems or data.</li>
+<li>Violate any applicable law, regulation, or third party&#x27;s intellectual property, privacy, or other legal rights.</li>
+<li>Generate or propagate content that is unlawful, fraudulent, defamatory, or that facilitates harassment, discrimination, or violence.</li>
+<li>Misrepresent Output as being free of errors, security vulnerabilities, or legal issues where you have not independently verified it.</li>
+<li>Circumvent, disable, or interfere with any security-related features of the Software or of any Third-Party Component it integrates with.</li>
+<li>Use the Repository&#x27;s issue tracker, discussions, or communication channels to spam, harass, or distribute unrelated commercial content.</li>
+</ul>
+<h4>4.3 Consequences of misuse</h4>
+<p>Because the Software is self-hosted and we do not operate the infrastructure on which it runs, we generally have no visibility into, and no ability to prevent, your use of the Software once downloaded. Your compliance with this Section is a matter of your agreement with us and, where relevant, applicable law — not something we can enforce technically. We may, however, moderate the Repository itself (see Section 5.3) and may pursue any remedy available to us at law for violations of these Terms.</p>
+<h3>5. Self-Hosted Software; No Hosted Service</h3>
+<p>Arch is distributed exclusively as self-hosted, open-source software. We do not operate, and these Terms do not create, any hosted, managed, or software-as-a-service (&quot;SaaS&quot;) version of the Software. There is no account system, subscription, uptime commitment, or service level agreement associated with the Software itself.</p>
+<h4>5.1 Your infrastructure, your responsibility</h4>
+<p>You are solely responsible for:</p>
+<ul>
+<li>Provisioning and securing the hardware, operating system, and network on which you run the Software.</li>
+<li>Configuring the Software appropriately for your environment, including any Third-Party Components you choose to connect.</li>
+<li>Maintaining backups of your code, data, and configuration independent of the Software.</li>
+<li>Any costs associated with running the Software, including compute, storage, and any third-party API usage fees you incur.</li>
+</ul>
+<h4>5.2 No service relationship</h4>
+<p>Because we do not host or operate the Software on your behalf, no service-provider relationship, agency relationship, or fiduciary duty is created between you and the Maintainer by virtue of your use of the Software.</p>
+<h4>5.3 Repository and community infrastructure</h4>
+<p>While the Software itself is self-hosted, the Repository (issue tracker, discussions, releases) is infrastructure we do administer, typically via a third-party platform (e.g. GitHub). We reserve the right to moderate, edit, or remove content from the Repository, and to restrict access for any user who violates these Terms, the platform&#x27;s own terms of service, or applicable law.</p>
+<h3>6. Third-Party Models, Dependencies, and Integrations</h3>
+<h4>6.1 Model-agnostic design</h4>
+<p>Arch can be configured to run with locally-hosted models or, at your option, with third-party large language model (&quot;LLM&quot;) APIs and other Third-Party Components (such as version control hosts or MCP-compatible servers). The Maintainer does not operate, control, or warrant the availability, accuracy, or behavior of any Third-Party Component.</p>
+<h4>6.2 Your responsibility for third-party terms</h4>
+<p>If you configure the Software to connect to a Third-Party Component, you are solely responsible for:</p>
+<ul>
+<li>Reviewing and complying with that third party&#x27;s terms of service, acceptable use policy, and privacy policy.</li>
+<li>Any fees, quotas, or rate limits imposed by that third party.</li>
+<li>Ensuring you have the necessary rights or licenses to submit your code, prompts, or data to that third party.</li>
+<li>Any consequences arising from that third party&#x27;s handling, retention, or use of data you transmit to it, including for model training, unless that party&#x27;s terms state otherwise.</li>
+</ul>
+<h4>6.3 Open-source dependencies</h4>
+<p>The Software incorporates open-source libraries and packages maintained by third parties, each governed by its own license. A list of dependencies and their licenses is typically available in the Repository&#x27;s package manifest or a NOTICE/THIRD-PARTY-LICENSES file. You are responsible for complying with those licenses if you redistribute the Software or derivative works.</p>
+<h4>6.4 No endorsement</h4>
+<p>Compatibility with, or documentation referencing, a particular Third-Party Component does not constitute an endorsement of that component, its accuracy, its safety, or its business practices.</p>
+<h4>6.5 Interruption or discontinuation of third-party services</h4>
+<p>Third-Party Components you connect to the Software may change, restrict, or discontinue their services at any time, for reasons outside our control. We are not responsible for any disruption to your use of the Software that results from a change, outage, deprecation, or policy change by a Third-Party Component.</p>
+<h4>6.6 API keys and credentials</h4>
+<p>Where the Software requires you to supply credentials (such as API keys) to use a Third-Party Component, you are solely responsible for safeguarding those credentials. The Software is designed to store such credentials locally per your configuration; you should treat them with the same care as any other secret and avoid committing them to version control or otherwise exposing them.</p>
+<h3>7. User-Generated Content and Output</h3>
+<h4>7.1 Your input</h4>
+<p>You retain all rights, title, and interest in any code, prompts, files, or other content you provide to the Software (&quot;Input&quot;). Because the Software is self-hosted with no telemetry by default, your Input is not transmitted to the Maintainer through ordinary operation of the Software (see our separate Privacy Policy for details).</p>
+<h4>7.2 Output generated by the Software</h4>
+<p>The Software may generate code, suggestions, or other Output based on your Input, using either a locally-run model or a Third-Party Component you configure. You are solely responsible for reviewing, testing, and validating any Output before relying on it, incorporating it into a production system, or distributing it.</p>
+<h4>7.3 No guarantee of originality or non-infringement</h4>
+<p>Output is generated algorithmically and may, in some cases, closely resemble pre-existing code, including code subject to third-party copyright, patent, or license restrictions. We do not warrant that Output is original, accurate, secure, fit for any particular purpose, or free from third-party intellectual property claims. You are responsible for independently assessing whether Output is safe to use in your context, including its licensing implications.</p>
+<h4>7.4 Ownership of output</h4>
+<p>As between you and the Maintainer, we make no claim of ownership over Output generated for you through your use of the Software. Any rights you hold in Output are subject to the terms of any Third-Party Component you used to generate it (some LLM providers impose their own terms regarding ownership or usage rights over model output).</p>
+<h3>8. Intellectual Property</h3>
+<h4>8.1 Ownership of the Software</h4>
+<p>Subject to the rights granted under the MIT License, the Maintainer and other contributors retain their respective copyright and other intellectual property rights in the Software. The MIT License grants you specific, broad rights to use, modify, and redistribute the Software — it does not transfer ownership.</p>
+<h4>8.2 Trademarks and branding</h4>
+<p>Arch&#x27;s name, logo, and any associated branding (to the extent used) are owned by the Maintainer and are not licensed under the MIT License. You may use them only as reasonably necessary to identify the Software&#x27;s origin, or with our prior written permission for other uses.</p>
+<h4>8.3 Feedback</h4>
+<p>If you provide feedback, suggestions, or ideas about the Software outside of a formal Contribution (Section 9), you grant us a perpetual, irrevocable, royalty-free license to use that feedback for any purpose, without obligation to you, unless you expressly agree otherwise in writing.</p>
+<h4>8.4 Third-party intellectual property</h4>
+<p>Nothing in these Terms grants you rights in any Third-Party Component&#x27;s intellectual property beyond what that component&#x27;s own license or terms provide.</p>
+<h3>9. Contributions to the Project</h3>
+<h4>9.1 Submitting Contributions</h4>
+<p>If you submit a Contribution (e.g. via a pull request, patch, or issue containing code) to the Repository, you agree that:</p>
+<ul>
+<li>Your Contribution is licensed to the project under the same MIT License that governs the Software, unless the Repository&#x27;s contribution guidelines specify otherwise.</li>
+<li>You have the right to submit the Contribution under that license — that is, you either wrote it yourself, or you have the necessary rights and permissions to contribute it.</li>
+<li>Your Contribution does not knowingly infringe any third party&#x27;s intellectual property rights.</li>
+<li>The Maintainer may use, modify, distribute, and relicense your Contribution as part of the Software, consistent with the governing open-source license.</li>
+</ul>
+<h4>9.2 No obligation to accept Contributions</h4>
+<p>We are under no obligation to review, accept, merge, or maintain any Contribution. Acceptance of a Contribution is at the sole discretion of the Maintainer or designated project reviewers.</p>
+<h4>9.3 Code of conduct</h4>
+<p>Contributors and community members are expected to engage respectfully with one another. If the Repository maintains a separate Code of Conduct document, it is incorporated into these Terms by reference for purposes of Repository participation.</p>
+<h4>9.4 Attribution</h4>
+<p>We will make reasonable efforts to preserve contributor attribution (e.g., via git commit history) but do not guarantee that every Contribution will be individually credited outside of standard version control records.</p>
+<h3>10. No Warranty</h3>
+<p>THE SOFTWARE IS PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE,&quot; WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE MAINTAINER DISCLAIMS ALL WARRANTIES, WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, INCLUDING ANY WARRANTIES ARISING OUT OF A COURSE OF DEALING OR USAGE OF TRADE.</p>
+<p>Without limiting the foregoing, we do not warrant that:</p>
+<ul>
+<li>The Software will be error-free, uninterrupted, or free of security vulnerabilities.</li>
+<li>Any Output generated by the Software will be accurate, complete, secure, non-infringing, or suitable for your intended use.</li>
+<li>Defects will be corrected, or that the Software will be compatible with any particular hardware, operating system, or Third-Party Component.</li>
+<li>The Software or its use will meet any regulatory, compliance, or certification requirement applicable to your industry or jurisdiction.</li>
+</ul>
+<p>This disclaimer is consistent with the &quot;as is&quot; basis on which open-source software is customarily made available and, where applicable, mirrors the warranty disclaimer already contained in the MIT License.</p>
+<h3>11. Limitation of Liability</h3>
+<p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT WILL THE MAINTAINER OR ANY CONTRIBUTOR BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, OR FOR ANY LOSS OF PROFITS, REVENUE, DATA, GOODWILL, OR BUSINESS OPPORTUNITY, ARISING OUT OF OR RELATED TO YOUR USE OF, OR INABILITY TO USE, THE SOFTWARE, WHETHER BASED ON WARRANTY, CONTRACT, TORT (INCLUDING NEGLIGENCE), OR ANY OTHER LEGAL THEORY, EVEN IF THE MAINTAINER HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.</p>
+<p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE MAINTAINER&#x27;S TOTAL AGGREGATE LIABILITY ARISING OUT OF OR RELATED TO THESE TERMS OR THE SOFTWARE SHALL NOT EXCEED THE GREATER OF (A) THE AMOUNT YOU PAID, IF ANY, TO THE MAINTAINER FOR THE SOFTWARE IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM, OR (B) ONE HUNDRED UNITED STATES DOLLARS (USD $100), GIVEN THAT THE SOFTWARE IS PROVIDED FREE OF CHARGE UNDER AN OPEN-SOURCE LICENSE.</p>
+<h4>11.1 Basis of the bargain</h4>
+<p>You acknowledge that the Maintainer has made the Software available to you free of charge, on an open-source, self-hosted basis, and that the limitations of liability in this Section are a fundamental basis of the bargain between you and the Maintainer, without which the Software would not be made available to you on these terms.</p>
+<h4>11.2 Jurisdictional limits</h4>
+<p>Some jurisdictions do not allow the exclusion or limitation of certain damages or implied warranties. In such jurisdictions, the exclusions and limitations in Sections 10 and 11 apply only to the maximum extent permitted by applicable law, and our liability will be limited to the smallest extent permitted.</p>
+<h3>12. Indemnification</h3>
+<p>To the maximum extent permitted by applicable law, you agree to defend, indemnify, and hold harmless the Maintainer and any other contributors from and against any claims, liabilities, damages, losses, and expenses, including reasonable legal fees, arising out of or in any way connected with:</p>
+<ul>
+<li>Your use or misuse of the Software, including any Output you generate, use, or distribute.</li>
+<li>Your violation of these Terms or of any applicable law or regulation.</li>
+<li>Your violation of any third party&#x27;s rights, including intellectual property, privacy, or contractual rights, in connection with your use of the Software or any Third-Party Component.</li>
+<li>Any Contribution you submit that infringes a third party&#x27;s rights or breaches the representations in Section 9.1.</li>
+</ul>
+<p>We reserve the right, at our own expense, to assume the exclusive defense and control of any matter otherwise subject to indemnification by you, in which case you agree to cooperate with our defense of such claim.</p>
+<h3>13. AI-Specific Disclosures and Limitations</h3>
+<h4>13.1 Nature of AI-generated Output</h4>
+<p>Arch uses large language models to generate code, suggestions, and other Output. AI-generated Output is inherently probabilistic and may be inaccurate, incomplete, insecure, or inconsistent, even when it appears confident or well-formed. You should treat all Output as a draft or suggestion requiring your own review, not as verified, production-ready work.</p>
+<h4>13.2 No professional advice</h4>
+<p>Output generated by the Software does not constitute professional advice of any kind (including legal, security, or engineering advice), even where it addresses topics related to those fields. Use of Output in contexts requiring professional judgment (e.g., security-critical, safety-critical, or regulated systems) should be independently reviewed by a qualified professional.</p>
+<h4>13.3 Known limitations of LLM-based tools</h4>
+<p>Depending on the model you configure, Output may exhibit limitations common to LLM-based coding tools, including but not limited to:</p>
+<ul>
+<li>Hallucinated APIs, functions, or package names that do not exist.</li>
+<li>Introduction of security vulnerabilities, including insecure defaults or outdated practices.</li>
+<li>Incomplete handling of edge cases, error conditions, or concurrency issues.</li>
+<li>Verification loops that pass local tests without guaranteeing correctness in your broader system.</li>
+<li>Inconsistent behavior across sessions, model versions, or Third-Party Component updates.</li>
+</ul>
+<h4>13.4 Verification loops are not a warranty</h4>
+<p>Where the Software includes automated verification steps (such as running tests or checks before presenting Output), these mechanisms are designed to improve reliability but do not constitute a warranty or guarantee of correctness, security, or fitness for purpose. You remain responsible for your own testing and code review practices.</p>
+<h4>13.5 Training data and model behavior</h4>
+<p>If you connect a Third-Party Component (e.g. a hosted LLM), that model&#x27;s training data, biases, and behavior are determined by the third-party provider, not by the Maintainer. We make no representation about the accuracy, currency, or appropriateness of any third-party model&#x27;s training data or outputs.</p>
+<h4>13.6 No liability for reliance on Output</h4>
+<p>To the maximum extent permitted by applicable law, the Maintainer is not liable for any damages, losses, or claims arising from your reliance on Output generated by the Software, including but not limited to security incidents, data loss, financial loss, or intellectual property claims resulting from code suggested, generated, or modified by the Software.</p>
+<h4>13.7 Human oversight recommended</h4>
+<p>We strongly recommend maintaining human review over any code, configuration, or command that the Software proposes to execute or apply, particularly for actions with irreversible effects (such as deleting files, modifying production systems, or executing shell commands).</p>
+<h3>14. Security and Responsible Disclosure</h3>
+<h4>14.1 Your security responsibilities</h4>
+<p>Because the Software is self-hosted, the security of your deployment (including any credentials, API keys, and code it processes) is your responsibility. We recommend following standard secure development practices, including keeping the Software and its dependencies up to date, and reviewing the Software&#x27;s permissions before granting it access to sensitive systems or credentials.</p>
+<h4>14.2 Reporting vulnerabilities</h4>
+<p>If you discover a security vulnerability in the Software, please report it responsibly by emailing <a href="mailto:trevorkisingu@gmail.com">trevorkisingu@gmail.com</a> rather than disclosing it publicly, to give us a reasonable opportunity to address it before public disclosure. We will make reasonable efforts to acknowledge and investigate credible reports.</p>
+<h4>14.3 No guarantee of a security response timeline</h4>
+<p>As an open-source project maintained on a best-effort basis, we do not guarantee any specific response time, patch timeline, or resolution for reported vulnerabilities, though we will make reasonable efforts consistent with the resources available to the project.</p>
+<h3>15. Export Control and Sanctions Compliance</h3>
+<p>The Software may be subject to export control laws and regulations, including those of the jurisdictions in which it is developed, hosted, or accessed. By using the Software, you represent that you are not located in, under the control of, or a national or resident of any country or region subject to comprehensive trade sanctions, and that you are not listed on any applicable restricted-party or denied-persons list.</p>
+<p>You agree not to use, export, re-export, or transfer the Software in violation of any applicable export control or sanctions law. You are solely responsible for ensuring your use of the Software, and any Third-Party Component you connect to it, complies with export control laws applicable to you.</p>
+<h3>16. Compliance with Applicable Law</h3>
+<p>You are solely responsible for ensuring that your use of the Software, including any Output it generates, complies with all laws and regulations applicable to you, including but not limited to intellectual property law, data protection law, employment law (where Output is used in automated decision-making), and any industry-specific regulatory requirements.</p>
+<p>Where your use of the Software involves processing personal data (for example, if you configure it to analyze code containing personal data, or connect it to systems that do), you are responsible for ensuring that processing complies with applicable data protection laws, such as Kenya&#x27;s Data Protection Act, 2019, the EU General Data Protection Regulation, or other applicable regimes, as relevant to your circumstances.</p>
+<h3>17. Termination</h3>
+<h4>17.1 Termination by you</h4>
+<p>You may stop using the Software, and delete any local copies, at any time. Because there is no account or subscription associated with the Software, no further action is required to &quot;terminate&quot; your use of it.</p>
+<h4>17.2 Termination or restriction by us</h4>
+<p>We may, at our discretion, restrict your access to the Repository or related community infrastructure (e.g. by blocking an account from the issue tracker) if you violate these Terms, without affecting your rights to use previously downloaded copies of the Software under the MIT License.</p>
+<h4>17.3 Effect of termination</h4>
+<p>Termination of your access to the Repository or community infrastructure does not revoke the rights already granted to you under the MIT License with respect to code you have already obtained. Sections of these Terms that by their nature should survive termination will survive, including Sections 10, 11, 12, and 13 (see also Section 28, Survival).</p>
+<h3>18. Modifications to These Terms</h3>
+<p>We may revise these Terms from time to time to reflect changes in the project, applicable law, or our practices. When we make material changes, we will update the &quot;Effective date&quot; at the top of this document and, where practical, note the change in the Repository&#x27;s changelog or release notes.</p>
+<p>Continued use of the Software after an update to these Terms constitutes your acceptance of the revised Terms. If you do not agree to a revision, your remedy is to stop using the Software; your rights to previously obtained copies of the Software under the MIT License are unaffected by a change to these Terms.</p>
+<h3>19. Governing Law and Jurisdiction</h3>
+<p>These Terms, and any dispute arising out of or relating to them or to the Software (to the extent not governed by the MIT License itself), are governed by the laws of the Republic of Kenya, without regard to its conflict-of-laws principles.</p>
+<p>Subject to Section 20 (Dispute Resolution), you agree that any legal action or proceeding arising out of or relating to these Terms shall be brought exclusively in the courts located in Kenya, and you consent to the personal jurisdiction of such courts.</p>
+<p class="doc-note">Maintainer note: Confirm with a Kenya-qualified lawyer whether you want to specify a particular court (e.g. the High Court of Kenya) and city (e.g. Nairobi) for exclusive jurisdiction, and whether mandatory consumer-protection rules in a user&#x27;s home country could override this clause for certain users.</p>
+<h3>20. Dispute Resolution</h3>
+<h4>20.1 Informal resolution first</h4>
+<p>Before initiating any formal legal proceeding, you agree to first contact us at <a href="mailto:trevorkisingu@gmail.com">trevorkisingu@gmail.com</a> and attempt in good faith to resolve the dispute informally. We will attempt to do the same. Most concerns can be resolved this way, particularly given the project&#x27;s open-source, community-driven nature.</p>
+<h4>20.2 Arbitration (optional mechanism)</h4>
+<p>If a dispute cannot be resolved informally within sixty (60) days, either party may elect to refer the dispute to arbitration seated in Kenya, conducted in English, under the Arbitration Act (Cap. 49 of the Laws of Kenya) or such rules as the parties may mutually agree, in lieu of court proceedings, except where either party seeks injunctive or equitable relief to protect intellectual property rights, in which case that party may proceed directly to the courts described in Section 19.</p>
+<h4>20.3 Class action waiver</h4>
+<p>To the extent permitted by applicable law, disputes will be resolved on an individual basis, and you agree not to bring or participate in any claim as a plaintiff or class member in any purported class, collective, or representative proceeding against the Maintainer.</p>
+<p class="doc-note">Maintainer note: Arbitration and class-action-waiver clauses have specific enforceability requirements that vary by jurisdiction and by the nature of the user (consumer vs. business). Have this section reviewed before publishing, especially if you expect users outside Kenya.</p>
+<h3>21. Severability and Waiver</h3>
+<p>If any provision of these Terms is found by a court or tribunal of competent jurisdiction to be invalid, illegal, or unenforceable, that provision will be limited or eliminated to the minimum extent necessary so that the remaining provisions of these Terms will remain in full force and effect.</p>
+<p>No waiver of any term of these Terms will be deemed a further or continuing waiver of such term or any other term, and our failure to assert any right or provision under these Terms will not constitute a waiver of such right or provision.</p>
+<h3>22. Assignment</h3>
+<p>You may not assign or transfer these Terms, by operation of law or otherwise, without our prior written consent. We may assign or transfer these Terms, in whole or in part, without restriction, including in connection with a transfer of stewardship of the project to a new maintainer or organization. These Terms will bind and inure to the benefit of the parties, their successors, and permitted assigns.</p>
+<h3>23. Entire Agreement</h3>
+<p>These Terms, together with the MIT License, our Privacy Policy, and any Repository-specific guidelines referenced herein (such as a Code of Conduct or Contributing Guide), constitute the entire agreement between you and the Maintainer regarding your use of the Software, and supersede any prior or contemporaneous agreements, communications, or understandings, whether written or oral, regarding that subject matter.</p>
+<h3>24. Relationship to the Open-Source License</h3>
+<p>In the event of any conflict between these Terms and the MIT License specifically with respect to your rights to use, copy, modify, merge, publish, distribute, sublicense, or sell the source code, the MIT License governs. These Terms govern all other aspects of your relationship with the Maintainer, including disclaimers, liability limitations, acceptable use of the Repository, and AI-specific disclosures, which are not addressed by the MIT License.</p>
+<h3>25. Relationship to the Privacy Policy</h3>
+<p>Our separate Privacy Policy describes how data is (and, in most respects, is not) collected or processed in connection with the Software, consistent with its self-hosted, no-telemetry-by-default design. The Privacy Policy is incorporated into these Terms by reference. In the event of a direct conflict between these Terms and the Privacy Policy regarding the handling of personal data, the Privacy Policy governs on that specific topic.</p>
+<h3>26. Force Majeure</h3>
+<p>We will not be liable for any failure or delay in the maintenance, availability, or support of the Software resulting from causes beyond our reasonable control, including but not limited to acts of God, natural disaster, war, terrorism, riots, civil unrest, government action, labor disputes, internet or infrastructure failures, or failures of Third-Party Components.</p>
+<h3>27. Notices</h3>
+<p>We may provide notices to you regarding these Terms via the Repository (e.g., release notes, a pinned issue, or the README), or, where you have contacted us directly, via email. You may send notices to us at <a href="mailto:trevorkisingu@gmail.com">trevorkisingu@gmail.com</a>. Notices are deemed given when posted to the Repository or, for email, when sent, absent evidence of non-delivery.</p>
+<h3>28. Survival</h3>
+<p>Provisions of these Terms that by their nature should survive termination of your use of the Software will survive, including without limitation Sections 3 (License Grant, to the extent already exercised), 8 (Intellectual Property), 9.1 (Contributions), 10 (No Warranty), 11 (Limitation of Liability), 12 (Indemnification), 13 (AI-Specific Disclosures), 19 (Governing Law), 20 (Dispute Resolution), and this Section 28.</p>
+<h3>29. Interpretation</h3>
+<p>Section headings in these Terms are for convenience only and do not affect interpretation. The words &quot;including&quot; and &quot;such as&quot; mean &quot;including without limitation.&quot; These Terms have been made available in English; any translation is provided for convenience only, and the English version governs in the event of any inconsistency.</p>
+<h3>30. Contact Information</h3>
+<p>If you have questions about these Terms, wish to report a security vulnerability, or need to contact us for any other reason related to Arch, please reach out through:</p>
+<ul>
+<li>Email: <a href="mailto:trevorkisingu@gmail.com">trevorkisingu@gmail.com</a></li>
+<li>Repository / issue tracker: [repository URL, e.g. github.com/yourname/arch]</li>
+</ul>
+<p>We aim to respond to inquiries within a reasonable timeframe, consistent with the resources available to an open-source project maintained on a volunteer or part-time basis.</p>
+<p>Thank you for using Arch.</p>
+    <div class="doc-foot"><button class="doc-back" data-close-doc data-i18n="doc.back">← Back to site</button><a class="btn-install" href="Arch_Terms_and_Conditions.docx" download data-i18n="doc.dl">Download original (.docx)</a></div>
+  </div>
+</div>
+
+<div class="doc-modal" id="privacyModal" role="dialog" aria-modal="true" aria-labelledby="privacyHeading" hidden>
+  <div class="doc-scrim" data-close-doc></div>
+  <div class="doc-card">
+    <button class="doc-close" data-close-doc aria-label="Close document">&#10005;</button>
+<p class="doc-brand">Arch</p>
+<h2 class="doc-title" id="privacyHeading">Privacy Policy</h2>
+<p class="doc-meta">Effective date: September 9, 2026</p>
+<p class="doc-meta">Open-source project · License: [license, e.g. MIT / Apache-2.0]</p>
+<p class="doc-meta">Repository: [repository URL, e.g. github.com/yourname/arch]</p>
+<p class="doc-meta">Contact: [contact email or issue tracker link]</p>
+<h3>1. Overview</h3>
+<p>Arch is an open-source, locally-run coding agent. This policy explains what data Arch does and does not handle, how the software is designed with respect to your privacy, and what applies to you differently if you interact with the project&#x27;s community infrastructure (such as its repository host, issue tracker, or any optional hosted services) rather than the software itself.</p>
+<p>Because Arch is open-source and, in its default configuration, runs entirely on your own machine, this policy is shorter and more specific than a typical commercial SaaS privacy policy. There is no central server operated by the maintainers that receives your code, prompts, or usage data through the ordinary operation of the software.</p>
+<p class="doc-note">Maintainer note: Replace bracketed placeholders throughout this document with your actual project details before publishing. Sections describing &#x27;no data leaves your machine&#x27; assume the default, unmodified configuration — update them if you later add optional telemetry, a hosted mode, or a plugin marketplace.</p>
+<h4>1.1 Who this policy covers</h4>
+<ul>
+<li>Individuals who download, install, and run the Arch software locally.</li>
+<li>Contributors who interact with the project&#x27;s public repository, issue tracker, or discussion forums.</li>
+<li>Anyone who uses optional, clearly-labeled hosted or cloud features, if and when the project offers them.</li>
+</ul>
+<h4>1.2 Who this policy does not cover</h4>
+<p>This policy does not cover the privacy practices of third-party large language model (LLM) providers, cloud services, package registries, or other external tools you choose to connect to Arch. If you configure Arch to call an external API (for example, a hosted model provider), your use of that service is governed by that provider&#x27;s own privacy policy and terms, not this one. See Section 6.</p>
+<h3>2. Core Privacy Principle: Local-First, No Telemetry by Default</h3>
+<p>Arch is designed to run fully on your local machine. In its default configuration:</p>
+<ul>
+<li>No source code, prompts, file contents, or command output is transmitted to any server operated by the maintainers.</li>
+<li>No usage analytics, crash reports, or telemetry are collected or transmitted automatically.</li>
+<li>No account, sign-up, or network connection is required to install or run the software.</li>
+<li>Indexing, retrieval (RAG-based context lookup), multi-file editing, and verification loops all execute locally, using local compute and local storage.</li>
+</ul>
+<p>This means that, unless you explicitly enable an optional feature that requires network access (such as connecting to a third-party model API), Arch has no visibility into your code, your prompts, or how you use the tool.</p>
+<h4>2.1 What “local-first” means in practice</h4>
+<h3>3. Data Processed Locally</h3>
+<p>Although Arch does not transmit data externally by default, it does read, generate, and temporarily store certain data locally in order to function. This section describes that processing for transparency, even though it never leaves your machine under default settings.</p>
+<h4>3.1 Codebase content</h4>
+<p>To provide multi-file editing and context-aware suggestions, Arch reads files within the project directory you point it to, and may build a local semantic index (via RAG-based indexing) to retrieve relevant context efficiently. This index is stored locally, typically alongside the project or in a local cache directory, and is used only to serve your own queries.</p>
+<h4>3.2 Prompts and conversation history</h4>
+<p>Your prompts, the agent&#x27;s responses, and any intermediate reasoning or tool-call records are kept in local session state to support features like session portability (resuming a session later) and verification loops (checking prior steps before proceeding). You can typically clear this history by deleting the relevant local cache or session files — see your local configuration documentation for the exact path.</p>
+<h4>3.3 Verification and execution data</h4>
+<p>Where Arch runs code, tests, or commands as part of a verification loop, the output of those commands is processed locally to inform the agent&#x27;s next steps. This output is not transmitted anywhere by the core software.</p>
+<h4>3.4 Local logs</h4>
+<p>If you enable logging for debugging purposes, logs are written to your local disk only. You control their retention and deletion. The project does not include any built-in mechanism to upload logs to the maintainers.</p>
+<h3>4. Data the Maintainers Receive</h3>
+<p>As maintainers of an open-source project, we do receive limited data — but only through channels you choose to use, separate from running the software itself.</p>
+<h4>4.1 Repository and issue tracker activity</h4>
+<p>If you open an issue, submit a pull request, comment, or otherwise interact with Arch&#x27;s public repository (hosted at [repository URL, e.g. github.com/yourname/arch]), the repository host (e.g. GitHub) collects account and activity data under its own privacy policy. Anything you post publicly — including code snippets, logs, or screenshots you choose to paste into an issue — is visible to the public and is your responsibility to redact of sensitive information before posting.</p>
+<h4>4.2 Direct communication</h4>
+<p>If you email us or otherwise contact us directly at [contact email or issue tracker link], we receive whatever information you choose to include in that communication (e.g. your email address, and the content of your message). We use this only to respond to you and to improve the project.</p>
+<h4>4.3 Package registry / download statistics</h4>
+<p>If Arch is distributed via a package manager or registry (such as npm, PyPI, or a container registry), that registry may independently log download counts, IP addresses, or similar technical metadata as part of its own infrastructure operations. The maintainers typically only see aggregate, anonymized statistics (e.g. total download counts), not individual user identities, unless the registry&#x27;s own policy states otherwise.</p>
+<h4>4.4 Contributions and commit metadata</h4>
+<p>If you contribute code, your commits will include the name and email address associated with your git configuration, per standard version control practice. This becomes part of the public project history.</p>
+<h3>5. Telemetry and Analytics</h3>
+<p>Arch does not include any telemetry, analytics SDK, or &quot;phone home&quot; behavior in its default build. There is no hidden network call that reports usage statistics, feature usage, or error data to the maintainers.</p>
+<p class="doc-note">Maintainer note: If you later add an opt-in telemetry feature (for example, anonymous usage statistics to help prioritize development), document it explicitly here: what is collected, how to opt in or out, how it&#x27;s anonymized, and where it&#x27;s stored. Keep it opt-in by default to stay consistent with the local-first principle above.</p>
+<h4>5.1 Update checks</h4>
+<p>If Arch checks for new versions of itself, this may involve a network request to the repository host or package registry to compare version numbers. This request follows standard HTTP request patterns (which can include your IP address, as with any web request) but does not include any information about your code, prompts, or usage. You can typically disable automatic update checks in local settings.</p>
+<h3>6. Third-Party LLM Providers and Integrations</h3>
+<p>Arch is model-agnostic and can be configured to work with local models or external, third-party model APIs, depending on how you set it up.</p>
+<h4>6.1 Local models</h4>
+<p>If you configure Arch to use a model that runs entirely on your machine (e.g. via a local inference server), no prompt or code data leaves your device as a result of model inference.</p>
+<h4>6.2 External model APIs</h4>
+<p>If you configure Arch to call an external, third-party LLM API, the prompts and relevant code context you send will be transmitted to that third party according to your configuration. In that case:</p>
+<ul>
+<li>The third-party provider&#x27;s own privacy policy and data retention practices govern that data, not this document.</li>
+<li>Arch transmits only what is needed to serve your request (e.g. the active prompt and relevant context) — it does not upload your entire codebase or session history unless your configuration or the model&#x27;s context window causes it to be included.</li>
+<li>You are responsible for reviewing the terms of any third-party provider you choose to connect, especially before sending proprietary, confidential, or regulated code or data through it.</li>
+</ul>
+<p>We recommend consulting the documentation for any model provider you configure (for example, its data retention window, whether it trains on submitted data, and regional data handling) before use.</p>
+<h4>6.3 Other integrations</h4>
+<p>Arch may support optional integrations with other developer tools (e.g. version control hosts, package registries, or MCP-compatible servers). Each integration only activates data flow to that specific third party if and when you explicitly configure it. Review the third party&#x27;s privacy policy before enabling any such integration.</p>
+<h3>7. Data Security</h3>
+<p>Because Arch operates primarily on your local machine, the security of your data is largely governed by the security of your own device and any third-party services you choose to connect. That said, the project follows these practices:</p>
+<ul>
+<li>Local data (session history, indexes, config) is stored using your operating system&#x27;s standard file permissions; the software does not apply additional encryption by default unless noted in the documentation.</li>
+<li>The project does not operate a central database of user data, which eliminates an entire category of breach risk associated with hosted services.</li>
+<li>Dependencies are reviewed and updated as part of ongoing maintenance; users are encouraged to keep their installation up to date.</li>
+<li>If you connect third-party APIs, credentials (e.g. API keys) are stored locally per your configuration — treat them with the same care as any other secret, and avoid committing them to version control.</li>
+</ul>
+<p class="doc-note">Maintainer note: If you add a hosted component later (a backend service, telemetry endpoint, or account system), add specifics here: encryption in transit/at rest, access controls, breach notification process, and retention limits.</p>
+<h3>8. Your Rights and Choices</h3>
+<p>Because Arch does not collect personal data through the software itself, most traditional data-subject rights (access, deletion, portability) are naturally satisfied by the fact that your data never leaves your device. You retain full control over it at all times. Specifically, you can:</p>
+<ul>
+<li>Delete any local session history, index files, or logs at any time by removing them from your filesystem — see the project documentation for exact file locations.</li>
+<li>Disable network-dependent features (such as update checks or third-party model integrations) at any time via local configuration.</li>
+<li>Choose which, if any, third-party model provider to use, or run entirely offline with a local model.</li>
+<li>Fork, audit, or modify the source code yourself, since the project is open-source — you can verify these privacy claims directly by reading the code.</li>
+</ul>
+<p>For data you&#x27;ve shared with third parties (a repository host, a model API provider, or via direct email to us), your rights are governed by that party&#x27;s own privacy policy and applicable law (e.g. GDPR, CCPA), and you should contact that party directly to exercise those rights.</p>
+<h3>9. Children&#x27;s Privacy</h3>
+<p>Arch is a developer tool not directed at children, and we do not knowingly collect personal information from children through the software itself, consistent with its local-first, no-telemetry design. If you believe a child has provided personal information to us through direct contact (e.g. email or the issue tracker), please contact us at [contact email or issue tracker link] so we can address it.</p>
+<h3>10. Open-Source License and Transparency</h3>
+<p>Arch is distributed under the [license, e.g. MIT / Apache-2.0] license. Because the source code is publicly available at [repository URL, e.g. github.com/yourname/arch], you — or any third party — can independently verify the data-handling claims made in this policy by inspecting the code directly. We encourage community review and welcome issues or pull requests flagging any behavior that is inconsistent with this policy.</p>
+<h3>11. Changes to This Policy</h3>
+<p>We may update this privacy policy as the project evolves — for example, if new optional features, integrations, or hosted services are introduced. Material changes will be noted in the project&#x27;s changelog or release notes, and the &quot;Effective date&quot; at the top of this document will be updated accordingly. We encourage users to review this policy periodically, particularly before enabling new features that involve network access.</p>
+<h4>11.1 Version history</h4>
+<h3>12. Contact Us</h3>
+<p>If you have questions about this privacy policy, or about how Arch handles data, please reach out through:</p>
+<ul>
+<li>Issue tracker: [repository URL, e.g. github.com/yourname/arch]</li>
+<li>Email: [contact email or issue tracker link]</li>
+</ul>
+<p>We aim to respond to privacy-related inquiries within a reasonable timeframe, consistent with the resources available to an open-source project.</p>
+    <div class="doc-foot"><button class="doc-back" data-close-doc data-i18n="doc.back">← Back to site</button><a class="btn-install" href="Arch_Privacy_Policy.docx" download data-i18n="doc.dl">Download original (.docx)</a></div>
+  </div>
+</div>
+
+<!-- GROK-BOT — circular corner companion -->
+<button id="grokBot" aria-label="Say hi to Arch-bot" title="Arch-bot">
+  <span class="grok-ball" aria-hidden="true">
+    <span class="grok-blob"></span>
+    <span class="eye-wrap left"><span class="eye-pill"></span></span>
+    <span class="eye-wrap right"><span class="eye-pill"></span></span>
+  </span>
+  <span class="grok-hi" aria-hidden="true" data-i18n="bot.hi">Hello</span>
+</button>
+
+<div class="grok-pop" id="grokPop" role="dialog" aria-modal="true" aria-labelledby="grokTitle" hidden>
+  <div class="grok-scrim" data-close-grok></div>
+  <div class="grok-card">
+    <div class="grok-mini" aria-hidden="true"></div>
+    <h2 id="grokTitle" data-i18n="bot.title">Curious who I am?</h2>
+    <p data-i18n="bot.text">I am the agent assistant that handles this stuff silly goose!</p>
+    <p style="margin-top:18px"><button class="btn-install" data-close-grok style="min-height:48px" data-i18n="bot.ok">Got it</button></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* smooth scroll */
+  document.addEventListener('click', function(e){
+    var t = e.target.closest('[data-scrollto]'); if(!t) return;
+    var id = t.getAttribute('data-scrollto');
+    var el = id === 'top' ? document.body : document.getElementById(id);
+    if(!el) return;
+    e.preventDefault();
+    var y = id === 'top' ? 0 : el.getBoundingClientRect().top + window.scrollY - 76;
+    window.scrollTo({top:y, behavior: reduce ? 'auto' : 'smooth'});
+  });
+
+  /* silky reveals */
+  var els = document.querySelectorAll('.reveal');
+  if('IntersectionObserver' in window && !reduce){
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+    },{threshold:.15, rootMargin:'0px 0px -6% 0px'});
+    els.forEach(function(el){ io.observe(el); });
+  } else { els.forEach(function(el){ el.classList.add('in'); }); }
+
+  /* i18n — full-page translation dictionary */
+  var STR = {
+  en:{
+    "nav.download":"Download","nav.features":"Features","nav.faq":"Q&A","nav.get":"Get Arch",
+    "hero.title":"Download Arch",
+    "hero.sub":"Chat, Vibe and get work done without internet, all in one session. Assistant to get things done with your files and projects.",
+    "hero.cta":"Get Arch",
+    "f1t":"Stays private","f1d":"Prompts never leave your device. No account, no cloud, nothing to leak.",
+    "f2t":"Stays light","f2d":"Small on-device model tuned for everyday CPUs. No GPU required.",
+    "f3t":"Works offline","f3d":"Internet needed once for setup \u2014 after that, fully unplugged.",
+    "qa.title":"Questions, answered","qa.sub":"The short version. Everything else is in the app.",
+    "inst.free":"Free","inst.title":"Get <span class=\"arch-word\">Arch</span> for your machine",
+    "inst.sub":"Two installers, no account, no maze. Pick your system and you are chatting in minutes.",
+    "btn.win":"Download for Windows","btn.mac":"Download for macOS",
+    "inst.meta":"Offline after first launch. Requires ~7GB free space during setup (5GB app + installer download)",
+    "foot.qa":"Q&A","foot.terms":"Terms and conditions","foot.privacy":"Privacy Policy",
+    "foot.tag":"Made for rooms with good boundaries.",
+    "bot.hi":"Hello","bot.title":"Curious who I am?",
+    "bot.text":"I am the agent assistant that handles this stuff silly goose!","bot.ok":"Got it"
+  },
+  es:{
+    "nav.download":"Descargar","nav.features":"Funciones","nav.faq":"Preguntas","nav.get":"Obtener Arch",
+    "hero.title":"Descargar Arch",
+    "hero.sub":"Chatea, vibra y trabaja sin internet, todo en una sesi\u00f3n. Asistente para avanzar con tus archivos y proyectos.",
+    "hero.cta":"Obtener Arch",
+    "f1t":"Siempre privado","f1d":"Tus prompts nunca salen de tu dispositivo. Sin cuenta, sin nube, sin filtraciones.",
+    "f2t":"Siempre ligero","f2d":"Modelo local peque\u00f1o, optimizado para CPUs comunes. Sin GPU.",
+    "f3t":"Funciona sin conexi\u00f3n","f3d":"Internet solo una vez para instalar \u2014 despu\u00e9s, totalmente desconectado.",
+    "qa.title":"Preguntas y respuestas","qa.sub":"La versi\u00f3n corta. Todo lo dem\u00e1s est\u00e1 en la app.",
+    "inst.free":"Gratis","inst.title":"Consigue <span class=\"arch-word\">Arch</span> para tu m\u00e1quina",
+    "inst.sub":"Dos instaladores, sin cuenta, sin laberintos. Elige tu sistema y estar\u00e1s chateando en minutos.",
+    "btn.win":"Descargar para Windows","btn.mac":"Descargar para macOS",
+    "inst.meta":"Sin conexi\u00f3n tras el primer arranque. Requiere ~5 GB de espacio libre",
+    "foot.qa":"Preguntas","foot.terms":"T\u00e9rminos y condiciones","foot.privacy":"Pol\u00edtica de privacidad",
+    "foot.tag":"Hecho para espacios con buenos l\u00edmites.",
+    "bot.hi":"Hola","bot.title":"\u00bfTienes curiosidad por saber qui\u00e9n soy?",
+    "bot.text":"\u00a1Soy el asistente que se encarga de estas cosas, tontito!","bot.ok":"Entendido"
+  },
+  fr:{
+    "nav.download":"T\u00e9l\u00e9charger","nav.features":"Fonctionnalit\u00e9s","nav.faq":"Questions","nav.get":"Obtenir Arch",
+    "hero.title":"T\u00e9l\u00e9charger Arch",
+    "hero.sub":"Discutez, vibrez et travaillez sans internet, le tout en une session. Assistant pour avancer avec vos fichiers et projets.",
+    "hero.cta":"Obtenir Arch",
+    "f1t":"Toujours priv\u00e9","f1d":"Vos prompts ne quittent jamais votre appareil. Sans compte, sans cloud, sans fuite.",
+    "f2t":"Toujours l\u00e9ger","f2d":"Petit mod\u00e8le local optimis\u00e9 pour les CPU courants. Sans GPU.",
+    "f3t":"Hors ligne","f3d":"Internet une seule fois pour l\u2019installation \u2014 ensuite, totalement d\u00e9connect\u00e9.",
+    "qa.title":"Questions et r\u00e9ponses","qa.sub":"La version courte. Tout le reste est dans l\u2019app.",
+    "inst.free":"Gratuit","inst.title":"Obtenez <span class=\"arch-word\">Arch</span> pour votre machine",
+    "inst.sub":"Deux installateurs, sans compte, sans labyrinthe. Choisissez votre syst\u00e8me et discutez en quelques minutes.",
+    "btn.win":"T\u00e9l\u00e9charger pour Windows","btn.mac":"T\u00e9l\u00e9charger pour macOS",
+    "inst.meta":"Hors ligne apr\u00e8s le premier lancement. N\u00e9cessite ~5 Go d'espace libre",
+    "foot.qa":"Questions","foot.terms":"Conditions d\u2019utilisation","foot.privacy":"Politique de confidentialit\u00e9",
+    "foot.tag":"Con\u00e7u pour des espaces bien d\u00e9limit\u00e9s.",
+    "bot.hi":"Bonjour","bot.title":"Curieux de savoir qui je suis ?",
+    "bot.text":"Je suis l\u2019assistant qui s\u2019occupe de tout \u00e7a, petit oison !","bot.ok":"Compris"
+  },
+  de:{
+    "nav.download":"Herunterladen","nav.features":"Funktionen","nav.faq":"Fragen","nav.get":"Arch holen",
+    "hero.title":"Arch herunterladen",
+    "hero.sub":"Chatten, viben und arbeiten ohne Internet, alles in einer Sitzung. Assistent, um mit deinen Dateien und Projekten Dinge zu erledigen.",
+    "hero.cta":"Arch holen",
+    "f1t":"Bleibt privat","f1d":"Deine Prompts verlassen nie dein Ger\u00e4t. Kein Konto, keine Cloud, keine Lecks.",
+    "f2t":"Bleibt leicht","f2d":"Kleines lokales Modell, optimiert f\u00fcr allt\u00e4gliche CPUs. Keine GPU n\u00f6tig.",
+    "f3t":"Funktioniert offline","f3d":"Internet nur einmal zur Einrichtung \u2014 danach komplett offline.",
+    "qa.title":"Fragen und Antworten","qa.sub":"Die Kurzfassung. Alles andere ist in der App.",
+    "inst.free":"Kostenlos","inst.title":"Hol dir <span class=\"arch-word\">Arch</span> f\u00fcr deinen Rechner",
+    "inst.sub":"Zwei Installer, kein Konto, kein Labyrinth. W\u00e4hle dein System und chatte in wenigen Minuten.",
+    "btn.win":"F\u00fcr Windows herunterladen","btn.mac":"F\u00fcr macOS herunterladen",
+    "inst.meta":"Nach dem ersten Start offline. Ben\u00f6tigt ~5 GB freien Speicherplatz",
+    "foot.qa":"Fragen","foot.terms":"Allgemeine Gesch\u00e4ftsbedingungen","foot.privacy":"Datenschutzrichtlinie",
+    "foot.tag":"Gemacht f\u00fcr R\u00e4ume mit guten Grenzen.",
+    "bot.hi":"Hallo","bot.title":"Neugierig, wer ich bin?",
+    "bot.text":"Ich bin der Assistent, der sich um dieses Zeug k\u00fcmmert, du alberne Gans!","bot.ok":"Verstanden"
+  },
+  pt:{
+    "nav.download":"Baixar","nav.features":"Recursos","nav.faq":"Perguntas","nav.get":"Obter Arch",
+    "hero.title":"Baixar Arch",
+    "hero.sub":"Converse, curta e trabalhe sem internet, tudo em uma sess\u00e3o. Assistente para resolver tudo com seus arquivos e projetos.",
+    "hero.cta":"Obter Arch",
+    "f1t":"Sempre privado","f1d":"Seus prompts nunca saem do seu dispositivo. Sem conta, sem nuvem, sem vazamentos.",
+    "f2t":"Sempre leve","f2d":"Modelo local pequeno, otimizado para CPUs comuns. Sem GPU.",
+    "f3t":"Funciona offline","f3d":"Internet s\u00f3 uma vez para instalar \u2014 depois, totalmente desconectado.",
+    "qa.title":"Perguntas e respostas","qa.sub":"A vers\u00e3o curta. Todo o resto est\u00e1 no app.",
+    "inst.free":"Gr\u00e1tis","inst.title":"Baixe o <span class=\"arch-word\">Arch</span> para sua m\u00e1quina",
+    "inst.sub":"Dois instaladores, sem conta, sem labirinto. Escolha seu sistema e converse em minutos.",
+    "btn.win":"Baixar para Windows","btn.mac":"Baixar para macOS",
+    "inst.meta":"Offline ap\u00f3s a primeira execu\u00e7\u00e3o. Requer ~5 GB de espa\u00e7o livre",
+    "foot.qa":"Perguntas","foot.terms":"Termos e condi\u00e7\u00f5es","foot.privacy":"Pol\u00edtica de Privacidade",
+    "foot.tag":"Feito para espa\u00e7os com bons limites.",
+    "bot.hi":"Ol\u00e1","bot.title":"Curioso para saber quem sou?",
+    "bot.text":"Sou o assistente que cuida dessas coisas, seu bobinho!","bot.ok":"Entendi"
+  },
+  sw:{
+    "nav.download":"Pakua","nav.features":"Vipengele","nav.faq":"Maswali","nav.get":"Pata Arch",
+    "hero.title":"Pakua Arch",
+    "hero.sub":"Chat, vibe na fanya kazi bila intaneti, yote katika kipindi kimoja. Msaidizi wa kufanya mambo na faili na miradi yako.",
+    "hero.cta":"Pata Arch",
+    "f1t":"Hubaki faragha","f1d":"Maongozi yako hayaondoki kwenye kifaa chako. Hakuna akaunti, hakuna wingu, hakuna uvujaji.",
+    "f2t":"Hubaki mwepesi","f2d":"Mfano mdogo wa ndani ulioboreshwa kwa CPU za kawaida. Hakuna GPU inayohitajika.",
+    "f3t":"Hufanya kazi nje ya mtandao","f3d":"Intaneti mara moja tu kwa usakinishaji \u2014 baada ya hapo, nje ya mtandao kabisa.",
+    "qa.title":"Maswali na majibu","qa.sub":"Toleo fupi. Mengine yote yako kwenye programu.",
+    "inst.free":"Bure","inst.title":"Pata <span class=\"arch-word\">Arch</span> kwa mashine yako",
+    "inst.sub":"Visakinishi viwili, hakuna akaunti, hakuna mazingaombwe. Chagua mfumo wako na uanze kuchat ndani ya dakika chache.",
+    "btn.win":"Pakua kwa Windows","btn.mac":"Pakua kwa macOS",
+    "inst.meta":"Nje ya mtandao baada ya uzinduzi wa kwanza. Inahitaji ~5 GB nafasi ya bure",
+    "foot.qa":"Maswali","foot.terms":"Sheria na masharti","foot.privacy":"Sera ya Faragha",
+    "foot.tag":"Imetengenezwa kwa vyumba vyenye mipaka mizuri.",
+    "bot.hi":"Hujambo","bot.title":"Unatamani kujua mimi ni nani?",
+    "bot.text":"Mimi ni msaidizi anayeshughulikia vitu hivi, wewe bata mcheshi!","bot.ok":"Sawa"
+  },
+  it:{
+    "bot.hi":"Ciao",
+    "bot.ok":"Capito",
+    "doc.back":"← Torna al sito",
+    "doc.dl":"Scarica l'originale (.docx)",
+    "doc.back":"← Rudi kwenye tovuti",
+    "doc.dl":"Pakua asili (.docx)",
+    "doc.back":"← Voltar ao site",
+    "doc.dl":"Baixar original (.docx)",
+    "doc.back":"← Zurück zur Seite",
+    "doc.dl":"Original herunterladen (.docx)",
+    "doc.back":"← Retour au site",
+    "doc.dl":"Télécharger l'original (.docx)",
+    "doc.back":"← Volver al sitio",
+    "doc.dl":"Descargar original (.docx)",
+    "doc.back":"← Back to site",
+    "doc.dl":"Download original (.docx)",
+    "bot.text":"Sono l'assistente che si occupa di questa roba, sciocchino!",
+    "bot.title":"Curioso di sapere chi sono?",
+    "btn.mac":"Scarica per macOS",
+    "btn.win":"Scarica per Windows",
+    "f1d":"I tuoi prompt non lasciano mai il tuo dispositivo. Nessun account, nessun cloud, nessuna fuga di dati.",
+    "f1t":"Sempre privato",
+    "f2d":"Modello locale piccolo, ottimizzato per le CPU comuni. Nessuna GPU richiesta.",
+    "f2t":"Sempre leggero",
+    "f3d":"Internet solo una volta per l'installazione — poi, completamente offline.",
+    "f3t":"Funziona offline",
+    "foot.privacy":"Informativa sulla privacy",
+    "foot.qa":"Domande",
+    "foot.tag":"Fatto per spazi con buoni confini.",
+    "foot.terms":"Termini e condizioni",
+    "hero.cta":"Ottieni Arch",
+    "hero.sub":"Chatta, vibra e lavora senza internet, tutto in un'unica sessione. Assistente per fare cose con i tuoi file e progetti.",
+    "hero.title":"Scarica Arch",
+    "inst.free":"Gratis",
+    "inst.meta":"Offline dopo il primo avvio. Richiede ~5 GB di spazio libero",
+    "inst.sub":"Due installer, nessun account, nessun labirinto. Scegli il tuo sistema e chatta in pochi minuti.",
+    "inst.title":"Ottieni <span class=\"arch-word\">Arch</span> per la tua macchina",
+    "nav.download":"Scarica",
+    "nav.faq":"Domande",
+    "nav.features":"Funzionalità",
+    "nav.get":"Ottieni Arch",
+    "qa.sub":"La versione breve. Tutto il resto è nell'app.",
+    "qa.title":"Domande e risposte"
+  },
+  zh:{
+    "bot.hi":"你好",
+    "bot.ok":"知道了",
+    "doc.back":"← 返回网站",
+    "doc.dl":"下载原件（.docx）",
+    "bot.text":"我是负责处理这些事务的助手，你这个小傻瓜！",
+    "bot.title":"想知道我是谁吗？",
+    "btn.mac":"下载 macOS 版",
+    "btn.win":"下载 Windows 版",
+    "f1d":"提示词永远不会离开你的设备。无账号、无云端、无泄漏。",
+    "f1t":"始终私密",
+    "f2d":"小型本地模型，针对日常 CPU 优化。无需 GPU。",
+    "f2t":"始终轻量",
+    "f3d":"仅在安装时需要一次互联网——之后完全离线。",
+    "f3t":"离线可用",
+    "foot.privacy":"隐私政策",
+    "foot.qa":"问答",
+    "foot.tag":"为界限分明的空间而造。",
+    "foot.terms":"条款和条件",
+    "hero.cta":"获取 Arch",
+    "hero.sub":"在无互联网的情况下聊天、感受氛围并完成工作，全部在一个会话中完成。帮你处理文件和项目的助手。",
+    "hero.title":"下载 Arch",
+    "inst.free":"免费",
+    "inst.meta":"首次启动后可离线。自托管需约 5GB 可用空间",
+    "inst.sub":"两个安装包，无需账号，没有迷宫。选择你的系统，几分钟内即可开始聊天。",
+    "inst.title":"在你的电脑上获取 <span class=\"arch-word\">Arch</span>",
+    "nav.download":"下载",
+    "nav.faq":"问答",
+    "nav.features":"功能",
+    "nav.get":"获取 Arch",
+    "qa.sub":"简短版，其余内容都在应用中。",
+    "qa.title":"问答"
+  },
+  ar:{
+    "bot.hi":"مرحبًا",
+    "bot.ok":"فهمت",
+    "doc.back":"→ العودة إلى الموقع",
+    "doc.dl":"تنزيل الأصل (.docx)",
+    "bot.text":"أنا المساعد الذي يتولى هذه الأمور أيها المشاغب الصغير!",
+    "bot.title":"فضولي لمعرفة من أنا؟",
+    "btn.mac":"تنزيل لنظام macOS",
+    "btn.win":"تنزيل لنظام Windows",
+    "f1d":"لا تغادر مطالباتك جهازك أبدًا. لا حساب، لا سحابة، لا تسريب.",
+    "f1t":"خصوصية دائمة",
+    "f2d":"نموذج محلي صغير محسّن لوحدات المعالجة المركزية العادية. لا حاجة لوحدة معالجة رسومات.",
+    "f2t":"خفيف دائمًا",
+    "f3d":"الإنترنت مرة واحدة فقط للتثبيت — وبعد ذلك دون اتصال تمامًا.",
+    "f3t":"يعمل دون اتصال",
+    "foot.privacy":"سياسة الخصوصية",
+    "foot.qa":"الأسئلة",
+    "foot.tag":"صُنع لغرف ذات حدود جيدة.",
+    "foot.terms":"الشروط والأحكام",
+    "hero.cta":"احصل على Arch",
+    "hero.sub":"تحدث واستمتع وأنجز عملك بدون إنترنت، كل ذلك في جلسة واحدة. مساعد لإنجاز الأمور مع ملفاتك ومشاريعك.",
+    "hero.title":"تنزيل Arch",
+    "inst.free":"مجاني",
+    "inst.meta":"دون اتصال بعد التشغيل الأول. يتطلب ~5 غيغابايت مساحة حرة للاستضافة الذاتية",
+    "inst.sub":"مثبتان اثنان، لا حساب، لا متاهة. اختر نظامك وابدأ الدردشة في دقائق.",
+    "inst.title":"احصل على <span class=\"arch-word\">Arch</span> لجهازك",
+    "nav.download":"تنزيل",
+    "nav.faq":"الأسئلة",
+    "nav.features":"الميزات",
+    "nav.get":"احصل على Arch",
+    "qa.sub":"النسخة المختصرة. كل شيء آخر في التطبيق.",
+    "qa.title":"أسئلة وأجوبة"
+  },
+  fil:{
+    "bot.hi":"Hello",
+    "bot.ok":"Gets",
+    "doc.back":"← Bumalik sa site",
+    "doc.dl":"I-download ang orihinal (.docx)",
+    "bot.text":"Ako ang assistant na nangangasiwa sa mga bagay na ito, loko!",
+    "bot.title":"Curious kung sino ako?",
+    "btn.mac":"I-download para sa macOS",
+    "btn.win":"I-download para sa Windows",
+    "f1d":"Hindi kailanman umaalis ang mga prompt mo sa device mo. Walang account, walang cloud, walang leak.",
+    "f1t":"Laging pribado",
+    "f2d":"Maliit na local model na inangkop para sa karaniwang CPU. Hindi kailangan ng GPU.",
+    "f2t":"Laging magaan",
+    "f3d":"Internet nang isang beses lang para sa setup — pagkatapos, lubusang offline.",
+    "f3t":"Gumagana offline",
+    "foot.privacy":"Patakaran sa Privacy",
+    "foot.qa":"Mga Tanong",
+    "foot.tag":"Ginawa para sa mga kuwartong may maayos na hangganan.",
+    "foot.terms":"Mga Tuntunin at Kundisyon",
+    "hero.cta":"Kunin ang Arch",
+    "hero.sub":"Makipag-chat, mag-vibe, at magtrabaho nang walang internet, lahat sa isang session. Assistant para asikasuhin ang mga file at project mo.",
+    "hero.title":"I-download ang Arch",
+    "inst.free":"Libre",
+    "inst.meta":"Offline pagkatapos ng unang pagbukas. Nananalangin sa ~5 GB libreng espasyo para sa self hosting",
+    "inst.sub":"Dalawang installer, walang account, walang ligaw-ligaw. Piliin ang system mo at makikipag-chat ka na sa loob ng ilang minuto.",
+    "inst.title":"Kunin ang <span class=\"arch-word\">Arch</span> para sa machine mo",
+    "nav.download":"I-download",
+    "nav.faq":"Mga Tanong",
+    "nav.features":"Mga Tampok",
+    "nav.get":"Kunin ang Arch",
+    "qa.sub":"Ang maikling bersyon. Ang lahat ng iba pa ay nasa app.",
+    "qa.title":"Mga tanong at sagot"
+  },
+  ja:{
+    "bot.hi":"こんにちは",
+    "bot.ok":"わかった",
+    "doc.back":"← サイトに戻る",
+    "doc.dl":"原本をダウンロード（.docx）",
+    "bot.text":"このあたりを仕切っているエージェントアシスタントだよ、このおバカさん！",
+    "bot.title":"私が誰だか気になる？",
+    "btn.mac":"macOS版をダウンロード",
+    "btn.win":"Windows版をダウンロード",
+    "f1d":"プロンプトがデバイスから出ることはありません。アカウント不要、クラウド不要、漏洩なし。",
+    "f1t":"プライベートを維持",
+    "f2d":"日常的なCPU向けに調整された小型オンデバイスモデル。GPU不要。",
+    "f2t":"軽量を維持",
+    "f3d":"インターネットはセットアップ時の一度だけ——あとは完全オフライン。",
+    "f3t":"オフラインで動作",
+    "foot.privacy":"プライバシーポリシー",
+    "foot.qa":"質問",
+    "foot.tag":"境界線のしっかりした部屋のために。",
+    "foot.terms":"利用規約",
+    "hero.cta":"Archを入手",
+    "hero.sub":"インターネットなしでチャットもノリも仕事も、すべて1つのセッションで。ファイルやプロcジェクトを片付けるアシスタント。",
+    "hero.title":"Archをダウンロード",
+    "inst.free":"無料",
+    "inst.meta":"初回起動後はオフライン。セルフホスティングには約5GBの空き容量が必要",
+    "inst.sub":"インストーラーは2つ、アカウント不要、迷路なし。システムを選べば数分でチャット開始。",
+    "inst.title":"マシンに<span class=\"arch-word\">Arch</span>を入手",
+    "nav.download":"ダウンロード",
+    "nav.faq":"質問",
+    "nav.features":"機能",
+    "nav.get":"Archを入手",
+    "qa.sub":"短いバージョン。その他はすべてアプリの中に。",
+    "qa.title":"質問と回答"
+  }};
+
+  /* FAQ content per language */
+  var FAQS = {
+  en:[
+    {q:"Do I need the internet?",a:"Only once, for setup. After that Arch runs fully offline on your machine."},
+    {q:"Will it run on my machine?",a:"Yes. Windows 10/11 x64 and macOS 10.15+ (Intel and Apple Silicon). No GPU needed."},
+    {q:"Is my stuff private?",a:"Yes. Chats and files never leave your device. No account, no telemetry."},
+    {q:"How do I install it?",a:"Pick Windows or macOS below, run the installer, and you are chatting in minutes."}
+  ],
+  es:[
+    {q:"\u00bfNecesito internet?",a:"Solo una vez, para instalar. Despu\u00e9s Arch funciona sin conexi\u00f3n en tu m\u00e1quina."},
+    {q:"\u00bfFuncionar\u00e1 en mi m\u00e1quina?",a:"S\u00ed. Windows 10/11 x64 y macOS 10.15+ (Intel y Apple Silicon). Sin GPU."},
+    {q:"\u00bfMis cosas est\u00e1n privadas?",a:"S\u00ed. Chats y archivos nunca salen de tu dispositivo. Sin cuenta, sin telemetr\u00eda."},
+    {q:"\u00bfC\u00f3mo lo instalo?",a:"Elige Windows o macOS abajo, ejecuta el instalador y estar\u00e1s chateando en minutos."}
+  ],
+  fr:[
+    {q:"Faut-il internet ?",a:"Une seule fois, pour l\u2019installation. Ensuite Arch fonctionne hors ligne sur votre machine."},
+    {q:"Tournera-t-il sur ma machine ?",a:"Oui. Windows 10/11 x64 et macOS 10.15+ (Intel et Apple Silicon). Sans GPU."},
+    {q:"Mes donn\u00e9es sont-elles priv\u00e9es ?",a:"Oui. Chats et fichiers ne quittent jamais votre appareil. Sans compte, sans t\u00e9l\u00e9m\u00e9trie."},
+    {q:"Comment l\u2019installer ?",a:"Choisissez Windows ou macOS ci-dessous, lancez l\u2019installateur et discutez en quelques minutes."}
+  ],
+  de:[
+    {q:"Brauche ich Internet?",a:"Nur einmal, zur Einrichtung. Danach l\u00e4uft Arch vollst\u00e4ndig offline auf deinem Rechner."},
+    {q:"L\u00e4uft es auf meinem Rechner?",a:"Ja. Windows 10/11 x64 und macOS 10.15+ (Intel und Apple Silicon). Keine GPU n\u00f6tig."},
+    {q:"Sind meine Daten privat?",a:"Ja. Chats und Dateien verlassen nie dein Ger\u00e4t. Kein Konto, keine Telemetrie."},
+    {q:"Wie installiere ich es?",a:"W\u00e4hle unten Windows oder macOS, starte den Installer und chatte in wenigen Minuten."}
+  ],
+  pt:[
+    {q:"Preciso de internet?",a:"S\u00f3 uma vez, para instalar. Depois o Arch roda totalmente offline na sua m\u00e1quina."},
+    {q:"Vai rodar na minha m\u00e1quina?",a:"Sim. Windows 10/11 x64 e macOS 10.15+ (Intel e Apple Silicon). Sem GPU."},
+    {q:"Minhas coisas s\u00e3o privadas?",a:"Sim. Conversas e arquivos nunca saem do seu dispositivo. Sem conta, sem telemetria."},
+    {q:"Como instalo?",a:"Escolha Windows ou macOS abaixo, execute o instalador e converse em minutos."}
+  ],
+  sw:[
+    {q:"Je, ninahitaji intaneti?",a:"Mara moja tu, kwa usakinishaji. Baada ya hapo Arch hufanya kazi nje ya mtandao kwenye mashine yako."},
+    {q:"Je, itafanya kazi kwenye mashine yangu?",a:"Ndiyo. Windows 10/11 x64 na macOS 10.15+ (Intel na Apple Silicon). Hakuna GPU inayohitajika."},
+    {q:"Je, vitu vyangu ni vya faragha?",a:"Ndiyo. Chat na faili haziondoki kwenye kifaa chako. Hakuna akaunti, hakuna telemetry."},
+    {q:"Je, naisakinishaje?",a:"Chagua Windows au macOS hapo chini, endesha kisakinishi, na utakuwa unachat ndani ya dakika chache."}
+  ],
+  it:[
+    {q:"Serve internet?",a:"Solo una volta, per l'installazione. Poi Arch funziona completamente offline sulla tua macchina."},
+    {q:"Funzionerà sulla mia macchina?",a:"Sì. Windows 10/11 x64 e macOS 10.15+ (Intel e Apple Silicon). Nessuna GPU richiesta."},
+    {q:"Le mie cose sono private?",a:"Sì. Chat e file non lasciano mai il tuo dispositivo. Nessun account, nessuna telemetria."},
+    {q:"Come lo installo?",a:"Scegli Windows o macOS qui sotto, avvia l'installer e chatta in pochi minuti."}
+  ],
+  zh:[
+    {q:"需要互联网吗？",a:"只需一次，用于安装。之后 Arch 在你的电脑上完全离线运行。"},
+    {q:"能在我的电脑上运行吗？",a:"可以。Windows 10/11 x64 和 macOS 10.15+（Intel 和 Apple Silicon）。无需 GPU。"},
+    {q:"我的东西是私密的吗？",a:"是的。聊天和文件永远不会离开你的设备。无账号、无遥测。"},
+    {q:"如何安装？",a:"在下方选择 Windows 或 macOS，运行安装程序，几分钟内即可开始聊天。"}
+  ],
+  ar:[
+    {q:"هل أحتاج إلى الإنترنت؟",a:"مرة واحدة فقط، للتثبيت. بعد ذلك يعمل Arch دون اتصال تمامًا على جهازك."},
+    {q:"هل سيعمل على جهازي؟",a:"نعم. Windows 10/11 x64 وmacOS 10.15+ (Intel وApple Silicon). لا حاجة لوحدة معالجة رسومات."},
+    {q:"هل أشيائي خاصة؟",a:"نعم. لا تغادر الدردشات والملفات جهازك أبدًا. لا حساب، لا قياس عن بُعد."},
+    {q:"كيف أثبته؟",a:"اختر Windows أو macOS أدناه، وشغّل المثبت، وستبدأ الدردشة في دقائق."}
+  ],
+  fil:[
+    {q:"Kailangan ko ba ng internet?",a:"Isang beses lang, para sa setup. Pagkatapos, lubusang offline na tumatakbo ang Arch sa machine mo."},
+    {q:"Gagana ba ito sa machine ko?",a:"Oo. Windows 10/11 x64 at macOS 10.15+ (Intel at Apple Silicon). Hindi kailangan ng GPU."},
+    {q:"Pribado ba ang mga gamit ko?",a:"Oo. Hindi kailanman umaalis ang mga chat at file sa device mo. Walang account, walang telemetry."},
+    {q:"Paano ito i-install?",a:"Piliin ang Windows o macOS sa ibaba, patakbuhin ang installer, at makikipag-chat ka na sa loob ng ilang minuto."}
+  ],
+  ja:[
+    {q:"インターネットは必要？",a:"セットアップ時の一度だけ。その後はマシン上で完全オフラインで動作します。"},
+    {q:"私のマシンで動く？",a:"はい。Windows 10/11 x64およびmacOS 10.15以降（IntelおよびApple Silicon）。GPU不要。"},
+    {q:"プライバシーは大丈夫？",a:"はい。チャットもファイルもデバイスから出ません。アカウントもテレメトリもなし。"},
+    {q:"インストール方法は？",a:"下でWindowsかmacOSを選んでインストーラーを実行すれば、数分でチャット開始。"}
+  ]};
+
+  var langCode = "en";
+  var list = document.getElementById("faqList");
+  function buildFaqItem(f){
+    var w = document.createElement("div"); w.className = "faq-item"; w.setAttribute("data-open","false");
+    w.innerHTML = "<button class=\"faq-q\" aria-expanded=\"false\"><span>"+f.q+"</span><span>+</span></button><div class=\"faq-a\"><p>"+f.a+"</p></div>";
+    var b = w.querySelector(".faq-q"), p = w.querySelector(".faq-a");
+    b.addEventListener("click", function(){
+      var open = w.getAttribute("data-open") === "true";
+      document.querySelectorAll(".faq-item").forEach(function(o){ o.setAttribute("data-open","false"); o.querySelector(".faq-a").style.maxHeight = "0px"; o.querySelector(".faq-q").setAttribute("aria-expanded","false"); });
+      if(!open){ w.setAttribute("data-open","true"); b.setAttribute("aria-expanded","true"); p.style.maxHeight = p.scrollHeight + "px"; }
+    });
+    return w;
+  }
+  function renderFaqs(){
+    if(!list) return;
+    list.innerHTML = "";
+    FAQS[langCode].forEach(function(f){ list.appendChild(buildFaqItem(f)); });
+  }
+  function applyLang(code){
+    if(!STR[code]) code = "en";
+    langCode = code;
+    var d = STR[code];
+    document.querySelectorAll("[data-i18n]").forEach(function(el){
+      var k = el.getAttribute("data-i18n");
+      if(d[k] != null) el.innerHTML = d[k];
+    });
+    renderFaqs();
+    document.documentElement.lang = code;
+  }
+  window.__applyLang = applyLang;
+  renderFaqs();
+
+  /* document reader — separate in-tab view with hash routing */
+  (function(){
+    var VIEWS = {terms: 'termsModal', privacy: 'privacyModal'};
+    var NAMES = {termsModal: 'terms', privacyModal: 'privacy'};
+    var suppress = false;
+    function currentOpen(){
+      var open = null;
+      document.querySelectorAll('.doc-modal').forEach(function(m){
+        if(!m.hidden && m.classList.contains('open-page')) open = m;
+      });
+      return open;
+    }
+    function openDoc(id, push){
+      document.querySelectorAll('.doc-modal').forEach(function(m){
+        var on = (m.id === id);
+        m.hidden = !on;
+        m.classList.toggle('open-page', on);
+      });
+      document.body.classList.add('doc-open');
+      window.scrollTo(0, 0);
+      var c = document.getElementById(id).querySelector('.doc-close');
+      if(c) c.focus({preventScroll: true});
+      if(push !== false){
+        suppress = true;
+        try { location.hash = NAMES[id]; } catch(e){}
+        setTimeout(function(){ suppress = false; }, 0);
+      }
+    }
+    function closeDoc(push){
+      document.querySelectorAll('.doc-modal').forEach(function(m){ m.hidden = true; m.classList.remove('open-page'); });
+      document.body.classList.remove('doc-open');
+      if(push !== false){
+        suppress = true;
+        try { history.pushState('', document.title, location.pathname + location.search); }
+        catch(e){ try { location.hash = ''; } catch(_){} }
+        setTimeout/* direct release-asset links (static host) */
+
+  /* language picker menu */
+  (function(){
+    var btn = document.getElementById('langBtn');
+    var menu = document.getElementById('langMenu');
+    var label = document.getElementById('langLabel');
+    if(!btn || !menu) return;
+    var codeMap = {English:'en', 'Español':'es', 'Français':'fr', Deutsch:'de', 'Português':'pt', Kiswahili:'sw', 'Italiano':'it', '中文':'zh', 'العربية':'ar', 'Filipino':'fil', '日本語':'ja'};
+    function close(){ menu.hidden = true; btn.setAttribute('aria-expanded','false'); }
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var open = menu.hidden;
+      menu.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+    });
+    menu.querySelectorAll('.lang-opt').forEach(function(opt){
+      opt.addEventListener('click', function(){
+        menu.querySelectorAll('.lang-opt').forEach(function(o){ o.classList.remove('selected'); o.setAttribute('aria-selected','false'); });
+        opt.classList.add('selected'); opt.setAttribute('aria-selected','true');
+        label.textContent = opt.getAttribute('data-lang');
+        if(window.__applyLang) window.__applyLang(codeMap[opt.getAttribute('data-lang')] || 'en');
+        close(); btn.focus();
+      });
+    });
+    document.addEventListener('click', function(e){ if(!menu.hidden && !e.target.closest('.lang-wrap')) close(); });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !menu.hidden){ close(); btn.focus(); } });
+  })();
+
+  /* GROK-BOT — eyes track cursor, ball leans, blinks, bounces */
+  var bot = document.getElementById('grokBot');
+  var ball = bot.querySelector('.grok-ball');
+  var eyes = Array.prototype.slice.call(document.querySelectorAll('.eye-wrap'));
+  var mx = window.innerWidth/2, my = window.innerHeight/2, lx = mx, ly = my;
+  document.addEventListener('mousemove', function(e){ mx = e.clientX; my = e.clientY; }, {passive:true});
+  document.addEventListener('touchmove', function(e){ if(e.touches[0]){ mx = e.touches[0].clientX; my = e.touches[0].clientY; } }, {passive:true});
+  function loop(){
+    lx += (mx - lx) * (reduce ? 1 : 0.12);
+    ly += (my - ly) * (reduce ? 1 : 0.12);
+    var br = ball.getBoundingClientRect();
+    var bx = br.left + br.width/2, by = br.top + br.height/2;
+    eyes.forEach(function(eye){
+      var r = eye.getBoundingClientRect();
+      var cx = r.left + r.width/2, cy = r.top + r.height/2;
+      var dx = lx - cx, dy = ly - cy;
+      var d = Math.sqrt(dx*dx + dy*dy) || 1;
+      var m = Math.min(8, d * 0.04);
+      eye.style.transform = 'translate(' + (dx/d*m).toFixed(2) + 'px,' + (dy/d*m).toFixed(2) + 'px)';
+    });
+    if(!reduce){
+      var tiltX = Math.max(-1, Math.min(1, (lx - bx) / window.innerWidth * 2));
+      var tiltY = Math.max(-1, Math.min(1, (ly - by) / window.innerHeight * 2));
+      ball.style.rotate = (tiltX * 7).toFixed(2) + 'deg';
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  /* blinking */
+  setInterval(function(){
+    if(document.hidden) return;
+    bot.classList.add('blinking');
+    setTimeout(function(){ bot.classList.remove('blinking'); }, 160);
+  }, 3400);
+
+  /* happy bounce on click */
+  var bouncing = false;
+  bot.addEventListener('pointerdown', function(){
+    if(bouncing || reduce) return; bouncing = true;
+    ball.animate(
+      [{transform:'scale(1)'},{transform:'scale(1.18,.82)'},{transform:'scale(.92,1.1)'},{transform:'scale(1)'}],
+      {duration:420, easing:'cubic-bezier(.32,.72,0,1)'}
+    ).onfinish = function(){ bouncing = false; };
+  });
+
+  /* popup */
+  var pop = document.getElementById('grokPop');
+  bot.addEventListener('click', function(){ pop.hidden = false; });
+  pop.querySelectorAll('[data-close-grok]').forEach(function(el){
+    el.addEventListener('click', function(){ pop.hidden = true; bot.focus(); });
+  });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !pop.hidden){ pop.hidden = true; } });
+})();
+</script>
+</body>
+</html>
