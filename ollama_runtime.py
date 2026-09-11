@@ -21,7 +21,8 @@ BASE_MODELS = {
 }
 
 PORTABLE_DIR = os.path.join(APP_DIR, 'ollama')
-OLLAMA_EXE = os.path.join(PORTABLE_DIR, 'ollama.exe')
+# Binary name is platform-specific (wizard installs the right one per OS).
+OLLAMA_EXE = os.path.join(PORTABLE_DIR, "ollama.exe" if os.name == "nt" else "ollama")
 PORTABLE_MODELS = os.path.join(PORTABLE_DIR, 'models')
 
 
@@ -81,14 +82,19 @@ def _start_portable_serve():
         return False
     try:
         os.makedirs(PORTABLE_MODELS, exist_ok=True)
-        flags = 0x08000000 | subprocess.DETACHED_PROCESS
+        if os.name == "nt":
+            flags = 0x08000000 | subprocess.DETACHED_PROCESS
+            proc_kwargs = dict(creationflags=flags)
+        else:
+            # macOS/Linux: detach into its own session, silence output
+            proc_kwargs = dict(start_new_session=True)
         subprocess.Popen(
             [OLLAMA_EXE, "serve"],
             env=_env_for_portable(),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            creationflags=flags,
+            **proc_kwargs,
         )
     except Exception:
         return False
@@ -100,9 +106,21 @@ def _start_portable_serve():
 
 
 def _pids_listening_on(port):
-    """PIDs with a TCP LISTEN socket on 127.0.0.1:port (Windows netstat)."""
+    """PIDs with a TCP LISTEN socket on 127.0.0.1:port.
+
+    Windows: parses `netstat -ano`. macOS/Linux: uses `lsof -ti`.
+    """
     pids = set()
     try:
+        if os.name != "nt":
+            out = subprocess.run(
+                ["lsof", "-ti", f"tcp:{port}"],
+                capture_output=True, timeout=15,
+            )
+            for token in (out.stdout or b"").decode("utf-8", "replace").split():
+                if token.strip().isdigit():
+                    pids.add(token.strip())
+            return pids
         out = subprocess.run(
             ["netstat", "-ano"], capture_output=True, timeout=15,
             creationflags=0x08000000 if os.name == 'nt' else 0,
@@ -131,11 +149,14 @@ def stop_portable():
             if pid == str(os.getpid()):
                 continue
             try:
-                subprocess.run(
-                    ["taskkill", "/F", "/PID", pid, "/T"],
-                    capture_output=True, timeout=30,
-                    creationflags=0x08000000 if os.name == 'nt' else 0,
-                )
+                if os.name == "nt":
+                    subprocess.run(
+                        ["taskkill", "/F", "/PID", pid, "/T"],
+                        capture_output=True, timeout=30,
+                        creationflags=0x08000000 if os.name == 'nt' else 0,
+                    )
+                else:
+                    subprocess.run(["kill", "-9", str(pid)], capture_output=True, timeout=30)
             except Exception:
                 pass
         for _ in range(10):
@@ -150,12 +171,26 @@ def stop_portable():
 
 def start_system_ollama():
     try:
-        path = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "Ollama", "ollama.exe")
-        if not os.path.exists(path):
-            path = os.path.join(os.environ.get("ProgramFiles", ""), "Ollama", "ollama.exe")
-        if os.path.exists(path):
-            flags = 0x08000000
-            subprocess.Popen([path, "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags)
+        if os.name == "nt":
+            cands = [
+                os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "Ollama", "ollama.exe"),
+                os.path.join(os.environ.get("ProgramFiles", ""), "Ollama", "ollama.exe"),
+            ]
+        else:
+            # macOS: Homebrew, /usr/local, or the official Ollama.app
+            cands = [
+                "/opt/homebrew/bin/ollama",
+                "/usr/local/bin/ollama",
+                "/Applications/Ollama.app/Contents/Resources/ollama",
+            ]
+        path = next((p for p in cands if p and os.path.exists(p)), None)
+        if path:
+            if os.name == "nt":
+                subprocess.Popen([path, "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                 creationflags=0x08000000)
+            else:
+                subprocess.Popen([path, "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                 start_new_session=True)
             return True
     except Exception:
         pass

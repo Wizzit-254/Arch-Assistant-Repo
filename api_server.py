@@ -610,7 +610,7 @@ class Handler(BaseHTTPRequestHandler):
                 target = target.strip().rstrip(".")
                 self.wfile.write(emit_event({"action": "open", "target": target}, event="system_action").encode("utf-8"))
                 self.wfile.flush()
-                _sp.Popen(["cmd", "/c", "start", "", target],
+                _sp.Popen(["open", target] if os.name != "nt" else ["cmd", "/c", "start", "", target],
                           stdout=_sp.DEVNULL, stderr=_sp.DEVNULL,
                           creationflags=getattr(_sp, "CREATE_NO_WINDOW", 0))
             self.wfile.write(emit_event(None, event="done").encode("utf-8"))
@@ -625,6 +625,11 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, {"query": query, "count": len(results), "results": results})
 
     def _handle_stt(self, body):
+        import subprocess as _sp2
+        # Voice input via Windows speech script — Windows only for now.
+        if os.name != "nt":
+            self._send(200, {"error": "voice input is Windows-only in this build", "text": ""})
+            return
         duration = min(max(int(body.get("duration", 8)), 1), 20)
         import subprocess
         ps = os.path.join(APP_DIR, "speech_stt.ps1")

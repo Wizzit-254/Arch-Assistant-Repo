@@ -122,10 +122,22 @@ async function resolvePython(){
     const localApp = process.env.LOCALAPPDATA || "";
     const progFiles = process.env.ProgramFiles || "C:\\Program Files";
     const candidates = [];
+    if(process.platform !== "win32"){
+      // macOS/Linux: Homebrew, system, and Xcode python3 builds
+      candidates.push(["/opt/homebrew/bin/python3", []]);
+      candidates.push(["/usr/local/bin/python3", []]);
+      candidates.push(["/usr/bin/python3", []]);
+    }
     if(localApp) candidates.push([path.join(localApp, "Programs", "Python", "Python312", "python.exe"), []]);
     if(progFiles) candidates.push([path.join(progFiles, "Python312", "python.exe"), []]);
     for(const [exe, pre] of candidates){
       try { if(exe && fs.existsSync(exe) && await pythonWorks(exe, pre)) return [exe, pre]; } catch(e){}
+    }
+    if(await commandExists("python3")){
+      try {
+        const v = await runHidden("python3", ["-c", "import sys;sys.exit(0 if sys.version_info>=(3,9) else 1)"], 15000);
+        if(v.code === 0) return ["python3", []];
+      } catch(e){}
     }
     if(await commandExists("python")){
       try {
@@ -145,6 +157,11 @@ async function ensurePython(online){
     let found = await resolvePython();
     if(found){ runtimePython = found; return found; }
     if(!online) return null; // offline: can't fetch, don't hang
+    if(process.platform !== "win32"){
+      // macOS/Linux: rely on system python3 (preinstalled on macOS).
+      // The backend runs with reduced features if pip packages are missing.
+      return null;
+    }
     // Silently install official Python per-user (no admin, no PATH change, no UI)
     const tmp = process.env.TEMP || process.env.TMP || os.tmpdir();
     const installer = path.join(tmp, "arch-python-setup.exe");
@@ -250,6 +267,27 @@ function pingBackend(timeout = 400){
 }
 
 function killProcessOnPort(port){
+  // macOS/Linux: lsof + kill. Windows: netstat + taskkill.
+  if(process.platform !== "win32"){
+    return new Promise((resolve) => {
+      try {
+        const child = spawn('lsof', ['-ti', 'tcp:' + port], { stdio: ['ignore', 'pipe', 'ignore'] });
+        let stdout = '';
+        child.stdout.on('data', (d) => stdout += d.toString());
+        child.on('close', () => {
+          const pids = stdout.split(/[^0-9]+/).filter(p => p && p !== String(process.pid));
+          if(pids.length === 0){ resolve(false); return; }
+          let done = 0;
+          for(const pid of pids){
+            const k = spawn('kill', ['-9', pid], { stdio: 'ignore' });
+            k.on('close', () => { if(++done >= pids.length) resolve(true); });
+            k.on('error', () => { if(++done >= pids.length) resolve(true); });
+          }
+        });
+        child.on('error', () => resolve(false));
+      } catch(e){ resolve(false); }
+    });
+  }
   return new Promise((resolve) => {
     try {
       const child = spawn('netstat', ['-ano'], { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
@@ -363,10 +401,13 @@ function startBackend(win){
   try {
     const root = resolveAppRoot();
     const script = path.join(root, "api_server.py");
-    const tries = [
+    const tries = process.platform === "win32" ? [
       ["python",  ["-u", script]],
       ["pythonw", ["-u", script]],
       ["py",      ["-3", "-u", script]],
+    ] : [
+      ["python3", ["-u", script]],
+      ["python",  ["-u", script]],
     ];
     let idx = 0;
 
@@ -532,15 +573,23 @@ app.on("before-quit", () => {
   killProcessOnPort(11435);
   // Also kill system-level Ollama (port 11434) and all ollama processes
   killProcessOnPort(11434);
-  // Kill any lingering ollama.exe processes
+  // Kill any lingering ollama processes (platform-aware)
   try {
     const { execSync } = require("child_process");
-    execSync("taskkill /F /IM ollama.exe /T 2>nul || true", { windowsHide: true, timeout: 5000 });
+    if(process.platform === "win32"){
+      execSync("taskkill /F /IM ollama.exe /T 2>nul || true", { windowsHide: true, timeout: 5000 });
+    } else {
+      execSync("pkill -x ollama 2>/dev/null || true", { timeout: 5000 });
+    }
   } catch(e){}
-  // Force-kill any orphaned llama-server or arch processes
+  // Force-kill any orphaned inference runners
   try {
     const { execSync } = require("child_process");
-    execSync("taskkill /F /IM llama-server.exe /T 2>nul || true", { windowsHide: true, timeout: 5000 });
+    if(process.platform === "win32"){
+      execSync("taskkill /F /IM llama-server.exe /T 2>nul || true", { windowsHide: true, timeout: 5000 });
+    } else {
+      execSync("pkill -f 'ollama runner' 2>/dev/null || true", { timeout: 5000 });
+    }
   } catch(e){}
   // Signal the backend API server to stop Ollama cleanly
   try {

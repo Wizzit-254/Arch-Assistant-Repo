@@ -1,0 +1,2 @@
+ArchAssistant-macOS.command text eol=lf
+build-macos-installer.sh text eol=lf
