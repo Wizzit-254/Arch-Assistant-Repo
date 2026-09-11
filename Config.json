@@ -2,7 +2,7 @@
   "api_port": 9332,
   "ollama_port": 11435,
   "default_model": "luna-5.3",
-  "fish_api_key": "sk-fish-yWnxbrHHtqAXubz7i0QPo1sXv1wPqHoWzOO4VyZXWUA",
+  "fish_api_key": "",
   "fish_voices": {
     "Angel": "4cf07afcf2ae4aa1ae4da28ddf479c9e",
     "Khan": "52d9d3c3b6f845aea0a0a03c7ad9a61d",
