@@ -198,9 +198,11 @@ def get_active_host():
 
 
 # --- Idle-stop watchdog: stop Ollama after a configurable idle period ---
-# Saves RAM when the user isn't actively asking questions. Ollama is lazily
-# restarted on the next request via ensure_ollama().
-IDLE_TIMEOUT_SECONDS = 600  # 10 minutes idle -> stop Ollama
+# Saves RAM when the user walks away for a long time. Ollama is lazily
+# restarted on the next request via ensure_ollama(). Kept LONG (60 min) so
+# the model stays hot in RAM during a normal session — killing it is what
+# made every other question pay a full multi-GB model reload.
+IDLE_TIMEOUT_SECONDS = 3600  # 60 minutes idle -> stop Ollama
 _tts_last_activity = 0.0
 _idle_watchdog_running = False
 
@@ -311,7 +313,7 @@ def warmup_model(model="luna-5.3", timeout=240):
                     "prompt": "hi",
                     "stream": False,
                     "keep_alive": "4h",
-                    "options": {"num_predict": 1, "num_ctx": 1536, "num_batch": 128},
+                    "options": {"num_predict": 1, "num_ctx": 1536, "num_batch": 512},
                 }).encode("utf-8")
                 req = urllib.request.Request(
                     host.rstrip("/") + "/api/generate", data=body, method="POST",

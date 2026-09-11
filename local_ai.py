@@ -510,11 +510,14 @@ def search_context(query, n=5):
 
 
 def _cpu_threads():
-    """Use half of logical CPUs to reduce contention and memory overhead on
-    low-RAM PCs where swapping dominates latency."""
+    """Use nearly all logical CPUs for fast decoding.
+
+    The Python backend is almost entirely idle while Ollama streams, so
+    giving the model server n-1 threads (min 2) is safe and decodes
+    markedly faster than the old half-cores setting."""
     try:
         n = os.cpu_count() or 4
-        return max(2, n // 2)
+        return max(2, n - 1)
     except Exception:
         return 4
 
@@ -783,7 +786,8 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
     - num_ctx: 2048 — fits system prompt + recent conversation turns + answer
     - history is trimmed newest-first to a token budget so follow-ups
       ("repeat that", "continue") always resolve inside the same chat
-    - num_batch: 128 — fast prompt eval, no spike at these ctx sizes
+    - num_batch: 512 — much faster prompt processing (time-to-first-token)
+      than 128, with negligible extra RAM at this ctx size
     - num_predict: 384 — answers complete instead of cutting off; short
       replies still stop at EOS so typical latency is unchanged
     - num_threads: half the logical cores (4 on 8-core) to cut contention
@@ -849,7 +853,7 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
             "top_k": top_k,
             "repeat_penalty": repeat_penalty,
             "repeat_last_n": 4,
-            "num_batch": 128,
+            "num_batch": 512,
             "num_ctx": nctx,
             "num_predict": 384,
             "num_threads": _cpu_threads(),
@@ -922,7 +926,7 @@ def edit_stream(file_text, instruction, model=None):
     resp = _post("/api/generate", {"model": mdl, "prompt": prompt, "stream": True,
                                     "options": {"temperature": 0.2, "top_p": 0.7, "top_k": 10,
                                                 "repeat_penalty": 1.05, "repeat_last_n": 4,
-                                                  "num_batch": 128, "num_ctx": 2048, "num_predict": 384,
+                                                  "num_batch": 512, "num_ctx": 2048, "num_predict": 384,
                                                 "num_threads": _cpu_threads(),
                                                 "num_threads_batch": 1, "keep_alive": 3600}})
     for chunk in _read_stream(resp):
