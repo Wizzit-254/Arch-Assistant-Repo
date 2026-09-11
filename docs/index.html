@@ -1105,8 +1105,34 @@ body.doc-open .site-header,body.doc-open main,body.doc-open .site-footer,body.do
         suppress = true;
         try { history.pushState('', document.title, location.pathname + location.search); }
         catch(e){ try { location.hash = ''; } catch(_){} }
-        setTimeout/* direct release-asset links (static host) */
+        setTimeout(function(){ suppress = false; }, 0);
+      }
+    }
+    var triggers = {termsLink: 'termsModal', privacyLink: 'privacyModal'};
+    Object.keys(triggers).forEach(function(linkId){
+      var a = document.getElementById(linkId);
+      if(a) a.addEventListener('click', function(e){ e.preventDefault(); openDoc(triggers[linkId]); });
+    });
+    document.querySelectorAll('.doc-modal').forEach(function(m){
+      m.querySelectorAll('[data-close-doc]').forEach(function(el){
+        el.addEventListener('click', function(){ closeDoc(); });
+      });
+    });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && currentOpen()) closeDoc(); });
+    window.addEventListener('hashchange', function(){
+      if(suppress) return;
+      var h = location.hash.replace('#', '');
+      if(VIEWS[h]) openDoc(VIEWS[h], false);
+      else if(currentOpen()) closeDoc(false);
+    });
+    (function init(){
+      var h = location.hash.replace('#', '');
+      if(VIEWS[h]) openDoc(VIEWS[h], false);
+    })();
+  })();
 
+  /* secure downloads — proof-of-work ticket flow (needs server.mjs; falls back to a direct file link) */
+  /* direct release-asset links (static host: no PoW needed) */
   /* language picker menu */
   (function(){
     var btn = document.getElementById('langBtn');
