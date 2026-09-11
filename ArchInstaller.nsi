@@ -1,7 +1,6 @@
 ; Arch Assistant Installer v3 - NSIS Script
 ; TOR Browser-style with language selection
-; NO external batch files - downloads and extracts using NSIS built-in
-; Under 60MB - downloads 5GB model bundle during install
+; Downloads + extracts 5GB app bundle during install (no external scripts)
 ;
 ; Build with:
 ;   "C:\Program Files (x86)\NSIS\makensis.exe" /V2 "C:\Users/trevo/Downloads/Arch-Repo\ArchInstaller.nsi"
@@ -9,10 +8,10 @@
 !define APP_NAME "Arch Assistant"
 !define APP_VERSION "1.0.0"
 !define APP_WEBSITE "https://github.com/Wizzit-254/Arch-Assistant-Repo"
-!define APP_DOWNLOAD "https://github.com/Wizzit-254/Arch-Assistant-Repo/releases/latest/download/Arch-Assistant-App.zip"
-!define APP_REPO "https://github.com/Wizzit-254/Arch-Assistant-Repo"
+!define APP_DOWNLOAD "https://github.com/Wizzit-254/Arch-Assistant-Repo/releases/download/v1.0.0/Arch-Assistant-App.zip"
 
 !include "LogicLib.nsh"
+!include "FileFunc.nsh"
 !include "Sections.nsh"
 !include "MUI2.nsh"
 
@@ -28,10 +27,6 @@ ShowInstDetails show
 RequestExecutionLevel user
 
 ; --- Pages ---
-!define MUI_PAGE_FINISH
-!define MUI_FINISHPAGE_RUN "$INSTDIR\Arch.exe"
-!define MUI_FINISHPAGE_RUN_NOTFOUND_MSG "Arch.exe not found in install directory"
-
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "C:\Users/trevo/Downloads/Arch-Repo\LICENSE.txt"
 !insertmacro MUI_PAGE_COMPONENTS
@@ -41,6 +36,7 @@ RequestExecutionLevel user
 
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
+!insertmacro MUI_UNPAGE_FINISH
 
 ; --- Languages ---
 !insertmacro MUI_LANGUAGE "English"
@@ -64,23 +60,23 @@ RequestExecutionLevel user
 
 Section "!Arch Assistant (required)" SecMain
     SectionIn RO
+    
     SetOutPath "$INSTDIR"
     CreateDirectory "$INSTDIR"
     
     WriteRegStr HKLM "SOFTWARE\ArchAssistant" "Install_Dir" "$INSTDIR"
     WriteRegStr HKLM "SOFTWARE\ArchAssistant" "Version" "${APP_VERSION}"
     
-    ; Download the 5GB app bundle
-    DetailPrint "Downloading Arch Assistant app bundle (~1.85 GB) from GitHub..."
-    DetailPrint "URL: ${APP_DOWNLOAD}"
+    ; Download the 5GB app bundle using NSISdl
+    DetailPrint "Downloading Arch Assistant app bundle (~5GB) from GitHub..."
+    DetailPrint "This may take 10-30 minutes depending on your connection."
     
-    ; Use NSISdl plugin for download (built in)
     NSISDL::Download /TIMEOUT=300000 "${APP_DOWNLOAD}" "$INSTDIR\Arch-Assistant-App.zip"
     Pop $9
     ${If} $9 == "success"
         DetailPrint "Download complete. Extracting..."
         
-        ; Extract using PowerShell (Expand-Archive is built into Windows 10/11)
+        ; Extract using PowerShell Expand-Archive
         DetailPrint "Extracting archive..."
         nsExec::ExecToLog 'powershell.exe -NoProfile -Command "Expand-Archive -Path ''$INSTDIR\Arch-Assistant-App.zip'' -DestinationPath ''$INSTDIR'' -Force"'
         
@@ -90,7 +86,7 @@ Section "!Arch Assistant (required)" SecMain
         DetailPrint "Installation complete!"
     ${Else}
         DetailPrint "Download failed: $9"
-        MessageBox MB_ICONSTOP|MB_OK "Download failed: $9$\n$\nTry downloading manually from:$\n${APP_DOWNLOAD}"
+        MessageBox MB_ICONSTOP|MB_OK "Download failed: $9$\n$\nPlease check your internet connection and try again.$\n$\nManual download:$\n${APP_DOWNLOAD}"
         Abort
     ${EndIf}
 SectionEnd
@@ -122,7 +118,6 @@ Section "Uninstall"
     Delete "$SMPROGRAMS\Arch Assistant\Uninstall.lnk"
     RMDir "$SMPROGRAMS\Arch Assistant"
     
-    ; Delete all files in install directory
     RMDir /r "$INSTDIR"
     RMDir "$LOCALAPPDATA\ArchAssistant"
     
