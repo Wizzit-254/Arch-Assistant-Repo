@@ -1109,9 +1109,10 @@
    .footer-hint{ font-size: 12px; color: var(--text-faint); }
    .voice-profile-set{ display:flex; gap:12px; padding: 12px 24px; }
    .vp-field{ display:flex; flex-direction:column; gap:4px; flex:1; }
-   .vp-field label{ font-size:11px; text-transform:uppercase; letter-spacing:.04em; color: var(--text-faint); }
-   .vp-field input{ padding:8px 10px; border:1px solid var(--border-soft); border-radius:8px; background:var(--bg-panel); color:var(--text-bright); font-size:13px; }
-   .vp-field select{ padding:8px 10px; border:1px solid var(--border-soft); border-radius:8px; background:var(--bg-panel); color:var(--text-bright); font-size:13px; }
+    .vp-field label{ font-size:11px; text-transform:uppercase; letter-spacing:.04em; color: var(--text-dim); }
+    .vp-field input{ padding:8px 10px; border:1px solid var(--border-soft); border-radius:8px; background:var(--panel-2); color:var(--text); font-size:13px; }
+    .vp-field select{ padding:8px 10px; border:1px solid var(--border-soft); border-radius:8px; background:var(--panel-2); color:var(--text); font-size:13px; }
+    .vp-field select option{ background:var(--panel); color:var(--text); }
 
 
    .voice-save-btn{
@@ -1127,25 +1128,25 @@
   .persona-chips{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
   .persona-chip{
     padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 500;
-    border: 1px solid var(--border-soft); background: var(--bg-panel); color: var(--text-dim);
+    border: 1px solid var(--border-soft); background: var(--panel-2); color: var(--text-dim);
     cursor: pointer; transition: all .15s var(--ease); user-select: none;
   }
   .persona-chip:hover{ border-color: var(--accent-dim); color: var(--text); }
-  .persona-chip.active{ background: var(--accent-dim); border-color: var(--accent); color: var(--text-bright); }
-  .persona-custom{ width: 100%; padding: 7px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-panel); color: var(--text-bright); font-size: 13px; outline: none; transition: border-color .2s var(--ease); }
+    .persona-chip.active{ background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
+    .persona-custom{ width: 100%; padding: 7px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--panel-2); color: var(--text); font-size: 13px; outline: none; transition: border-color .2s var(--ease); }
   .persona-custom:focus{ border-color: var(--accent-dim); }
   .persona-custom::placeholder{ color: var(--text-faint); }
 
-  /* ---- Skills & MCPs section ---- */
+  /* ---- GitHub Skills section ---- */
   .skills-section{ padding: 14px 24px; border-top: 1px solid var(--border-soft); }
   .skills-section h3{ font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-faint); margin-bottom: 8px; }
   .skill-install-row{ display: flex; gap: 8px; margin-bottom: 10px; }
-  .skill-install-row input{ flex: 1; padding: 7px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-panel); color: var(--text-bright); font-size: 13px; outline: none; transition: border-color .2s var(--ease); }
+    .skill-install-row input{ flex: 1; padding: 7px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--panel-2); color: var(--text); font-size: 13px; outline: none; transition: border-color .2s var(--ease); }
   .skill-install-row input:focus{ border-color: var(--accent-dim); }
   .skill-install-row input::placeholder{ color: var(--text-faint); }
   .skill-install-btn{
     padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
-    background: var(--accent-dim); color: var(--text-bright); border: none; cursor: pointer;
+    background: var(--accent-dim); color: var(--text); border: none; cursor: pointer;
     transition: background .15s var(--ease), transform .1s var(--ease); white-space: nowrap;
   }
   .skill-install-btn:hover{ background: var(--accent); }
@@ -1154,7 +1155,7 @@
   .skill-list{ display: flex; flex-direction: column; gap: 4px; }
   .skill-item{
     display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px;
-    background: var(--bg-panel); border: 1px solid var(--border-soft); font-size: 13px; color: var(--text);
+    background: var(--panel-2); border: 1px solid var(--border-soft); font-size: 13px; color: var(--text);
   }
   .skill-item-name{ flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .skill-item-desc{ font-size: 11px; color: var(--text-faint); flex-shrink: 0; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1165,7 +1166,7 @@
   .skill-toggle.on{ background: var(--accent-dim); }
   .skill-toggle::after{
     content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
-    border-radius: 50%; background: var(--text-bright); transition: transform .2s var(--ease);
+    border-radius: 50%; background: var(--text); transition: transform .2s var(--ease);
   }
   .skill-toggle.on::after{ transform: translateX(16px); }
   .skill-remove{
@@ -1566,7 +1567,7 @@
                   <div class="model-picker">
                     <div class="model-pill rippler" id="modelPill">
                       <span class="dot"></span>
-                      <span id="modelPillLabel">Luna 5.3</span>
+                      <span id="modelPillLabel">Terra 5.3</span>
                       <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
                     </div>
                     <div class="model-dropdown" id="modelDropdown"></div>
@@ -1808,10 +1809,10 @@
       <input type="text" class="persona-custom" id="personaCustom" placeholder="Or describe a custom style: e.g. 'warm British librarian'" maxlength="120">
     </div>
 
-      <div class="skills-section">
-      <h3>Skills &amp; MCPs</h3>
+       <div class="skills-section">
+      <h3>GitHub Skills</h3>
       <div class="skill-install-row">
-        <input type="text" id="skillUrlInput" placeholder="GitHub URL or npm package name">
+        <input type="text" id="skillUrlInput" placeholder="GitHub URL (e.g. https://github.com/user/skill-name)">
         <button class="skill-install-btn" id="skillInstallBtn">Install</button>
       </div>
       <div class="skill-list" id="skillList"><div class="skills-empty">No skills installed yet.</div></div>
@@ -2878,7 +2879,7 @@ en: {
     'Deep web search: off': 'Deep web search: off', 'Deep web search: on': 'Deep web search: on',
      'Copied': 'Copied', 'Copy': 'Copy', 'Narrate this response': 'Narrate this response',
      'Attach files or folder': 'Attach files or folder', 'Tools': 'Tools',
-     'Skills & MCPs': 'Skills & MCPs', 'Install': 'Install', 'No skills installed yet.': 'No skills installed yet.',
+     'GitHub Skills': 'GitHub Skills', 'Install': 'Install', 'No skills installed yet.': 'No skills installed yet.',
      'Pirate': 'Pirate', 'Poet': 'Poet',
      "Or describe a custom style: e.g. 'warm British librarian'": "Or describe a custom style: e.g. 'warm British librarian'",
      'GitHub URL or npm package name': 'GitHub URL or npm package name',
@@ -2929,7 +2930,7 @@ sw: {
     'Deep web search: off': 'Tafuta mtanda unaotulivu: zimevuliwa', 'Deep web search: on': 'Tafuta mtanda unaotulivu: wakati',
     'Copied': 'Imeonikwa', 'Copy': 'Nakili', 'Narrate this response': 'Soma majibu haya',
      'Attach files or folder': 'jiunge na faili au folda', 'Tools': 'Zana',
-     'Skills & MCPs': 'Vifunzo na MCPs', 'Install': 'Sakinisha', 'No skills installed yet.': 'Hakuna vifunzo vilivosakinishwa.',
+     'GitHub Skills': 'Vifunzo na MCPs', 'Install': 'Sakinisha', 'No skills installed yet.': 'Hakuna vifunzo vilivosakinishwa.',
      'Pirate': 'Kabuda', 'Poet': 'Mshororo',
      "Or describe a custom style: e.g. 'warm British librarian'": "Au_eleza mtindo wa pekee: kwa mfano 'mkutano wa kiingereza mwepesi'",
      'GitHub URL or npm package name': 'Anwani ya GitHub au jina la kifurushi cha npm',
@@ -2980,7 +2981,7 @@ fr: {
     'Deep web search: off': 'Recherche web approfondie: désactivé', 'Deep web search: on': 'Recherche web approfondie: activé',
     'Copied': 'Copié', 'Copy': 'Copier', 'Narrate this response': 'Narrer cette réponse',
      'Attach files or folder': 'Attacher des fichiers ou dossier', 'Tools': 'Outils',
-     'Skills & MCPs': 'Compétences & MCPs', 'Install': 'Installer', 'No skills installed yet.': 'Aucune compétence installée pour le moment.',
+     'GitHub Skills': 'Compétences & MCPs', 'Install': 'Installer', 'No skills installed yet.': 'Aucune compétence installée pour le moment.',
      'Pirate': 'Pirate', 'Poet': 'Poète',
      "Or describe a custom style: e.g. 'warm British librarian'": "Ou décrivez un style personnalisé : ex. « bibliothécaire britannique chaleureux »",
      'GitHub URL or npm package name': "URL GitHub ou nom de paquet npm",
@@ -3030,7 +3031,7 @@ fr: {
       'Deep web search: off': '深网搜索：关闭', 'Deep web search: on': '深网搜索：开启',
       'Copied': '已复制', 'Copy': '复制', 'Narrate this response': '朗读加这个回复',
       'Attach files or folder': '附加文件或文件夹', 'Tools': '工具',
-      'Skills & MCPs': '技能 & MCPs', 'Install': '安装', 'No skills installed yet.': '尚未安装任何技能。',
+      'GitHub Skills': '技能 & MCPs', 'Install': '安装', 'No skills installed yet.': '尚未安装任何技能。',
       'Pirate': '海盗', 'Poet': '诗人',
       "Or describe a custom style: e.g. 'warm British librarian'": "或者描述自定义风格，例如：'温暖的英国图书管理员'",
       'GitHub URL or npm package name': 'GitHub 网址或 npm 包名',
@@ -3080,7 +3081,7 @@ fr: {
       'Deep web search: off': 'ディープウェブ検索：オフ', 'Deep web search: on': 'ディープウェブ検索：オン',
       'Copied': 'コピー済み', 'Copy': 'コピー', 'Narrate this response': 'この応答を朗読',
       'Attach files or folder': 'ファイルまたはフォルダーを添付', 'Tools': 'ツール',
-      'Skills & MCPs': 'スキル & MCPs', 'Install': 'インストール', 'No skills installed yet.': 'スキルはまだインストールされていません。',
+      'GitHub Skills': 'スキル & MCPs', 'Install': 'インストール', 'No skills installed yet.': 'スキルはまだインストールされていません。',
       'Pirate': '海賊', 'Poet': '詩人',
       "Or describe a custom style: e.g. 'warm British librarian'": "カスタムスタイルを記述するか、例：'温かな英国の司書'",
       'GitHub URL or npm package name': 'GitHub URL または npm パッケージ名',
@@ -3130,7 +3131,7 @@ fr: {
       'Deep web search: off': 'بحث الويب العميق: إيقاف', 'Deep web search: on': 'بحث الويب العميق: تشغيل',
       'Copied': 'تم النسخ', 'Copy': 'نسخ', 'Narrate this response': 'شرح هذه الاستجابة',
       'Attach files or folder': 'إرفاق ملفات أو مجلد', 'Tools': 'أدوات',
-      'Skills & MCPs': 'المهارات والوظائف الإضافية', 'Install': 'تثبيت', 'No skills installed yet.': 'لم يتم تثبيت أي مهارات بعد.',
+      'GitHub Skills': 'المهارات والوظائف الإضافية', 'Install': 'تثبيت', 'No skills installed yet.': 'لم يتم تثبيت أي مهارات بعد.',
       'Pirate': 'قرصان', 'Poet': 'شاعر',
       "Or describe a custom style: e.g. 'warm British librarian'": "أو اكتب نمطًا مخصصًا، مثل: 'أمين مكتبة بريطاني دافئ'",
       'GitHub URL or npm package name': 'رابط GitHub أو اسم حزمة npm',
@@ -3169,8 +3170,13 @@ function applyLanguage(lang){
     }
   }
   // Translate: first try direct key match (English text), then reverse lookup
+  // NEVER wipe an element that contains child markup (SVG icons, count
+  // badges, etc.) — only translate leaf text elements. This was destroying
+  // the archived button, model pill and other icon buttons on language load.
   const translateEl = (el) => {
      if(!el || el.nodeType !== 1) return;
+    if(el.querySelector && el.querySelector('svg')) return;
+    if(el.children && el.children.length > 0) return;
     const txt = el.textContent.trim();
     if(!txt) return;
     if(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return;
@@ -3184,6 +3190,27 @@ function applyLanguage(lang){
     if(key && dict[key]){
       el.textContent = dict[key];
     }
+  };
+  // Translate only the TEXT NODE inside a composite button (keeps SVG icons
+  // and badge spans intact). Falls back to leaf-only behavior.
+  const translateCompositeText = (el, targetText) => {
+    if(!el || !targetText) return false;
+    if(el.querySelector && el.querySelector('svg')){
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+      let node;
+      while(node = walker.nextNode()){
+        const t = node.nodeValue.trim();
+        if(!t) continue;
+        const key = dict[t] ? t : (reverseMap[t] || null);
+        if(key && (dict[key] || key === targetText || t === key)){
+          node.nodeValue = node.nodeValue.replace(t, targetText);
+          return true;
+        }
+      }
+      return false;
+    }
+    el.textContent = targetText;
+    return true;
   };
   // Element-specific translations
   const idMap = {
@@ -3204,6 +3231,12 @@ function applyLanguage(lang){
     if(targetText){
       if(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT'){
         // Don't translate placeholder text via this mechanism
+      } else if(id === 'archivedBtn'){
+        // Composite button: icon + text + count badge. Only swap the
+        // "Archived" text node so the icon and count survive.
+        translateCompositeText(el, targetText);
+      } else if(el.querySelector && el.querySelector('svg')){
+        translateCompositeText(el, targetText);
       } else {
         el.textContent = targetText;
       }
@@ -3535,11 +3568,10 @@ function getContextAwareGreeting(){
 
 function rotateGreeting(e){
   if(e){ e.stopPropagation(); fireRipple(e, e.currentTarget); }
-  // Use context-aware greeting only if there's meaningful chat history;
-  // otherwise fall back to a random greeting in the current language
-  const shouldUseContext = chats.length > 1;
-  const contextG = shouldUseContext ? getContextAwareGreeting() : _pickGreetingForLang(currentLang);
-  applyGreeting(contextG, true);
+  // Use a random greeting from the current language, never the context-aware one
+  // (context-aware greetings always return the same one for the same topic, defeating the purpose of refresh)
+  const g = _pickGreetingForLang(currentLang);
+  applyGreeting(g, true);
 }
 
 
@@ -4396,6 +4428,24 @@ async function loadProfile(populateForm){
       }
       const cfg = await r.json();
       const p = cfg.profile || {};
+      // Sync active model from backend so the pill never disagrees with
+      // what the backend will actually use (fixes "still shows Fable").
+      try {
+        const backendDisplay = cfg.model_display || null;
+        const backendInternal = cfg.model || null;
+        let displayName = backendDisplay;
+        if(!displayName && backendInternal){
+          const rev = { 'luna-5.3': 'Terra 5.3', 'mushy-4.6': 'Chen Instruct 3', 'wun-3.8': 'Fable 5.1' };
+          displayName = rev[backendInternal] || backendInternal;
+        }
+        if(displayName && models.some(x => x.name === displayName)){
+          selectedModel = displayName;
+          try { localStorage.setItem('arch.model.v1', displayName); } catch(err){}
+          const pill = document.getElementById('modelPillLabel');
+          if(pill) pill.textContent = displayName;
+          if(typeof renderModelDropdown === 'function') renderModelDropdown();
+        }
+      } catch(err){}
       if(p.nickname) profileNick = p.nickname;
       if(p.language){
         currentLang = p.language || 'en';
@@ -4747,6 +4797,16 @@ loadChats();  // async — fetches from backend and renders when ready
       }
       // Show notification — app remains fully usable in background
       requestAnimationFrame(() => {
+        // Dynamically set intro text based on selected model
+        const introH1 = notify.querySelector('.intro-text h1');
+        const introSubtitle = notify.querySelector('.intro-subtitle');
+        const introBody = notify.querySelector('.intro-body');
+        if(introH1 && introSubtitle && introBody){
+          const m = models.find(x => x.name === selectedModel) || models[0];
+          introH1.textContent = m.name;
+          introSubtitle.textContent = m.desc.split(' — ')[0] || 'The best LLM of the Arch series';
+          introBody.textContent = (m.desc || '') + ' Created by Trevor Kising\'u. Arch is here to help with code, math, or any half-built idea.';
+        }
         notify.classList.add('show');
         if(video){
           video.play().catch(() => {});

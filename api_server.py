@@ -15,6 +15,7 @@ Uses only the Python standard library (http.server) so it runs from the
 bundled Arch runtime without extra packages.
 """
 import os
+import re
 import json
 import threading
 import time
@@ -446,20 +447,37 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if os.path.exists(self.SKILLS_MANIFEST):
                 with open(self.SKILLS_MANIFEST, "r", encoding="utf-8") as f:
-                    return json.load(f)
+                    data = json.load(f)
+                # Support both {"skills": [...]} and bare [...] layouts
+                if isinstance(data, dict):
+                    skills = data.get("skills", [])
+                    return skills if isinstance(skills, list) else []
+                if isinstance(data, list):
+                    return data
         except Exception:
             pass
         return []
 
     def _save_skills(self, skills):
         os.makedirs(self.SKILLS_DIR, exist_ok=True)
+        # Always persist the {"skills": [...]} layout used by installers
+        payload = {"skills": skills} if isinstance(skills, list) else skills
         with open(self.SKILLS_MANIFEST, "w", encoding="utf-8") as f:
-            json.dump(skills, f, indent=2)
+            json.dump(payload, f, indent=2)
 
     def _handle_skill_install(self, body):
         url = str(body.get("url", "")).strip()
         if not url:
             self._send(400, {"error": "No URL provided"}); return
+        # Accept "user/repo" shorthand and bare repo URLs
+        if re.match(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", url):
+            url = "https://github.com/" + url
+        if "github.com" in url and not url.endswith(".git") and not url.rstrip("/").endswith((".zip", ".tar.gz")):
+            pass  # git clone works with or without the .git suffix
+        if not (url.startswith("https://github.com/") or url.startswith("http://github.com/") or url.endswith(".git")):
+            self._send(200, {"error": "Only GitHub repository URLs are supported (e.g. https://github.com/user/skill)"}); return
+        if shutil.which("git") is None:
+            self._send(200, {"error": "git is not installed. Install Git for Windows, restart Arch, and try again."}); return
         skill_id = url.rstrip("/").split("/")[-1].replace(".git", "") or url
         skill_id = "".join(c if c.isalnum() or c in "-_" else "-" for c in skill_id)[:40]
         dest = os.path.join(self.SKILLS_DIR, skill_id)
@@ -478,7 +496,6 @@ class Handler(BaseHTTPRequestHandler):
             name = skill_id
             description = ""
             system_prompt_addon = ""
-            mcp_servers = {}
             if os.path.exists(manifest_path):
                 try:
                     with open(manifest_path, "r", encoding="utf-8") as f:
@@ -486,7 +503,6 @@ class Handler(BaseHTTPRequestHandler):
                     name = mf.get("name", name)
                     description = mf.get("description", "")
                     system_prompt_addon = mf.get("system_prompt", "")
-                    mcp_servers = mf.get("mcp_servers", {})
                 except Exception:
                     pass
             if os.path.exists(os.path.join(dest, "package.json")):
@@ -504,7 +520,6 @@ class Handler(BaseHTTPRequestHandler):
                 "id": skill_id, "name": name, "description": description,
                 "url": url, "enabled": True,
                 "system_prompt": system_prompt_addon,
-                "mcp_servers": mcp_servers,
             }
             skills = [s for s in skills if s.get("id") != skill_id]
             skills.append(skill_entry)

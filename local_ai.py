@@ -550,11 +550,16 @@ def _model_persona(mdl):
 
 
 def _load_enabled_skills():
-    """Load enabled skills from skills/installed.json and return their system prompts + MCP configs."""
+    """Load enabled skills from skills/installed.json and return their system prompts + MCP configs.
+    
+    MCP (Model Context Protocol) support removed — only GitHub-hosted skills with
+    system prompts are loaded. This simplifies installation and removes the
+    security surface of executing arbitrary MCP server code.
+    """
     skills_dir = os.path.join(os.path.dirname(__file__), "skills")
     manifest = os.path.join(skills_dir, "installed.json")
     prompts = []
-    mcp_configs = {}
+    mcp_configs = {}  # Kept for backwards compat but always empty
     try:
         if os.path.exists(manifest):
             with open(manifest, "r", encoding="utf-8") as f:

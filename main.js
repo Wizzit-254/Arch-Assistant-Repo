@@ -310,13 +310,25 @@ function trySpawn(cmd, args, cwd){
 
 function loadIcon(){
   try {
-    const p = path.join(__dirname, "Arch-icon.png");
-    if(fs.existsSync(p)){
-      const img = nativeImage.createFromPath(p);
-      if(!img.isEmpty()) return img;
-      const buf = fs.readFileSync(p);
-      const img2 = nativeImage.createFromBuffer(buf);
-      if(!img2.isEmpty()) return img2;
+    const names = ["Arch-icon.png", "Arch.png", "Arch.ico"];
+    const dirs = [];
+    try { dirs.push(resolveAppRoot()); } catch(e){}
+    if(process.execPath){ try { dirs.push(path.dirname(process.execPath)); } catch(e){} }
+    if(process.resourcesPath){ try { dirs.push(process.resourcesPath); dirs.push(path.dirname(process.resourcesPath)); } catch(e){} }
+    try { dirs.push(__dirname); } catch(e){}
+    const seen = new Set();
+    for(const d of dirs){
+      if(!d || seen.has(d)) continue;
+      seen.add(d);
+      for(const n of names){
+        try {
+          const p = path.join(d, n);
+          if(fs.existsSync(p)){
+            const img = nativeImage.createFromPath(p);
+            if(img && !img.isEmpty()) return img;
+          }
+        } catch(e){}
+      }
     }
   } catch(e){}
   return null;

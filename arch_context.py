@@ -80,7 +80,7 @@ CONFIG = load_config()
 FISH_API_KEY = CONFIG.get("fish_api_key", "") or os.environ.get("FISH_API_KEY", "")
 FISH_VOICES = CONFIG.get("fish_voices", {})
 FISH_CONFIGURED = bool(FISH_API_KEY)
-TTS_RATE_LIMIT_SECONDS = float(CONFIG.get("tts_rate_limit_seconds", 30))
+TTS_RATE_LIMIT_SECONDS = float(CONFIG.get("tts_rate_limit_seconds", 3))
 
 VOICE_BANK_DIR = os.path.join(APP_DIR, CONFIG.get("voicebank_dir", "voicebank"))
 
