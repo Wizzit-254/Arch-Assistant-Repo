@@ -53,9 +53,10 @@ API_PORT = 9332
 
 CONFIG_PATH = os.path.join(APP_DIR, "Config.json")
 CHATS_FILE = os.path.join(os.path.dirname(APP_DIR), "arch-assistant", "chats.json")
-# Fallback: store chats.json alongside Config.json if the roaming dir doesn't exist
-if not os.path.isdir(os.path.dirname(CHATS_FILE)):
+# Fallback: store chats.json alongside Config.json if the roaming dir is unusable
+try:
     os.makedirs(os.path.dirname(CHATS_FILE), exist_ok=True)
+except OSError:
     CHATS_FILE = os.path.join(APP_DIR, "chats.json")
 
 

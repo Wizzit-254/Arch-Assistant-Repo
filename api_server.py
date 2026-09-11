@@ -110,7 +110,6 @@ def sse_headers():
     return {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-store",
-        "Connection": "keep-alive",
         "X-Accel-Buffering": "no",
     }
 
@@ -147,6 +146,29 @@ def read_body(handler):
 def find_model_by_name(name):
     """Resolve a persona name to the ollama model string."""
     return local_ai.MODEL_OVERRIDES.get(name, name)
+
+
+def _jail_path(p):
+    """Resolve `p` against APP_DIR; return abspath or None if it escapes.
+
+    All codebase/skill filesystem endpoints go through here so a crafted
+    request cannot walk out to SSH keys, tokens, or other drives.
+    """
+    try:
+        base = os.path.abspath(APP_DIR)
+        abs_p = os.path.abspath(os.path.join(base, str(p or "")))
+        if os.path.commonpath([base, abs_p]) != base:
+            return None
+        return abs_p
+    except Exception:
+        return None
+
+
+def _valid_skill_id(s):
+    """Skill ids are slug-safe only (matches the install-time sanitizer)."""
+    import re as _re
+    s = str(s or "").strip()
+    return s if _re.fullmatch(r"[A-Za-z0-9-_]{1,40}", s) else None
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -197,7 +219,6 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         for k, v in sse_headers().items():
             self.send_header(k, v)
-        self.send_header("Connection", "close")
         self._cors()
         self.end_headers()
         self.wfile.write(b": ready\n")
@@ -259,6 +280,12 @@ class Handler(BaseHTTPRequestHandler):
         if p == "/api/chats":
             self._send(200, {"chats": _load_chats()})
             return
+        if p == "/api/skills":
+            skills = self._load_skills()
+            if isinstance(skills, dict):
+                skills = skills.get("skills", [])
+            self._send(200, {"skills": skills if isinstance(skills, list) else []})
+            return
         self._send(404, {"error": "not found"})
 
     def do_POST(self):
@@ -270,8 +297,8 @@ class Handler(BaseHTTPRequestHandler):
             return
         if p == "/api/model":
             wanted = body.get("model")
-            if wanted in local_ai.MODEL_OVERRIDES or find_model_by_name(wanted):
-                CTX.model = local_ai.MODEL_OVERRIDES.get(wanted, wanted)
+            if wanted in local_ai.MODEL_OVERRIDES:
+                CTX.model = local_ai.MODEL_OVERRIDES[wanted]
                 self._update_config("default_model", CTX.model)
                 self._send(200, {"model": CTX.model})
             else:
@@ -310,10 +337,6 @@ class Handler(BaseHTTPRequestHandler):
                     "persona": CTX.persona,
                 })
             self._send(200, {"name": CTX.name, "nickname": CTX.nickname, "language": CTX.language, "persona": CTX.persona})
-            return
-        if p == "/api/skills" and self.command == "GET":
-            skills = self._load_skills()
-            self._send(200, {"skills": skills})
             return
         if p == "/api/skills/install" and self.command == "POST":
             self._handle_skill_install(body)
@@ -356,20 +379,27 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {"ok": True})
             return
         if p == "/api/codebase/scan":
-            root = body.get("root") or None
+            root = _jail_path(body.get("root")) if body.get("root") else None
+            if body.get("root") and root is None:
+                self._send(400, {"error": "path outside app directory"}); return
             result = local_ai.scan_codebase(root)
             self._send(200, result)
             return
         if p == "/api/codebase/search":
             query = body.get("query", "")
-            root = body.get("root") or None
+            root = _jail_path(body.get("root")) if body.get("root") else None
+            if body.get("root") and root is None:
+                self._send(400, {"error": "path outside app directory"}); return
             results = local_ai.search_codebase(query, root)
             self._send(200, {"results": results})
             return
         if p == "/api/codebase/read":
-            filepath = body.get("path", "")
+            filepath = _jail_path(body.get("path", ""))
+            if filepath is None:
+                self._send(400, {"path": "", "content": "", "error": "path outside app directory"})
+                return
             content = local_ai.read_file_content(filepath)
-            self._send(200, {"path": filepath, "content": content})
+            self._send(200, {"path": body.get("path", ""), "content": content})
             return
         if p == "/api/codebase/context":
             root = body.get("root") or None
@@ -531,10 +561,10 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {"error": str(e)[:300]})
 
     def _handle_skill_remove(self, body):
-        skill_id = str(body.get("id", "")).strip()
+        skill_id = _valid_skill_id(body.get("id", ""))
         if not skill_id:
-            self._send(400, {"error": "No skill id"}); return
-        dest = os.path.join(self.SKILLS_DIR, skill_id)
+            self._send(400, {"error": "Bad skill id"}); return
+        dest = _jail_path(os.path.join("skills", skill_id)) or os.path.join(self.SKILLS_DIR, skill_id)
         try:
             if os.path.exists(dest):
                 shutil.rmtree(dest)
@@ -546,10 +576,10 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, {"ok": True})
 
     def _handle_skill_toggle(self, body):
-        skill_id = str(body.get("id", "")).strip()
+        skill_id = _valid_skill_id(body.get("id", ""))
         enabled = bool(body.get("enabled", True))
         if not skill_id:
-            self._send(400, {"error": "No skill id"}); return
+            self._send(400, {"error": "Bad skill id"}); return
         skills = self._load_skills()
         for s in skills:
             if s.get("id") == skill_id:
@@ -597,12 +627,12 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.flush()
             import re
             open_match = re.search(
-                r"(?:open|launch|start)\s+(https?://[^\s]+|\b\w+\.exe\b|notepad|calc|explorer|chrome|firefox|edge|word|excel|powerpnt)\b",
+                r"(?:open|launch|start)\s+(https?://[^\s]+)",
                 full_text, re.IGNORECASE
             )
             if open_match:
                 target = open_match.group(0)
-                # Extract the URL or app name after the verb
+                # Extract the URL after the verb
                 for prefix in ("open ", "launch ", "start "):
                     if target.lower().startswith(prefix):
                         target = target[len(prefix):]
@@ -610,6 +640,9 @@ class Handler(BaseHTTPRequestHandler):
                 target = target.strip().rstrip(".")
                 self.wfile.write(emit_event({"action": "open", "target": target}, event="system_action").encode("utf-8"))
                 self.wfile.flush()
+                # URLs only — never executables. The Electron shell opens
+                # these in the user's browser; nothing runs server-side.
+                import subprocess as _sp
                 _sp.Popen(["open", target] if os.name != "nt" else ["cmd", "/c", "start", "", target],
                           stdout=_sp.DEVNULL, stderr=_sp.DEVNULL,
                           creationflags=getattr(_sp, "CREATE_NO_WINDOW", 0))

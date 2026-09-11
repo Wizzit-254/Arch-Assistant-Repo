@@ -631,13 +631,13 @@ def _simplify_number(n):
     r = round(a)
     if abs(a - r) < 1e-12:
         return ("" if n >= 0 else "-") + str(r)
-    # Try fraction with small denominator (<= 20)
+    # Try fraction with small denominator (<= 20): check only the
+    # nearest numerator per denominator (20 iterations, not ~40k).
     for den in range(1, 21):
-        for num in range(1, den * 100 + 1):
-            if abs(a - num / den) < 1e-13:
-                val = (num, den)
-                g = _gcd(num, den)
-                return ("" if n >= 0 else "-") + f"{val[0]//g}/{val[1]//g}"
+        num = round(a * den)
+        if num >= 1 and abs(a - num / den) < 1e-12:
+            g = _gcd(num, den)
+            return ("" if n >= 0 else "-") + f"{num//g}/{den//g}"
     return ("" if n >= 0 else "-") + f"{a:.4f}".rstrip("0").rstrip(".")
 
 
@@ -771,24 +771,18 @@ class _ComputeStreamer:
         self._buf = ""
         return text
 
-    def flush(self):
-        """Finalize: emit any remaining buffered text as-is."""
-        text = self._buf
-        self._buf = ""
-        return text
-
 
 def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
                 repeat_penalty=1.05, search=False):
     """Yield {role, content} chunks from ollama /api/chat.
 
     Memory-optimised for low-end PCs (~4 GB free RAM):
-    - num_ctx: 2048 — fits system prompt + recent conversation turns + answer
+    - num_ctx: 3072 — fits system prompt + recent conversation turns + answer
     - history is trimmed newest-first to a token budget so follow-ups
       ("repeat that", "continue") always resolve inside the same chat
     - num_batch: 512 — much faster prompt processing (time-to-first-token)
       than 128, with negligible extra RAM at this ctx size
-    - num_predict: 384 — answers complete instead of cutting off; short
+    - num_predict: 768 — code answers complete instead of cutting off; short
       replies still stop at EOS so typical latency is unchanged
     - num_threads: all-but-one logical cores (7 on 8-core) for max decode
     - num_threads_batch: 1 (low overhead for batch decoding)
@@ -911,6 +905,7 @@ def edit_stream(file_text, instruction, model=None):
         "// Return ONLY the full edited code, no explanation."
     )
     resp = _post("/api/generate", {"model": mdl, "prompt": prompt, "stream": True,
+                                    "keep_alive": 3600,
                                     "options": {"temperature": 0.2, "top_p": 0.7, "top_k": 10,
                                                 "repeat_penalty": 1.05, "repeat_last_n": 4,
                                                   "num_batch": 512, "num_ctx": 3072, "num_predict": 768,
@@ -1083,8 +1078,10 @@ def search_codebase(query, root_dir=None, max_results=20):
             
             fpath = os.path.join(dirpath, fname)
             try:
+                if os.path.getsize(fpath) > 500000:
+                    continue  # never slurp huge/minified files into RAM
                 with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
-                    content = f.read()
+                    content = f.read(500000)
                     if query.lower() in content.lower():
                         rel = os.path.relpath(fpath, root_dir)
                         # Find matching lines

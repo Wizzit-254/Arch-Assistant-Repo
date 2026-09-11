@@ -428,12 +428,12 @@ function startBackend(win){
         // Start backend FIRST (so UI becomes responsive quickly), then run ensureRuntimes in parallel
         if(runtimePython){ tries.unshift([runtimePython[0], [...runtimePython[1], "-u", script]]); idx = 0; }
         escalate();  // Start backend immediately
-        // Silent first-run setup: fetch Python / pip packages / VC++ if the host lacks them
-        // Run in background — backend already starting
-        ensureRuntimes(win).then(() => {
-          // Re-check if backend came up after runtime installation
+        // Silent first-run setup: fetch Python / pip packages / VC++ if the host lacks them.
+        // Run in background, then re-check the backend in case the install fixed it.
+        ensureRuntimes(win).then(async () => {
           for(let i = 0; i < 50; i++){
-            setTimeout(() => {}, 200);
+            await new Promise(r => setTimeout(r, 200));
+            if(await pingBackend()) return;
           }
         });
         for(let i = 0; i < 250; i++){  // 50s max wait
