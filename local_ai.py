@@ -790,7 +790,7 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
       than 128, with negligible extra RAM at this ctx size
     - num_predict: 384 — answers complete instead of cutting off; short
       replies still stop at EOS so typical latency is unchanged
-    - num_threads: half the logical cores (4 on 8-core) to cut contention
+    - num_threads: all-but-one logical cores (7 on 8-core) for max decode
     - num_threads_batch: 1 (low overhead for batch decoding)
     - temperature: 0.2 (deterministic)
     - top_p: 0.7, top_k: 10 (narrow sampling = faster)
@@ -799,9 +799,8 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
     lang_code = CTX.language if (CTX.language or "en") in SUPPORTED_LANGUAGES else "en"
     lang_name = SUPPORTED_LANGUAGES[lang_code]
     identity_lines = [
-        f"The user's preferred name is {CTX.nickname or 'User'}. Address them by that name in your replies.",
-        f"Respond ONLY in {lang_name}. You are a native speaker: perfect grammar, natural word order, "
-        f"correct idiom and register. Never mix in another language unless the user does first.",
+        f"User's name: {CTX.nickname or 'User'}. Address them by name.",
+        f"Respond ONLY in {lang_name} with native-level grammar. Never mix languages unless the user does first.",
         _model_persona(mdl),
     ]
     if CTX.persona:
@@ -813,23 +812,11 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
     for sp in skill_prompts:
         identity_lines.append(sp)
     identity_lines.append(
-            "Formatting rules for math and science: write clean, compact Unicode "
-            "notation that renders directly — NEVER use LaTeX. Use the constant pi as π, "
-            "theta as θ, exponents as Unicode superscripts (x², x³, x¹⁰), subscripts "
-            "as Unicode subscripts where available (x₁, x₂) or plain (x_i), fractions "
-            "as vulgar Unicode (½, ⅓, ¼, ⅔, ¾, ⅘, ⅚) or a fraction slash (a⁄b), square "
-            "roots as √x or √(x), and symbols: → ≥ ≤ ≠ ± … ∞ ∑ ∏ ∫ ≈ ≡ × ·. Do NOT use "
-            "LaTeX delimiters (\\(…\\), \\[…\\], $…$, $$…$$) or LaTeX commands like "
-            "\\frac{}, \\sqrt{}, \\times, \\pi, \\theta — emit the Unicode glyphs directly. "
-            "The renderer will normalize any stray ^/_/\\frac notation as a safety net, "
-            "but you should write Unicode directly. For any numeric computation, write the "
-            "expression inside <compute>expr</compute> (e.g. <compute>294 * 3.141592653589793</compute>) "
-            "and the exact value will be computed for you — never report a final number you "
-            "haven't verified. Double-check arithmetic. Keep code blocks, lists and structured "
-            "work neatly indented (2-space) with clear newlines so they format while you stream. "
-            "For every numeric result, simplify: if the result is a simple rational, express it "
-            "as a fraction (e.g. 22⁄7, 10⁄3); otherwise round to exactly 4 decimal places "
-            "(e.g. 3.1429, 3.3333). Never output more than 4 decimal places in final answers."
+            "Math/science notation: write Unicode directly, NEVER LaTeX "
+            "(no \\( \\[ $ $$ \\frac \\sqrt \\times \\pi). Use π θ √x x² x³ ½ ⅓ → ≥ ≤ ≠ ± ∞ ∑ ∫ ≈ ≡. "
+            "Verify every number: put the expression in <compute>expr</compute> "
+            "and use the computed value. Simple rationals as fractions (22⁄7); "
+            "else max 4 decimals. Indent code/lists with 2 spaces."
         )
     identity = "\n".join(identity_lines)
     # Conversation memory: keep the newest turns that fit alongside the
