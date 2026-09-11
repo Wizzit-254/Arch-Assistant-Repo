@@ -1312,13 +1312,13 @@
   .code-copy.copied{ color: var(--accent); border-color: var(--accent-dim); }
   .code-copy svg{ width:11px; height:11px; }
   .code-download{
-    display:flex; align-items:center; justify-content:center;
-    padding:4px 8px; border-radius:7px; font-size:11px; font-weight:600;
-    color: var(--text-faint); cursor:pointer; background:transparent; border:1px solid var(--border);
+    display:flex; align-items:center; gap:5px;
+    padding:4px 9px; border-radius:7px; font-size:11px; font-weight:500;
+    color: var(--text-dim); cursor:pointer; background:transparent; border:1px solid var(--border);
     transition: background .14s var(--ease), color .14s var(--ease), border-color .14s var(--ease);
   }
   .code-download:hover{ background: var(--panel); color: var(--accent); border-color: var(--accent-dim); }
-  .code-download svg{ width:12px; height:12px; }
+  .code-download svg{ width:11px; height:11px; }
   .code-block pre{
     margin: 0;
     padding: 12px 14px;
@@ -2482,7 +2482,7 @@ function codeBlockHtml(lang, code, withControls){
   const header = withControls
     ? '<div class="code-header">' +
       '<span class="code-lang">' + (lang ? escapeHtml(lang) : 'code') + '</span>' +
-      '<button class="code-download" title="Download code"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v-a9 9 0 0 0-9-9 9 9 0 0 0-9 9v9"/><path d="M12 18V3m-3 6l3-3 3 3"/></svg></button>' +
+      '<button class="code-download" title="Download code"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Download</span></button>' +
       '<button class="code-copy" title="Copy code">' + COPY_SVG + '<span>Copy</span></button>' +
       '</div>'
     : '';
@@ -2562,11 +2562,13 @@ function attachCodeInteractions(root){
       const pre = btn.closest('.code-block').querySelector('code');
       const lang = btn.closest('.code-block').querySelector('.code-lang').textContent.trim();
       const text = pre.textContent;
+      const extMap = { python:'py', javascript:'js', typescript:'ts', bash:'sh', powershell:'ps1', markdown:'md', yaml:'yml', json:'json', html:'html', css:'css', sql:'sql', java:'java', c:'c', cpp:'cpp', rust:'rs', go:'go', ruby:'rb', php:'php', latex:'tex' };
+      const ext = extMap[lang] || (lang && lang !== 'code' ? lang : 'txt');
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = lang && lang !== 'code' ? lang + '.txt' : 'code.txt';
+      a.download = 'arch-code.' + ext;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -2576,6 +2578,29 @@ function attachCodeInteractions(root){
 }
 
 let activeController = null;
+
+/* Stick-to-bottom autoscroll. NOTE: the scrollable element is
+   .chat-scroll — #chatMessages is just the inner column, so setting
+   scrollTop on it silently did nothing (answers never followed).
+   While generating we follow new output unless the user scrolled up
+   to read; scrolling back near the bottom re-engages the stick. */
+let chatStick = true;
+function chatScroller(){
+  return document.querySelector('#view-chat .chat-scroll') || document.querySelector('.chat-scroll');
+}
+function scrollChatToBottom(force){
+  if(!force && !chatStick) return;
+  const sc = chatScroller();
+  if(sc) sc.scrollTop = sc.scrollHeight;
+}
+(function initChatStick(){
+  const sc = chatScroller();
+  if(!sc || sc.dataset.stickBound) return;
+  sc.dataset.stickBound = '1';
+  sc.addEventListener('scroll', () => {
+    chatStick = (sc.scrollHeight - sc.scrollTop - sc.clientHeight) < 140;
+  });
+})();
 
 async function askChat(chat, opts){
   opts = opts || {};
@@ -2593,6 +2618,7 @@ async function askChat(chat, opts){
   const assistantMsg = { role:'assistant', text:'', _streaming: true, search: !!opts.search };
   chat.messages.push(assistantMsg);
   saveChats();
+  chatStick = true; // new answer: follow output from the top
   openChat(chat.id);
   const box = document.getElementById('chatMessages');
   const rows = box.querySelectorAll('.msg-row');
@@ -2632,7 +2658,7 @@ async function askChat(chat, opts){
     document.getElementById('chatSub').textContent = chat.messages.length + ' messages';
     renderHistory();
     showView('chat');
-    box.scrollTop = box.scrollHeight;
+    scrollChatToBottom(true);
   };
   // Batch DOM updates for smooth, formatted streaming. We re-render the
   // accumulated bubble via the streaming renderer (math + indented code blocks
@@ -2649,7 +2675,7 @@ async function askChat(chat, opts){
         // and indented code blocks all appear as the model generates them.
         lastBubbleEl.innerHTML = streamRender(last ? last.text : '');
         if(window.MathJax && typeof MathJax.typesetPromise==='function'){try{MathJax.typesetPromise([lastBubbleEl]).catch(()=>{});}catch(e){}}
-        box.scrollTop = box.scrollHeight;
+        scrollChatToBottom();
       }
       pendingChunk = '';
     }
@@ -3710,9 +3736,10 @@ function openChat(id, evt){
      box.appendChild(row);
   });
 
-  renderHistory();
-  showView('chat');
-  setTimeout(() => { box.scrollTop = box.scrollHeight; }, 50);
+   renderHistory();
+   showView('chat');
+   chatStick = true;
+   setTimeout(() => { scrollChatToBottom(true); }, 50);
 }
 
 document.getElementById('chatBackBtn').addEventListener('click', () => showView('home'));
@@ -4031,10 +4058,17 @@ function renderAttachChips(){
 }
 function withAttachments(text){
   if(!attachments.length) return text;
+  // Cap attached file content so big files can't blow the context window
+  // (which made the model stop mid-answer). 6k chars/file, 12k total.
+  let total = 0;
   const blocks = attachments.map(a => {
      const ext = (a.name.split('.').pop() || '');
     const lang = LANG_BY_EXT[ext] || ext;
-    return `**FILE: ${a.name}**\n\`\`\`${lang}\n${a.content}\n\`\`\``;
+    let content = String(a.content || '');
+    if(content.length > 6000) content = content.slice(0, 6000) + '\n…(file truncated to first 6000 chars)';
+    if(total + content.length > 12000) content = content.slice(0, Math.max(0, 12000 - total)) + '\n…(truncated: attachment budget reached)';
+    total += content.length;
+    return `**FILE: ${a.name}**\n\`\`\`${lang}\n${content}\n\`\`\``;
   }).join('\n\n');
   const out = text + '\n\n--- Attached Files — refer to these for context. ---\n' + blocks;
   attachments = [];

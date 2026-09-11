@@ -822,8 +822,8 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
     # Conversation memory: keep the newest turns that fit alongside the
     # system prompt + the completion inside num_ctx, so follow-ups like
     # "repeat that" or "continue" always resolve against recent turns.
-    nctx = 2048
-    hist_budget = max(512, nctx * 4 - len(identity) - 384 * 4 - 512)
+    nctx = 3072
+    hist_budget = max(512, nctx * 4 - len(identity) - 768 * 4 - 512)
     messages = _fit_history(messages, hist_budget)
     if messages and messages[0].get("role") == "system" and "WEB SEARCH RESULTS" in (messages[0].get("content") or ""):
         messages[0]["content"] = identity + "\n\n" + messages[0]["content"]
@@ -842,7 +842,7 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
             "repeat_last_n": 4,
             "num_batch": 512,
             "num_ctx": nctx,
-            "num_predict": 384,
+            "num_predict": 768,
             "num_threads": _cpu_threads(),
             "num_threads_batch": 1,
         },
@@ -913,7 +913,7 @@ def edit_stream(file_text, instruction, model=None):
     resp = _post("/api/generate", {"model": mdl, "prompt": prompt, "stream": True,
                                     "options": {"temperature": 0.2, "top_p": 0.7, "top_k": 10,
                                                 "repeat_penalty": 1.05, "repeat_last_n": 4,
-                                                  "num_batch": 512, "num_ctx": 2048, "num_predict": 384,
+                                                  "num_batch": 512, "num_ctx": 3072, "num_predict": 768,
                                                 "num_threads": _cpu_threads(),
                                                 "num_threads_batch": 1, "keep_alive": 3600}})
     for chunk in _read_stream(resp):
