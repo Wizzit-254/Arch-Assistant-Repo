@@ -2286,7 +2286,11 @@ const SYMBOLS = {
   psi:'ψ', omega:'ω', inf:'∞', infty:'∞', emptyset:'∅',
   // operators / relations
   times:'×', cdot:'·', approx:'≈', neq:'≠', equiv:'≡', le:'≤', ge:'≥',
-  lt:'<', gt:'>', pm:'±', pm:'±'
+  lt:'<', gt:'>', pm:'±', pm:'±',
+  // arrows (case-sensitive lookup happens before lowercase fallback)
+  to:'→', rightarrow:'→', leftarrow:'←', gets:'←',
+  Rightarrow:'⇒', implies:'⇒', Leftrightarrow:'⇔', leftrightarrow:'↔',
+  longrightarrow:'⟶', longleftarrow:'⟵', uparrow:'↑', downarrow:'↓', mapsto:'↦'
 };
 const VULGAR = {
   '1/2':'½','1/3':'⅓','2/3':'⅔','1/4':'¼','3/4':'¾','1/5':'⅕','2/5':'⅖','3/5':'⅗','4/5':'⅘',
@@ -2330,14 +2334,19 @@ function formatMath(s){
   s = s.replace(/\\sqrt\[(\d+)\]\{([^{}]*)\}/g, (m, n, x) => toSuper(n) + '√' + formatMath(x));
   // sqrt(x) / sqrt{x} / sqrt x  ->  √x
   s = s.replace(/(?:\\?sqrt)[\(\[\{]?([^\(\)\[\]\{\}]+)[\)\]\}]?/g, (m, x) => '√' + formatMath(x));
-  // \pi, \theta, \times ... (fallback for when the model uses LaTeX)
-  s = s.replace(/\\[A-Za-z]+/g, (m) => SYMBOLS[m.slice(1).toLowerCase()] || m);
+  // \pi, \theta, \times, \rightarrow ... (fallback for when the model uses LaTeX)
+  // Case-sensitive first (\Rightarrow -> ⇒), then lowercase (\to -> →).
+  s = s.replace(/\\xrightarrow(?:\[[^\]]*\])?(?:\{[^}]*\})?/g, '→');
+  s = s.replace(/\\xleftarrow(?:\[[^\]]*\])?(?:\{[^}]*\})?/g, '←');
+  s = s.replace(/\\[A-Za-z]+/g, (m) => SYMBOLS[m.slice(1)] || SYMBOLS[m.slice(1).toLowerCase()] || m);
   // ---- chemistry & nuclear notation (context-sensitive: element symbols only,
   // so ordinary words and versions like Windows10 are never touched) ----
   const subDigits = (d) => d.split('').map(c => SUB_DIGITS[c] || c).join('');
   const supStr = (d) => d.split('').map(c => SUPER_DIGITS[c] || c).join('');
   // element symbols, two-letter first (alternation backtracks safely)
   const EL = '(?:He|Li|Be|Ne|Na|Mg|Al|Si|Cl|Ar|Ca|Sc|Ti|Cr|Mn|Fe|Co|Ni|Cu|Zn|Ga|Ge|As|Se|Br|Kr|Rb|Sr|Zr|Nb|Mo|Tc|Ru|Rh|Pd|Ag|Cd|In|Sn|Sb|Te|Xe|Cs|Ba|La|Ce|Pr|Nd|Pm|Sm|Eu|Gd|Tb|Dy|Ho|Er|Tm|Yb|Lu|Hf|Ta|Re|Os|Ir|Pt|Au|Hg|Tl|Pb|Bi|Po|At|Rn|Fr|Ra|Ac|Th|Pa|Np|Pu|Am|Cm|Bk|Cf|Es|Fm|Md|No|Lr|Rf|Db|Sg|Bh|Hs|Mt|Ds|Rg|Cn|Nh|Fl|Mc|Lv|Ts|Og|H|B|C|N|O|F|P|S|K|V|Y|I|W|U)';
+  // atomic numbers for auto-subscripting bare mass numbers (²³⁴U -> ²³⁴₉₂U)
+  const ATOMIC_NUMBER = {H:1,He:2,Li:3,Be:4,B:5,C:6,N:7,O:8,F:9,Ne:10,Na:11,Mg:12,Al:13,Si:14,P:15,S:16,Cl:17,Ar:18,K:19,Ca:20,Sc:21,Ti:22,V:23,Cr:24,Mn:25,Fe:26,Co:27,Ni:28,Cu:29,Zn:30,Ga:31,Ge:32,As:33,Se:34,Br:35,Kr:36,Rb:37,Sr:38,Y:39,Zr:40,Nb:41,Mo:42,Tc:43,Ru:44,Rh:45,Pd:46,Ag:47,Cd:48,In:49,Sn:50,Sb:51,Te:52,I:53,Xe:54,Cs:55,Ba:56,La:57,Ce:58,Pr:59,Nd:60,Pm:61,Sm:62,Eu:63,Gd:64,Tb:65,Dy:66,Ho:67,Er:68,Tm:69,Yb:70,Lu:71,Hf:72,Ta:73,W:74,Re:75,Os:76,Ir:77,Pt:78,Au:79,Hg:80,Tl:81,Pb:82,Bi:83,Po:84,At:85,Rn:86,Fr:87,Ra:88,Ac:89,Th:90,Pa:91,U:92,Np:93,Pu:94,Am:95,Cm:96,Bk:97,Cf:98,Es:99,Fm:100,Md:101,No:102,Lr:103,Rf:104,Db:105,Sg:106,Bh:107,Hs:108,Mt:109,Ds:110,Rg:111,Cn:112,Nh:113,Fl:114,Mc:115,Lv:116,Ts:117,Og:118};
   // caret isotopes: _{92}^{235}U (atomic first) MUST come before ^235 forms,
   // or the mass-only rule eats the tail and strands "_{92}".
   s = s.replace(new RegExp('_\\{?(\\d{1,3})\\}?\\^\\{?(\\d{1,3})\\}?(' + EL + ')(?![A-Za-z0-9])', 'g'),
@@ -2346,12 +2355,16 @@ function formatMath(s){
   // -> superscript mass number + subscript atomic number BEFORE the symbol
   s = s.replace(new RegExp('\\^\\{?(\\d{1,3})\\}?(?:_\\{?(\\d{1,3})\\}?)?(' + EL + ')(?![A-Za-z0-9])', 'g'),
     (m, mass, atomic, el) => supStr(mass) + (atomic ? subDigits(atomic) : '') + el);
-  // hyphen isotopes, optional atomic number: U-235, U-235-92
-  s = s.replace(new RegExp('(?<![A-Za-z])(' + EL + ')-(\\d{2,3})(?:-(\\d{1,3}))?(?![A-Za-z0-9])', 'g'),
+  // hyphen isotopes, optional atomic number: U-235, C-14, He-4, U-235-92
+  s = s.replace(new RegExp('(?<![A-Za-z])(' + EL + ')-(\\d{1,3})(?:-(\\d{1,3}))?(?![A-Za-z0-9])', 'g'),
     (m, el, mass, atomic) => supStr(mass) + (atomic ? subDigits(atomic) : '') + el);
   // nuclear particles in words: alpha particle, beta decay, gamma rays
   s = s.replace(/\b([Aa]lpha|[Bb]eta|[Gg]amma)\s+(particle|particles|decay|ray|rays|radiation|emission|emissions)\b/g,
     (m, p, rest) => ({alpha:'α',beta:'β',gamma:'γ'})[p.toLowerCase()] + ' ' + rest);
+  // beta particles with explicit mass 0 / atomic -1: beta^-, β^-, β⁻ -> ⁰₋₁e
+  s = s.replace(/\b[Bb]eta\^([+-])/g, (m, sign) => sign === '+' ? '⁰₊₁e' : '⁰₋₁e');
+  s = s.replace(/β\^-|β⁻|β-(?![A-Za-z])/g, '⁰₋₁e');
+  s = s.replace(/β\^+|β⁺|β\+(?![A-Za-z])/g, '⁰₊₁e');
   // beta/alpha with charge sign: beta-, alpha+ -> β⁻, α⁺
   s = s.replace(/\b([Aa]lpha|[Bb]eta)([+-])(?![\w<])/g,
     (m, p, sign) => ({alpha:'α',beta:'β'})[p.toLowerCase()] + supStr(sign));
@@ -2377,6 +2390,14 @@ function formatMath(s){
     if(!/\d/.test(f)) return m;
     return coef + f.replace(/(\d+)/g, (d) => subDigits(d));
   });
+  // auto atomic numbers: bare mass like ²³⁴U / ¹⁴C / ⁴He gains its Z subscript
+  // (²³⁴₉₂U, ¹⁴₆C, ⁴₂He). Runs after ALL mass producers above. Skips
+  // charges (Ca²⁺) and existing subscripts.
+  s = s.replace(new RegExp('([⁰¹²³⁴⁵⁶⁷⁸⁹]{1,3})(' + EL + ')(?![₀₁₂₃₄₅₆₇₈₉₊₋⁺⁻])(?![A-Za-z0-9])', 'g'),
+    (m, mass, el) => {
+      const z = ATOMIC_NUMBER[el];
+      return z ? supStr(mass) + subDigits(String(z)) + el : m;
+    });
   // reaction arrows in ASCII: <=> becomes ⇌, <-> becomes ↔, --> and -> become →
   s = s.replace(/<=>/g, '⇌').replace(/<->/g, '↔').replace(/-->/g, '→').replace(/->/g, '→');
   // exponents: x^2 -> x², x^{10} -> x¹⁰ (unicode superscripts), else <sup>
@@ -2477,7 +2498,7 @@ function mathSpeak(text){
   t = t
     .replace(/([A-Za-z\)\]])([⁰¹²³⁴⁵⁶⁷⁸⁹]+)([⁺⁻])/g, (m, b, d, s) =>
       b + ' ' + d.split('').map(c => SUPER_DIGIT[c] || c).join('') + ' ' + (s === '⁺' ? 'plus' : 'minus'))
-    .replace(/([⁰¹²³⁴⁵⁶⁷⁸⁹]+)([₀₁₂₃₄₅₆₇₈₉]+)([A-Z][a-z]?)/g, (m, mass, atomic, el) =>
+    .replace(/([⁰¹²³⁴⁵⁶⁷⁸⁹]+)([₀₁₂₃₄₅₆₇₈₉₊₋]+)([A-Z][a-z]?|e)/g, (m, mass, atomic, el) =>
       mass.split('').map(c => SUPER_DIGIT[c] || c).join('') + ' ' +
       atomic.split('').map(c => SUB_DIGIT[c] || c).join('') + ' ' + el)
     .replace(/([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]+)([A-Z][a-z]?)/g, (m, s, el) =>

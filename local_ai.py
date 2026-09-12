@@ -810,7 +810,7 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
             "(no \\( \\[ $ $$ \\frac \\sqrt \\times \\pi \\ce). Use π θ √x x² x³ ½ ⅓ → ≥ ≤ ≠ ± ∞ ∑ ∫ ≈ ≡. "
             "Chemistry: subscripts for atom counts (H₂SO₄), superscripts for charge "
             "(Ca²⁺, SO₄²⁻) and mass number BEFORE the symbol with atomic number "
-            "below it (²³⁵₉₂U, ¹⁴₆C, ³₁H). "
+            "below it (²³⁵₉₂U, ¹⁴₆C, ³₁H). Beta-minus is ⁰₋₁e, alpha is ⁴₂He. "
             "Verify every number: put the expression in <compute>expr</compute> "
             "and use the computed value. Simple rationals as fractions (22⁄7); "
             "else max 4 decimals. Indent code/lists with 2 spaces."
