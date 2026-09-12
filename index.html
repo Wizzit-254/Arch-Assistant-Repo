@@ -2261,6 +2261,9 @@ const COPY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const COPIED_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l6 6 L20 6"/></svg>';
 
 function openLink(url){
+  // Only http(s) links ever leave the app. Anything else is ignored.
+  if(typeof url !== 'string' || !/^https?:\/\//i.test(url.trim())) return;
+  url = url.trim();
   // Use Electron IPC to open URL in default browser
   if(window.electronAPI && window.electronAPI.openUrl){
     window.electronAPI.openUrl(url);
@@ -2574,7 +2577,12 @@ function proseInline(raw){
     if(m.index > last) out += proseMath(raw.slice(last, m.index));
     const match = m[0];
     const url = match.startsWith('http') ? match : 'https://' + match;
-     out += '<a href="' + url + '" class="msg-link" onclick="openLink(' + JSON.stringify(url) + ');return false;">' + escapeHtml(match) + '</a>';
+    if(!/^https?:\/\/[^\s"'<>]+$/i.test(url)){ out += escapeHtml(match); }
+    else {
+      // No inline handler: clicks are bound in attachCodeInteractions via
+      // addEventListener, so quotes in model output can't break out.
+      out += '<a href="' + escapeHtml(url) + '" class="msg-link" data-ext="1">' + escapeHtml(match) + '</a>';
+    }
     if(m.index === urlRe.lastIndex) urlRe.lastIndex++;
     last = m.index + match.length;
   }
@@ -2666,6 +2674,15 @@ function fallbackCopy(text, done){
 }
 
 function attachCodeInteractions(root){
+  root.querySelectorAll('a.msg-link[data-ext]').forEach(a => {
+    if(a.dataset.bound) return;
+    a.dataset.bound = '1';
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openLink(a.getAttribute('href') || '');
+    });
+  });
   root.querySelectorAll('.code-copy').forEach(btn => {
     if(btn.dataset.bound) return;
     btn.dataset.bound = '1';

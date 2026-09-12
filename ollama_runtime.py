@@ -312,7 +312,14 @@ def _stop_system_ollama():
 
 def _wlog(msg):
     try:
-        with open(os.path.join(APP_DIR, "warmup.log"), "a", encoding="utf-8") as f:
+        log_path = os.path.join(APP_DIR, "warmup.log")
+        # Rotate: never let the log grow past ~200KB
+        try:
+            if os.path.getsize(log_path) > 200 * 1024:
+                os.remove(log_path)
+        except OSError:
+            pass
+        with open(log_path, "a", encoding="utf-8") as f:
             f.write(time.strftime("%H:%M:%S") + " " + str(msg)[:300] + "\n")
     except Exception:
         pass

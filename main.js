@@ -100,7 +100,8 @@ function isOnline(timeoutMs){
 }
 
 async function commandExists(cmd){  try {
-    const r = await runHidden("where", [cmd], 8000);
+    const probe = process.platform === "win32" ? "where" : "which";
+    const r = await runHidden(probe, [cmd], 8000);
     return r.code === 0 && r.stdout.trim().length > 0;
   } catch(e){ return false; }
 }
@@ -429,8 +430,17 @@ function startBackend(win){
         if(runtimePython){ tries.unshift([runtimePython[0], [...runtimePython[1], "-u", script]]); idx = 0; }
         escalate();  // Start backend immediately
         // Silent first-run setup: fetch Python / pip packages / VC++ if the host lacks them.
-        // Run in background, then re-check the backend in case the install fixed it.
+        // Once runtimes resolve, prefer the resolved interpreter and retry if down.
         ensureRuntimes(win).then(async () => {
+          try {
+            const py = await resolvePython();
+            if(py){
+              runtimePython = py;
+              tries.unshift([py[0], [...py[1], "-u", script]]);
+              idx = 0;
+              if(!(await pingBackend())) escalate();
+            }
+          } catch(e){}
           for(let i = 0; i < 50; i++){
             await new Promise(r => setTimeout(r, 200));
             if(await pingBackend()) return;
@@ -469,6 +479,15 @@ function createWindow() {
       sandbox: true,
       webSecurity: true,
       allowRunningInsecureContent: false,
+      preload: (() => {
+        for(const d of [__dirname, resolveAppRoot()]) {
+          try {
+            const p = path.join(d, "preload.js");
+            if(fs.existsSync(p)) return p;
+          } catch(e){}
+        }
+        return path.join(__dirname, "preload.js");
+      })(),
     },
   });
   // Expose win to the module scope for startBackend bootstrap status
@@ -483,9 +502,10 @@ function createWindow() {
      const u = new URL(details.url);
      const isLocalAPI = u.hostname === API_HOST && u.port === String(API_PORT);
      if(isLocalAPI){ cb({ cancel: false }); return; }
-     // Allow localhost on any port (for dev mode)
-     const isLocalhost = u.hostname === "localhost" || u.hostname === "127.0.0.1" || u.hostname === "::1";
-     if(isLocalhost){ cb({ cancel: false }); return; }
+      // Allow localhost, but ONLY our own ports — never hand the API
+      // token to some other local service the user happens to run.
+      const isLocalhost = u.hostname === "localhost" || u.hostname === "127.0.0.1" || u.hostname === "::1";
+      if(isLocalhost && ["9332", "11434", "11435"].includes(u.port)){ cb({ cancel: false }); return; }
      // Allow MathJax CDN for math rendering
      if(u.hostname === "cdn.jsdelivr.net"){ cb({ cancel: false }); return; }
      cb({ cancel: true });
@@ -569,28 +589,9 @@ app.on("before-quit", () => {
     try { backendProc.kill(); } catch(e){}
     backendProc = null;
   }
-  // Kill the portable Ollama server (port 11435) AND any child processes
+  // Stop only OUR servers (port-scoped): the portable Ollama on 11435.
+  // Never blanket-kill by image name — the user may run their own Ollama.
   killProcessOnPort(11435);
-  // Also kill system-level Ollama (port 11434) and all ollama processes
-  killProcessOnPort(11434);
-  // Kill any lingering ollama processes (platform-aware)
-  try {
-    const { execSync } = require("child_process");
-    if(process.platform === "win32"){
-      execSync("taskkill /F /IM ollama.exe /T 2>nul || true", { windowsHide: true, timeout: 5000 });
-    } else {
-      execSync("pkill -x ollama 2>/dev/null || true", { timeout: 5000 });
-    }
-  } catch(e){}
-  // Force-kill any orphaned inference runners
-  try {
-    const { execSync } = require("child_process");
-    if(process.platform === "win32"){
-      execSync("taskkill /F /IM llama-server.exe /T 2>nul || true", { windowsHide: true, timeout: 5000 });
-    } else {
-      execSync("pkill -f 'ollama runner' 2>/dev/null || true", { timeout: 5000 });
-    }
-  } catch(e){}
   // Signal the backend API server to stop Ollama cleanly
   try {
     const http = require("http");

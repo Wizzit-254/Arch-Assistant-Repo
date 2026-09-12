@@ -931,7 +931,7 @@ def edit_stream(file_text, instruction, model=None):
 # File extensions mapped to language names for syntax highlighting
 LANG_BY_EXT = {
     'py': 'python', 'js': 'javascript', 'ts': 'typescript', 'tsx': 'typescript',
-    'jsx': 'javascript', 'jsx': 'javascript', 'go': 'go', 'rs': 'rust',
+    'jsx': 'javascript', 'go': 'go', 'rs': 'rust',
     'c': 'c', 'cpp': 'cpp', 'h': 'c', 'hpp': 'cpp', 'java': 'java',
     'kt': 'kotlin', 'swift': 'swift', 'm': 'objective-c', 'mm': 'objective-c',
     'rb': 'ruby', 'php': 'php', 'pl': 'perl', 'sh': 'bash', 'bash': 'bash',
@@ -1003,17 +1003,17 @@ def scan_codebase(root_dir=None, max_files=500, max_file_size=100000):
                 fsize = os.path.getsize(fpath)
             except OSError:
                 continue
-            
-            total_size += fsize
+
             ext = fname.rsplit('.', 1)[-1].lower() if '.' in fname else ''
-            
+
             if ext in SKIP_EXTS or ext in ('exe', 'dll', 'so', 'dylib', 'bin'):
                 continue
 
             # Skip files larger than max_file_size early (prevents reading 1.8GB model blobs)
             if fsize > max_file_size:
                 continue
-            
+
+            total_size += fsize
             rel_path = os.path.relpath(fpath, root_dir)
             lang = LANG_BY_EXT.get(ext, '')
             

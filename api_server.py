@@ -1,4 +1,4 @@
-"""Arch Api Server (CDP-style local bridge on 127.0.0.1:9224).
+"""Arch Api Server (CDP-style local bridge on 127.0.0.1:9332).
 
 Exposes the routes index.html expects:
   GET  /api/config            -> app config + active model/profile
@@ -53,6 +53,14 @@ ALLOWED_LANGS = {"en", "sw", "fr", "zh", "ja", "ar"}
 RATE_WINDOW = 10.0
 RATE_MAX = 40
 _rate = {}  # ip -> deque of timestamps
+_rate_lock = None
+
+def _rate_lock_():
+    global _rate_lock
+    if _rate_lock is None:
+        import threading
+        _rate_lock = threading.Lock()
+    return _rate_lock
 
 
 def _load_chats():
@@ -69,12 +77,31 @@ def _load_chats():
     return []
 
 
+def _atomic_write_json(path, obj):
+    """Write JSON crash-safely: temp file + os.replace, never a torn file."""
+    import tempfile
+    d = os.path.dirname(path)
+    try:
+        os.makedirs(d, exist_ok=True)
+    except Exception:
+        pass
+    fd, tmp = tempfile.mkstemp(dir=d or ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(obj, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.remove(tmp)
+        except Exception:
+            pass
+        raise
+
+
 def _save_chats(chats):
     """Persist chat history to the chats file."""
     try:
-        os.makedirs(os.path.dirname(CHATS_FILE), exist_ok=True)
-        with open(CHATS_FILE, "w", encoding="utf-8") as f:
-            json.dump(chats, f, ensure_ascii=False, indent=2)
+        _atomic_write_json(CHATS_FILE, chats)
     except Exception as e:
         print("save chats error:", e, flush=True)
 
@@ -83,13 +110,17 @@ def _rate_ok(ip):
     import time
     from collections import deque
     now = time.time()
-    dq = _rate.setdefault(ip, deque())
-    while dq and now - dq[0] > RATE_WINDOW:
-        dq.popleft()
-    if len(dq) >= RATE_MAX:
-        return False
-    dq.append(now)
-    return True
+    with _rate_lock_():
+        # Prune dead buckets so the map can't grow without bound
+        for k in [k for k, dq in _rate.items() if not dq or now - dq[-1] > RATE_WINDOW * 6]:
+            _rate.pop(k, None)
+        dq = _rate.setdefault(ip, deque())
+        while dq and now - dq[0] > RATE_WINDOW:
+            dq.popleft()
+        if len(dq) >= RATE_MAX:
+            return False
+        dq.append(now)
+        return True
 
 
 def _authorized(headers):
@@ -130,7 +161,10 @@ def emit_event(payload, event="message", id=None):
 
 
 def read_body(handler):
-    length = int(handler.headers.get("Content-Length") or 0)
+    try:
+        length = int(handler.headers.get("Content-Length") or 0)
+    except (TypeError, ValueError):
+        return {}
     if not length:
         return {}
     if length > MAX_BODY:
@@ -252,7 +286,6 @@ class Handler(BaseHTTPRequestHandler):
             return
         if p == "/api/models":
             available = local_ai.list_models()
-            internal = list({k for k in local_ai.MODEL_OVERRIDES.keys() if k in local_ai.MODEL_DISPLAY})
             self._send(200, {
                 "models": [{"name": v, "id": k} for k, v in local_ai.MODEL_DISPLAY.items()],
                 "active": CTX.model,
@@ -416,9 +449,14 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 pass
             self._send(200, {"ok": True, "shutdown": True})
-            # Give the response time to flush, then exit
-            import threading
-            threading.Timer(1.0, lambda: os._exit(0)).start()
+            # Graceful: let in-flight requests finish, then stop serving.
+            # (The old os._exit(0) could corrupt chats.json mid-write.)
+            try:
+                srv = self.server
+                import threading
+                threading.Timer(1.0, srv.shutdown).start()
+            except Exception:
+                pass
             return
         self._send(404, {"error": "not found"})
 
@@ -426,8 +464,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             cfg = load_config()
             cfg[key] = value
-            with open(os.path.join(APP_DIR, "Config.json"), "w", encoding="utf-8") as f:
-                json.dump(cfg, f, indent=2)
+            _atomic_write_json(os.path.join(APP_DIR, "Config.json"), cfg)
         except Exception:
             pass
 
@@ -437,8 +474,7 @@ class Handler(BaseHTTPRequestHandler):
             prof = dict(cfg.get("profile", {}))
             prof[key] = value
             cfg["profile"] = prof
-            with open(os.path.join(APP_DIR, "Config.json"), "w", encoding="utf-8") as f:
-                json.dump(cfg, f, indent=2)
+            _atomic_write_json(os.path.join(APP_DIR, "Config.json"), cfg)
             if key == "theme":
                 CTX.theme = value
             elif key == "voice":
@@ -465,8 +501,7 @@ class Handler(BaseHTTPRequestHandler):
                 elif k == "persona":
                     CTX.persona = v
             cfg["profile"] = prof
-            with open(os.path.join(APP_DIR, "Config.json"), "w", encoding="utf-8") as f:
-                json.dump(cfg, f, indent=2)
+            _atomic_write_json(os.path.join(APP_DIR, "Config.json"), cfg)
         except Exception:
             pass
 
@@ -489,11 +524,9 @@ class Handler(BaseHTTPRequestHandler):
         return []
 
     def _save_skills(self, skills):
-        os.makedirs(self.SKILLS_DIR, exist_ok=True)
         # Always persist the {"skills": [...]} layout used by installers
         payload = {"skills": skills} if isinstance(skills, list) else skills
-        with open(self.SKILLS_MANIFEST, "w", encoding="utf-8") as f:
-            json.dump(payload, f, indent=2)
+        _atomic_write_json(self.SKILLS_MANIFEST, payload)
 
     def _handle_skill_install(self, body):
         url = str(body.get("url", "")).strip()
@@ -502,9 +535,14 @@ class Handler(BaseHTTPRequestHandler):
         # Accept "user/repo" shorthand and bare repo URLs
         if re.match(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", url):
             url = "https://github.com/" + url
-        if "github.com" in url and not url.endswith(".git") and not url.rstrip("/").endswith((".zip", ".tar.gz")):
-            pass  # git clone works with or without the .git suffix
-        if not (url.startswith("https://github.com/") or url.startswith("http://github.com/") or url.endswith(".git")):
+        # Host whitelist: GitHub only. The old check accepted any host as
+        # long as the URL ended in .git (e.g. https://evil.com/x.git).
+        try:
+            from urllib.parse import urlparse as _up
+            host = (_up(url).hostname or "").lower()
+        except Exception:
+            host = ""
+        if host not in ("github.com", "www.github.com"):
             self._send(200, {"error": "Only GitHub repository URLs are supported (e.g. https://github.com/user/skill)"}); return
         if shutil.which("git") is None:
             self._send(200, {"error": "git is not installed. Install Git for Windows, restart Arch, and try again."}); return
@@ -535,6 +573,11 @@ class Handler(BaseHTTPRequestHandler):
                     system_prompt_addon = mf.get("system_prompt", "")
                 except Exception:
                     pass
+            # Cap untrusted prompt text: a malicious skill.json must not be
+            # able to stuff unlimited tokens into every chat.
+            name = str(name)[:120]
+            description = str(description)[:500]
+            system_prompt_addon = str(system_prompt_addon)[:4000]
             if os.path.exists(os.path.join(dest, "package.json")):
                 subprocess.run(
                     ["npm", "install", "--production"],
@@ -604,9 +647,20 @@ class Handler(BaseHTTPRequestHandler):
             self._send(400, {"error": "no messages"})
             return
         model = body.get("model")
-        temperature = body.get("temperature", 0.2)
-        top_p = body.get("top_p", 0.7)
-        top_k = body.get("top_k", 15)
+        if model not in local_ai.MODEL_OVERRIDES:
+            model = None  # unknown names fall back to the default model
+        try:
+            temperature = min(2.0, max(0.0, float(body.get("temperature", 0.2))))
+        except (TypeError, ValueError):
+            temperature = 0.2
+        try:
+            top_p = min(1.0, max(0.0, float(body.get("top_p", 0.7))))
+        except (TypeError, ValueError):
+            top_p = 0.7
+        try:
+            top_k = min(100, max(1, int(body.get("top_k", 15))))
+        except (TypeError, ValueError):
+            top_k = 15
         search = bool(body.get("search", False))
         inject_codebase = bool(body.get("codebase_context", False))
         if inject_codebase:
@@ -627,7 +681,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.flush()
             import re
             open_match = re.search(
-                r"(?:open|launch|start)\s+(https?://[^\s]+)",
+                r"(?:open|launch|start)\s+(https?://[^\s\"'<>]+)",
                 full_text, re.IGNORECASE
             )
             if open_match:
@@ -638,15 +692,13 @@ class Handler(BaseHTTPRequestHandler):
                         target = target[len(prefix):]
                         break
                 target = target.strip().rstrip(".")
-                self.wfile.write(emit_event({"action": "open", "target": target}, event="system_action").encode("utf-8"))
-                self.wfile.flush()
-                # URLs only — never executables. The Electron shell opens
-                # these in the user's browser; nothing runs server-side.
-                import subprocess as _sp
-                _sp.Popen(["open", target] if os.name != "nt" else ["cmd", "/c", "start", "", target],
-                          stdout=_sp.DEVNULL, stderr=_sp.DEVNULL,
-                          creationflags=getattr(_sp, "CREATE_NO_WINDOW", 0))
-            self.wfile.write(emit_event(None, event="done").encode("utf-8"))
+                # Notify the renderer ONLY — it asks Electron to open the
+                # link in the browser (via preload IPC). Nothing executes
+                # server-side: model output must never reach a shell.
+                if re.fullmatch(r"https?://[^\s\"'<>]+", target or ""):
+                    self.wfile.write(emit_event({"action": "open", "target": target}, event="system_action").encode("utf-8"))
+                    self.wfile.flush()
+            self.wfile.write(emit_event({"done": True}, event="done").encode("utf-8"))
             self.wfile.flush()
         except Exception as e:
             self.wfile.write(emit_event({"error": str(e)}, event="error").encode("utf-8"))
@@ -720,7 +772,7 @@ class Handler(BaseHTTPRequestHandler):
             for piece in local_ai.edit_stream(file_text, instruction, model=model):
                 self.wfile.write(emit_event(piece).encode("utf-8"))
                 self.wfile.flush()
-            self.wfile.write(emit_event(None, event="done").encode("utf-8"))
+            self.wfile.write(emit_event({"done": True}, event="done").encode("utf-8"))
             self.wfile.flush()
         except Exception as e:
             self.wfile.write(emit_event({"error": str(e)}, event="error").encode("utf-8"))
@@ -729,7 +781,15 @@ class Handler(BaseHTTPRequestHandler):
         kind = body.get("kind", "Fix a bug")
         task = body.get("task", "")
         model = body.get("model") or CTX.model
+        if model not in local_ai.MODEL_OVERRIDES:
+            model = CTX.model
         aid = "ag_" + uuid.uuid4().hex[:12]
+        # Evict oldest agents: entries are never auto-removed otherwise.
+        while len(AGENTS) >= 20:
+            try:
+                AGENTS.pop(next(iter(AGENTS)))
+            except StopIteration:
+                break
         AGENTS[aid] = {
             "id": aid, "kind": kind, "task": task, "model": model,
             "running": False,
