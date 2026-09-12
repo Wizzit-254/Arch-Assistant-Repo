@@ -1401,6 +1401,7 @@
 
   /* ===================== MATH / SCIENCE RENDERING ===================== */
   .math-display{ display:block; text-align:center; margin:0.6em 0; font-size:1.05em; }
+  .math-box{ display:inline-block; border:1.5px solid var(--accent); border-radius:8px; padding:2px 12px; margin:0.3em 0; font-weight:600; }
   .frac{ display:inline-block; text-align:center; line-height:1; margin:0 .06em; vertical-align:baseline; }
   .frac .fnum, .frac .fden{ display:block; font-size:0.72em; }
   .frac .fden{ border-top:1px solid var(--border); margin-top:1px; padding-top:1px; }
@@ -2286,11 +2287,25 @@ const SYMBOLS = {
   psi:'ψ', omega:'ω', inf:'∞', infty:'∞', emptyset:'∅',
   // operators / relations
   times:'×', cdot:'·', approx:'≈', neq:'≠', equiv:'≡', le:'≤', ge:'≥',
-  lt:'<', gt:'>', pm:'±', pm:'±',
+  lt:'<', gt:'>', pm:'±', pm:'±', div:'÷', mp:'∓', ast:'∗', star:'★',
+  circ:'∘', bullet:'•', oplus:'⊕', otimes:'⊗', dagger:'†', ddagger:'‡',
+  // functions/operators that render as themselves (so they never leak raw)
+  ln:'ln', log:'log', exp:'exp', sin:'sin', cos:'cos', tan:'tan',
+  sec:'sec', csc:'csc', cot:'cot', det:'det', lim:'lim', min:'min', max:'max',
+  deg:'°', prime:'′', dim:'dim', ker:'ker', arg:'arg', deg2:'°',
   // arrows (case-sensitive lookup happens before lowercase fallback)
   to:'→', rightarrow:'→', leftarrow:'←', gets:'←',
   Rightarrow:'⇒', implies:'⇒', Leftrightarrow:'⇔', leftrightarrow:'↔',
-  longrightarrow:'⟶', longleftarrow:'⟵', uparrow:'↑', downarrow:'↓', mapsto:'↦'
+  longrightarrow:'⟶', longleftarrow:'⟵', uparrow:'↑', downarrow:'↓', mapsto:'↦',
+  hookrightarrow:'↪', leadsto:'↝',
+  // misc symbols
+  partial:'∂', nabla:'∇', forall:'∀', exists:'∃', nexists:'∄', empty:'∅',
+  in:'∈', ni:'∋', notin:'∉',
+  infty:'∞', aleph:'ℵ', hbar:'ℏ', ell:'ℓ', Re:'ℜ', Im:'ℑ',
+  propto:'∝', sim:'∼', cong:'≅', simeq:'≃', ll:'≪', gg:'≫', doteq:'≐',
+  subset:'⊂', supset:'⊃', cup:'∪', cap:'∩', perp:'⊥', angle:'∠',
+  vdash:'⊢', models:'⊧', mid:'∣', parallel:'∥', vert:'|', Vert:'‖',
+  top:'⊤', bot:'⊥', surd:'√', ldots:'…', cdots:'⋯', vdots:'⋮', ddots:'⋱'
 };
 const VULGAR = {
   '1/2':'½','1/3':'⅓','2/3':'⅔','1/4':'¼','3/4':'¾','1/5':'⅕','2/5':'⅖','3/5':'⅗','4/5':'⅘',
@@ -2326,10 +2341,25 @@ function formatMath(s){
   s = s.replace(/\$((?:[^\$\\]|\\.)*)\$/g, (m, inner) => formatMath(inner));
   s = s.replace(/\\\(\s*([\s\S]*?)\s*\\\)/g, (m, inner) => formatMath(inner.trim()));
   // remove any leftover LaTeX brackets and whitespace commands
-  s = s.replace(/\\[, ]/g, ' ').replace(/\\text\{([^{}]*)\}/g, '$1');
+  s = s.replace(/\\[,;:! ]/g, ' ');
+  // \text, \mathrm, \mathit, \mathbf, \boldsymbol, \mathsf, \textrm, \textit
+  // -> inner text (recursed so nested math inside still formats)
+  s = s.replace(/\\(?:text|mathrm|mathit|mathbf|boldsymbol|mathsf|textrm|textit|textnormal|mathrm)\{((?:[^{}]|\{[^{}]*\})*)\}/g,
+    (m, inner) => formatMath(inner));
+  // \boxed{...} -> highlighted result box (recursed for the same reason)
+  s = s.replace(/\\boxed\{((?:[^{}]|\{[^{}]*\})*)\}/g,
+    (m, inner) => '<span class="math-box">' + formatMath(inner) + '</span>');
   s = s.replace(/\\[(\[\])]/g, '');
-  // fractions: \frac{a}{b}  ->  ½ / ⅓ / a⁄b (compact Unicode, never stacked HTML)
-  s = s.replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, (m, a, b) => fracToUnicode(a, b));
+  // sizing/delimiter commands: \left( \right) \bigl[ \Bigr] \middle| -> just the delimiter
+  s = s.replace(/\\(?:left|right|bigl|bigr|Bigl|Bigr|big|bigg|middle)\s*([()\[\]|/.])/g, '$1');
+  s = s.replace(/\\(?:vert\|)\b/g, '|').replace(/\\Vert\b/g, '‖');
+  // fractions: \frac{a}{b} -> ½ / ⅓ / a⁄b (one nesting level allowed, looped to fixpoint)
+  for(let fi = 0; fi < 3; fi++){
+    const before = s;
+    s = s.replace(/\\(?:d|t)?frac\{((?:[^{}]|\{[^{}]*\})*)\}\{((?:[^{}]|\{[^{}]*\})*)\}/g,
+      (m, a, b) => fracToUnicode(formatMath(a), formatMath(b)));
+    if(s === before) break;
+  }
   // nth root: \sqrt[n]{x}  ->  n√x
   s = s.replace(/\\sqrt\[(\d+)\]\{([^{}]*)\}/g, (m, n, x) => toSuper(n) + '√' + formatMath(x));
   // sqrt(x) / sqrt{x} / sqrt x  ->  √x
@@ -2406,6 +2436,8 @@ function formatMath(s){
   // subscripts: x_1 -> x₁, x_{i} -> xᵢ? (no unicode for letters) -> otherwise <sub>
   s = s.replace(/(\w+)_\{([^{}]*)\}/g, (m, base, sub) => base + toSub(sub));
   s = s.replace(/(\w+)_(\d+)/g, (m, base, sub) => base + toSub(sub));
+  // already-Unicode marks after _ or ^ (N_₀, e^⁻): drop the stray marker
+  s = s.replace(/([_^])([₀₁₂₃₄₅₆₇₈₉⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼₊₋₌])/g, '$2');
   // operator symbols on escaped text (&gt; = >, &lt; = <)
   s = s.replace(/&gt;=/g, '≥').replace(/&lt;=/g, '≤').replace(/-&gt;/g, '→')
        .replace(/&lt;-/g, '←').replace(/&gt;=\$|&gt;\$/g, '⇒');
@@ -4908,9 +4940,7 @@ function stopPreview(){
   try { window.speechSynthesis.cancel(); } catch(e){}
 }
 
-/* =========================================================
-    INIT
-    ========================================================= */
+/* INIT */
 loadChats();  // async — fetches from backend and renders when ready
 
 (function restorePrefs(){
@@ -5013,7 +5043,7 @@ loadChats();  // async — fetches from backend and renders when ready
        // Stay visible until user explicitly dismisses
       const startIntro = () => {
         if(!forceIntro){ try { localStorage.setItem('arch.intro.seen', '1'); } catch(e){} }
-        // Also persist to main process via API so first-run detection works next time
+        // Also persist to main process via API so first-run detection works next time.
         try { postApi('/api/intro-seen', {}); } catch(e){}
         notify.classList.remove('show');
       };
@@ -5024,7 +5054,7 @@ loadChats();  // async — fetches from backend and renders when ready
       });
     } catch(e){}
   })();
+  /* F//ck my life with the making of this Handmade code like holy f//ck sh//t i want to jump off a bridge and just die, omfg no one will ever know this code was handmade by a 15y.o in Kenya who is tryna make it out the mud gang, fuck everything I live for and Someone who will see this tag rant will either know I'm corny asf or this is just some serious dev crashout, Shoutout to TJ and Mutembezi for motivation and shi, the original source code made by Trevor Kising'u, I will never lowk get enough recognition for this small LLM project but its okay I guess, as long as I know that deep down someone will hopefully read this tag I guess. -2026 September 9/11 Crashout (Happy 25th Anniversary NYC!) */
 </script>
-
 </body>
 </html>

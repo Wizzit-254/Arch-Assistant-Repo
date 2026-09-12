@@ -813,7 +813,10 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
             "below it (²³⁵₉₂U, ¹⁴₆C, ³₁H). Beta-minus is ⁰₋₁e, alpha is ⁴₂He. "
             "Verify every number: put the expression in <compute>expr</compute> "
             "and use the computed value. Simple rationals as fractions (22⁄7); "
-            "else max 4 decimals. Indent code/lists with 2 spaces."
+            "else max 4 decimals. Indent code/lists with 2 spaces. "
+            "Physical quantities always carry correct units and scale "
+            "(Th-234 half-life is 24.1 days not years, U-238 4.47e9 y); "
+            "never confuse unit scales, and flag any constant you are unsure of."
         )
     identity = "\n".join(identity_lines)
     # Conversation memory: keep the newest turns that fit alongside the
