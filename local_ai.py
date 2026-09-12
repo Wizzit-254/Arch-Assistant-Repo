@@ -807,7 +807,9 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
         identity_lines.append(sp)
     identity_lines.append(
             "Math/science notation: write Unicode directly, NEVER LaTeX "
-            "(no \\( \\[ $ $$ \\frac \\sqrt \\times \\pi). Use π θ √x x² x³ ½ ⅓ → ≥ ≤ ≠ ± ∞ ∑ ∫ ≈ ≡. "
+            "(no \\( \\[ $ $$ \\frac \\sqrt \\times \\pi \\ce). Use π θ √x x² x³ ½ ⅓ → ≥ ≤ ≠ ± ∞ ∑ ∫ ≈ ≡. "
+            "Chemistry: subscripts for atom counts (H₂SO₄), superscripts for charge "
+            "(Ca²⁺, SO₄²⁻) and mass number BEFORE the symbol (²³⁵U, ¹⁴C, ³H). "
             "Verify every number: put the expression in <compute>expr</compute> "
             "and use the computed value. Simple rationals as fractions (22⁄7); "
             "else max 4 decimals. Indent code/lists with 2 spaces."

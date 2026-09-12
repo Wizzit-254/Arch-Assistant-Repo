@@ -2332,6 +2332,48 @@ function formatMath(s){
   s = s.replace(/(?:\\?sqrt)[\(\[\{]?([^\(\)\[\]\{\}]+)[\)\]\}]?/g, (m, x) => '√' + formatMath(x));
   // \pi, \theta, \times ... (fallback for when the model uses LaTeX)
   s = s.replace(/\\[A-Za-z]+/g, (m) => SYMBOLS[m.slice(1).toLowerCase()] || m);
+  // ---- chemistry & nuclear notation (context-sensitive: element symbols only,
+  // so ordinary words and versions like Windows10 are never touched) ----
+  const subDigits = (d) => d.split('').map(c => SUB_DIGITS[c] || c).join('');
+  const supStr = (d) => d.split('').map(c => SUPER_DIGITS[c] || c).join('');
+  // element symbols, two-letter first (alternation backtracks safely)
+  const EL = '(?:He|Li|Be|Ne|Na|Mg|Al|Si|Cl|Ar|Ca|Sc|Ti|Cr|Mn|Fe|Co|Ni|Cu|Zn|Ga|Ge|As|Se|Br|Kr|Rb|Sr|Zr|Nb|Mo|Tc|Ru|Rh|Pd|Ag|Cd|In|Sn|Sb|Te|Xe|Cs|Ba|La|Ce|Pr|Nd|Pm|Sm|Eu|Gd|Tb|Dy|Ho|Er|Tm|Yb|Lu|Hf|Ta|Re|Os|Ir|Pt|Au|Hg|Tl|Pb|Bi|Po|At|Rn|Fr|Ra|Ac|Th|Pa|Np|Pu|Am|Cm|Bk|Cf|Es|Fm|Md|No|Lr|Rf|Db|Sg|Bh|Hs|Mt|Ds|Rg|Cn|Nh|Fl|Mc|Lv|Ts|Og|H|B|C|N|O|F|P|S|K|V|Y|I|W|U)';
+  // caret isotopes: ^14C, ^{235}U -> superscript mass number BEFORE the symbol
+  s = s.replace(new RegExp('\\^\\{?(\\d{1,3})\\}?(' + EL + ')(?![A-Za-z0-9])', 'g'),
+    (m, mass, el) => supStr(mass) + el);
+  // hyphen isotopes: U-235, C-14 -> superscript mass number
+  s = s.replace(new RegExp('(?<![A-Za-z])(' + EL + ')-(\\d{2,3})(?![A-Za-z0-9])', 'g'),
+    (m, el, mass) => supStr(mass) + el);
+  // nuclear particles in words: alpha particle, beta decay, gamma rays
+  s = s.replace(/\b([Aa]lpha|[Bb]eta|[Gg]amma)\s+(particle|particles|decay|ray|rays|radiation|emission|emissions)\b/g,
+    (m, p, rest) => ({alpha:'α',beta:'β',gamma:'γ'})[p.toLowerCase()] + ' ' + rest);
+  // beta/alpha with charge sign: beta-, alpha+ -> β⁻, α⁺
+  s = s.replace(/\b([Aa]lpha|[Bb]eta)([+-])(?![\w<])/g,
+    (m, p, sign) => ({alpha:'α',beta:'β'})[p.toLowerCase()] + supStr(sign));
+  // isotopes first: 14C, 235U, 2H, 3He -> superscript mass number
+  s = s.replace(/\b(\d{1,3})([A-Z][a-z]?)\b/g, (m, mass, el) => supStr(mass) + el);
+  // ionic charges: bare (Fe3+, OH-, H+, e-) and caret forms (SO4^2-, Ca^2+)
+  s = s.replace(/((?:[A-Z][a-z]?(?:\d+)?)+)(\d)([+-])(?![\w<])/g,
+    (m, base, cd, sign) => base + supStr(cd) + supStr(sign));
+  s = s.replace(/(?<![\w>])([A-Z][a-z]?|[e])((?:[+-]))(?![\w<])/g,
+    (m, base, sign) => base + supStr(sign));
+  s = s.replace(/([A-Za-z][a-z]?\d*)\^(\d+)([+-])/g,
+    (m, base, cd, sign) => base + supStr(cd) + supStr(sign));
+  // caret charges on full formulas: SO4^2-, Fe^3+ -> keep base for later subscripting
+  s = s.replace(/((?:[A-Z][a-z]?\d*)+)\^(\d*)([+-])(?![\w<])/g,
+    (m, base, cd, sign) => base + supStr(cd) + supStr(sign));
+  // hydrates: CuSO4·5H2O -> subscript the water coefficient around ·
+  s = s.replace(/(\d+)\s*(·)/g, (m, n, dot) => subDigits(n) + dot);
+  s = s.replace(/(·)\s*(\d+)/g, (m, dot, n) => dot + subDigits(n));
+  // plain formulas: H2O, C6H12O6, 2NH3, 3H2 -> subscript atom counts
+  // (leading stoichiometric coefficients stay upright; needs a digit;
+  // version strings like Windows10 never match the caps pattern)
+  s = s.replace(/\b(\d*)([A-Z][a-z]?(?:\d*[A-Z][a-z]?)*\d*)\b/g, (m, coef, f) => {
+    if(!/\d/.test(f)) return m;
+    return coef + f.replace(/(\d+)/g, (d) => subDigits(d));
+  });
+  // reaction arrows in ASCII: <=> becomes ⇌, <-> becomes ↔, --> and -> become →
+  s = s.replace(/<=>/g, '⇌').replace(/<->/g, '↔').replace(/-->/g, '→').replace(/->/g, '→');
   // exponents: x^2 -> x², x^{10} -> x¹⁰ (unicode superscripts), else <sup>
   s = s.replace(/(\w+)\^\{([^{}]*)\}/g, (m, base, exp) => base + toSuper(exp));
   s = s.replace(/(\w+)\^(\d+)/g, (m, base, exp) => base + toSuper(exp));
@@ -2419,15 +2461,27 @@ const SAY = {
   '⅑':'one ninth','⅒':'one tenth','⁄':' over ',
   'π':'pi','θ':'theta','√':'square root','×':'times','→':'to','≥':'greater than or equal to',
   '≤':'less than or equal to','≠':'not equal to','±':'plus or minus','…':'etc','∞':'infinity',
-  '∑':'sum','∏':'product','∫':'integral','≈':'approximately','≡':'equivalent to'
+  '∑':'sum','∏':'product','∫':'integral','≈':'approximately','≡':'equivalent to',
+  '↔':'reversibly to','⇌':'in equilibrium with','·':' dot ',
+  'α':'alpha','β':'beta','γ':'gamma'
 };
 function mathSpeak(text){
   let t = String(text || '').replace(/<[^>]+>/g, ' ');
+  // chemistry first: H₂SO₄ -> "H 2 S O 4", Ca²⁺ -> "Ca 2 plus",
+  // ²³⁵U -> "235 U", e⁻ -> "electron minus" (keeps TTS intelligible)
+  t = t
+    .replace(/([A-Za-z\)\]])([⁰¹²³⁴⁵⁶⁷⁸⁹]+)([⁺⁻])/g, (m, b, d, s) =>
+      b + ' ' + d.split('').map(c => SUPER_DIGIT[c] || c).join('') + ' ' + (s === '⁺' ? 'plus' : 'minus'))
+    .replace(/([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]+)([A-Z][a-z]?)/g, (m, s, el) =>
+      s.split('').map(c => SUPER_DIGIT[c] || c).join('') + ' ' + el)
+    .replace(/\be([⁺⁻])/g, (m, s) => 'electron ' + (s === '⁺' ? 'plus' : 'minus'))
+    .replace(/\b([A-Z]{1,3})([₀₁₂₃₄₅₆₇₈₉₊₋]+)/g, (m, el, s) =>
+      ' ' + el.split('').join(' ') + ' ' + s.split('').map(c => SUB_DIGIT[c] || c).join(' '));
   t = t
     .replace(/²/g, ' squared').replace(/³/g, ' cubed')
     .replace(/[⁰¹⁴⁵⁶⁷⁸⁹⁺⁻]+/g, m => ' to the ' + m.split('').map(c => SUPER_DIGIT[c] || c).join(''))
-    .replace(/[₀₁₃₄₅₆₇₈₉₊₋]+/g, m => ' sub ' + m.split('').map(c => SUB_DIGIT[c] || c).join(''))
-    .replace(/[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅐⅛⅜⅝⅞⅑⅒⁄πθ√×→≥≤≠±…∞∑∏∫≈≡]/g, m => SAY[m] || m);
+    .replace(/[₀₁₂₃₄₅₆₇₈₉₊₋]+/g, m => ' sub ' + m.split('').map(c => SUB_DIGIT[c] || c).join(''))
+    .replace(/[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅐⅛⅜⅝⅞⅑⅒⁄πθ√×→≥≤≠±…∞∑∏∫≈≡↔⇌·αβγ]/g, m => SAY[m] || m);
   return t.replace(/\s+/g, ' ').trim();
 }
 
@@ -2818,6 +2872,8 @@ function capNarrationText(text){
 let voiceIndex = {};
 let activeFishAudio = null;
 let _sampleAudio = null;
+let narrationRun = 0;      // bumped to cancel an in-flight narration
+let narrationCancel = null; // resolves the currently-playing chunk promise
 
 function buildVoiceIndex(){
   voiceIndex = {};
@@ -2834,21 +2890,81 @@ function buildVoiceIndex(){
 }
 
 async function speakFish(text, voiceId){
-  try { window.speechSynthesis.cancel(); } catch(e){}
-  if(activeFishAudio){ try { activeFishAudio.pause(); } catch(e){} activeFishAudio = null; }
-  const r = await apiFetch('/api/tts', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, voice_id: voiceId })
+  // Progressive playback: split into sentence chunks (~600 chars) and play
+  // each chunk the moment its audio arrives, while prefetching the next.
+  // First audio starts after ONE short chunk synthesizes instead of the
+  // whole answer — narration begins in seconds, not tens of seconds.
+  const run = ++narrationRun;
+  const chunks = splitNarration(text);
+  let pendingCancel = null;
+  narrationCancel = () => { const f = pendingCancel; pendingCancel = null; if(f) f(); };
+  const fetchChunk = async (c) => {
+    const r = await apiFetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: c, voice_id: voiceId })
+    });
+    if(!r.ok) throw new Error('tts http ' + r.status);
+    const blob = await r.blob();
+    if(!blob.size || blob.size < 100) throw new Error('tts empty');
+    return blob;
+  };
+  const playBlob = (blob) => new Promise((resolve) => {
+    try { window.speechSynthesis.cancel(); } catch(e){}
+    const url = URL.createObjectURL(blob);
+    const a = new Audio(url);
+    activeFishAudio = a;
+    const done = () => {
+      try { URL.revokeObjectURL(url); } catch(e){}
+      if(activeFishAudio === a) activeFishAudio = null;
+      if(pendingCancel === done) pendingCancel = null;
+      resolve();
+    };
+    pendingCancel = done;
+    a.onended = done;
+    a.play().catch(done);
   });
-  if(!r.ok) throw new Error('tts http ' + r.status);
-  const blob = await r.blob();
-  if(!blob.size || blob.size < 100) throw new Error('tts empty');
-  const url = URL.createObjectURL(blob);
-  const a = new Audio(url);
-  activeFishAudio = a;
-  a.onended = () => { try { URL.revokeObjectURL(url); } catch(e){} if(activeFishAudio === a) activeFishAudio = null; };
-  try { await a.play(); } catch(e){ throw e; }
+  try {
+    let nextP = null;
+    for(let i = 0; i < chunks.length; i++){
+      if(run !== narrationRun) return;
+      let blob;
+      try {
+        blob = nextP ? await nextP : await fetchChunk(chunks[i]);
+      } catch(e){
+        if(i === 0) throw e; // first chunk fails -> caller falls back to sample
+        continue; // later chunk fails -> skip it, keep narrating
+      }
+      if(i + 1 < chunks.length) nextP = fetchChunk(chunks[i + 1]);
+      if(run !== narrationRun) return;
+      await playBlob(blob);
+    }
+  } finally {
+    if(run === narrationRun) narrationCancel = null;
+  }
+}
+
+function splitNarration(text){
+  // Greedily pack sentences into <=600-char chunks for progressive TTS.
+  const parts = String(text || '').split(/(?<=[.!?…\n])\s+/);
+  const chunks = [];
+  let cur = '';
+  for(const p of parts){
+    if((cur + ' ' + p).trim().length <= 600){ cur = (cur + ' ' + p).trim(); continue; }
+    if(cur) chunks.push(cur);
+    if(p.length <= 600){ cur = p; continue; }
+    // single over-long sentence: hard-split on spaces
+    let rest = p;
+    while(rest.length > 600){
+      let cut = rest.lastIndexOf(' ', 600);
+      if(cut < 200) cut = 600;
+      chunks.push(rest.slice(0, cut));
+      rest = rest.slice(cut).trim();
+    }
+    cur = rest;
+  }
+  if(cur) chunks.push(cur);
+  return chunks.length ? chunks : [String(text || '')];
 }
 
 // Offline fallback: plays the stored voice-bank reference sample.
@@ -2880,6 +2996,8 @@ function speakOutLoud(text){
   } catch(e){}
 }
 function stopNarration(){
+  narrationRun++; // invalidate any chunk loop / waiter
+  try { const f = narrationCancel; narrationCancel = null; if(f) f(); } catch(e){}
   try { window.speechSynthesis.cancel(); } catch(e){}
   if(activeFishAudio){ try { activeFishAudio.pause(); activeFishAudio.src = ''; } catch(e){} activeFishAudio = null; }
   if(_sampleAudio){ try { _sampleAudio.pause(); } catch(e){} _sampleAudio = null; }
@@ -4757,7 +4875,7 @@ function stopPreview(){
   iconPause.style.display = 'none';
   clearTimeout(previewTimer);
   if(previewAudio){ previewAudio.pause(); previewAudio = null; }
-  if(activeFishAudio){ try { activeFishAudio.pause(); } catch(e){} activeFishAudio = null; }
+  stopNarration(); // also cancels any in-flight fish.audio chunk loop
   try { window.speechSynthesis.cancel(); } catch(e){}
 }
 
