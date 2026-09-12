@@ -24,7 +24,7 @@
 
 ; --- Page copy: set expectations up front ---
 !define MUI_WELCOMEPAGE_TITLE "Arch Assistant ${APP_VERSION} Setup"
-!define MUI_WELCOMEPAGE_TEXT "This wizard installs Arch Assistant.$\n$\nThe installer is small, but it downloads the ~1.85GB app bundle (AI models included) as soon as you confirm the install location. You need about 7GB of free disk space during setup (5GB for the app plus the download while it extracts).$\n$\nThe download resumes automatically if your connection drops, so it works even on unreliable wifi — just leave the installer running.$\n$\nClick Next to continue."
+!define MUI_WELCOMEPAGE_TEXT "This wizard installs Arch Assistant.$\n$\nThe installer is small, but it downloads the ~1.85GB app bundle (AI models included) as soon as you confirm the install location. You need about 7GB of free disk space during setup (5GB for the app plus the download while it extracts).$\n$\nYou can press Cancel at any time: progress is saved, and re-running the installer to the SAME folder resumes where it stopped — even after wifi comes back. It never starts over.$\n$\nClick Next to continue."
 
 !define MUI_DIRECTORYPAGE_TEXT_TOP "Choose where to install Arch Assistant. Downloading and extraction begin immediately after you click Install on the next page. Make sure the drive has ~7GB free."
 !define MUI_DIRECTORYPAGE_TEXT_DESTINATION "Install location"
@@ -86,15 +86,20 @@ Section "!Arch Assistant (required)" SecMain
     File "ArchDl.ps1"
     SetOutPath "$INSTDIR"
 
-    DetailPrint "Downloading app bundle (~1.85GB). Resumes on disconnects — leave this running."
+    DetailPrint "Downloading app bundle (~1.85GB). Cancel anytime — re-run to the same folder to resume."
     nsExec::ExecToLog 'powershell -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\ArchDl.ps1" "${APP_DOWNLOAD}" "$INSTDIR"'
     Pop $9
 
     ${If} $9 == 2
         MessageBox MB_ICONSTOP|MB_OK "Not enough free disk space.$\n$\nArch Assistant needs about 7GB free during setup (5GB for the app plus the installer download while it extracts).$\n$\nFree up space and run the installer again."
         Abort
+    ${ElseIf} $9 == 3
+        Delete "$INSTDIR\Arch-Assistant-App.zip"
+        Delete "$INSTDIR\Arch-Assistant-App.zip.part"
+        MessageBox MB_ICONSTOP|MB_OK "The downloaded file was corrupted, so it was deleted.$\n$\nRun the installer again to download fresh.$\n$\nManual download:$\n${APP_DOWNLOAD}"
+        Abort
     ${ElseIf} $9 != 0
-        MessageBox MB_ICONSTOP|MB_OK "The download could not finish.$\n$\nYour connection may have dropped for a long time. Run the installer again later — it will retry automatically.$\n$\nManual download:$\n${APP_DOWNLOAD}"
+        MessageBox MB_ICONSTOP|MB_OK "The download could not finish, but your progress was saved.$\n$\nRun the installer again to the SAME folder to resume where it stopped — even after your wifi comes back.$\n$\nManual download:$\n${APP_DOWNLOAD}"
         Abort
     ${EndIf}
 
@@ -102,7 +107,9 @@ Section "!Arch Assistant (required)" SecMain
     nsExec::ExecToLog 'powershell -NoProfile -Command "Expand-Archive -Path ''$INSTDIR\Arch-Assistant-App.zip'' -DestinationPath ''$INSTDIR'' -Force"'
     Pop $9
     ${If} $9 != 0
-        MessageBox MB_ICONSTOP|MB_OK "Extraction failed.$\n$\nTry running the installer again, or extract Arch-Assistant-App.zip with 7-Zip manually into:$\n$INSTDIR"
+        Delete "$INSTDIR\Arch-Assistant-App.zip"
+        Delete "$INSTDIR\Arch-Assistant-App.zip.part"
+        MessageBox MB_ICONSTOP|MB_OK "Extraction failed, so the download was cleared.$\n$\nRun the installer again to download fresh (or extract Arch-Assistant-App.zip with 7-Zip manually into:$\n$INSTDIR)"
         Abort
     ${EndIf}
 
