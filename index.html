@@ -2338,12 +2338,17 @@ function formatMath(s){
   const supStr = (d) => d.split('').map(c => SUPER_DIGITS[c] || c).join('');
   // element symbols, two-letter first (alternation backtracks safely)
   const EL = '(?:He|Li|Be|Ne|Na|Mg|Al|Si|Cl|Ar|Ca|Sc|Ti|Cr|Mn|Fe|Co|Ni|Cu|Zn|Ga|Ge|As|Se|Br|Kr|Rb|Sr|Zr|Nb|Mo|Tc|Ru|Rh|Pd|Ag|Cd|In|Sn|Sb|Te|Xe|Cs|Ba|La|Ce|Pr|Nd|Pm|Sm|Eu|Gd|Tb|Dy|Ho|Er|Tm|Yb|Lu|Hf|Ta|Re|Os|Ir|Pt|Au|Hg|Tl|Pb|Bi|Po|At|Rn|Fr|Ra|Ac|Th|Pa|Np|Pu|Am|Cm|Bk|Cf|Es|Fm|Md|No|Lr|Rf|Db|Sg|Bh|Hs|Mt|Ds|Rg|Cn|Nh|Fl|Mc|Lv|Ts|Og|H|B|C|N|O|F|P|S|K|V|Y|I|W|U)';
-  // caret isotopes: ^14C, ^{235}U -> superscript mass number BEFORE the symbol
-  s = s.replace(new RegExp('\\^\\{?(\\d{1,3})\\}?(' + EL + ')(?![A-Za-z0-9])', 'g'),
-    (m, mass, el) => supStr(mass) + el);
-  // hyphen isotopes: U-235, C-14 -> superscript mass number
-  s = s.replace(new RegExp('(?<![A-Za-z])(' + EL + ')-(\\d{2,3})(?![A-Za-z0-9])', 'g'),
-    (m, el, mass) => supStr(mass) + el);
+  // caret isotopes: _{92}^{235}U (atomic first) MUST come before ^235 forms,
+  // or the mass-only rule eats the tail and strands "_{92}".
+  s = s.replace(new RegExp('_\\{?(\\d{1,3})\\}?\\^\\{?(\\d{1,3})\\}?(' + EL + ')(?![A-Za-z0-9])', 'g'),
+    (m, atomic, mass, el) => supStr(mass) + subDigits(atomic) + el);
+  // caret isotopes: ^14C, ^{235}U, ^235_92U, ^{235}_{92}U
+  // -> superscript mass number + subscript atomic number BEFORE the symbol
+  s = s.replace(new RegExp('\\^\\{?(\\d{1,3})\\}?(?:_\\{?(\\d{1,3})\\}?)?(' + EL + ')(?![A-Za-z0-9])', 'g'),
+    (m, mass, atomic, el) => supStr(mass) + (atomic ? subDigits(atomic) : '') + el);
+  // hyphen isotopes, optional atomic number: U-235, U-235-92
+  s = s.replace(new RegExp('(?<![A-Za-z])(' + EL + ')-(\\d{2,3})(?:-(\\d{1,3}))?(?![A-Za-z0-9])', 'g'),
+    (m, el, mass, atomic) => supStr(mass) + (atomic ? subDigits(atomic) : '') + el);
   // nuclear particles in words: alpha particle, beta decay, gamma rays
   s = s.replace(/\b([Aa]lpha|[Bb]eta|[Gg]amma)\s+(particle|particles|decay|ray|rays|radiation|emission|emissions)\b/g,
     (m, p, rest) => ({alpha:'α',beta:'β',gamma:'γ'})[p.toLowerCase()] + ' ' + rest);
@@ -2468,10 +2473,13 @@ const SAY = {
 function mathSpeak(text){
   let t = String(text || '').replace(/<[^>]+>/g, ' ');
   // chemistry first: H₂SO₄ -> "H 2 S O 4", Ca²⁺ -> "Ca 2 plus",
-  // ²³⁵U -> "235 U", e⁻ -> "electron minus" (keeps TTS intelligible)
+  // ²³⁵U -> "235 U", ²³⁵₉₂U -> "235 92 U", e⁻ -> "electron minus"
   t = t
     .replace(/([A-Za-z\)\]])([⁰¹²³⁴⁵⁶⁷⁸⁹]+)([⁺⁻])/g, (m, b, d, s) =>
       b + ' ' + d.split('').map(c => SUPER_DIGIT[c] || c).join('') + ' ' + (s === '⁺' ? 'plus' : 'minus'))
+    .replace(/([⁰¹²³⁴⁵⁶⁷⁸⁹]+)([₀₁₂₃₄₅₆₇₈₉]+)([A-Z][a-z]?)/g, (m, mass, atomic, el) =>
+      mass.split('').map(c => SUPER_DIGIT[c] || c).join('') + ' ' +
+      atomic.split('').map(c => SUB_DIGIT[c] || c).join('') + ' ' + el)
     .replace(/([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]+)([A-Z][a-z]?)/g, (m, s, el) =>
       s.split('').map(c => SUPER_DIGIT[c] || c).join('') + ' ' + el)
     .replace(/\be([⁺⁻])/g, (m, s) => 'electron ' + (s === '⁺' ? 'plus' : 'minus'))
