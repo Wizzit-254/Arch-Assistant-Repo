@@ -2457,7 +2457,7 @@ function formatMath(s){
 function safeCalc(expr){
   // Only arithmetic + a whitelist of math function/constant names. No
   // property access, no statements, no letters except the tokens below.
-  const allowed = ['sqrt','cbrt','abs','round','floor','ceil','sin','cos','tan','asin','acos','atan','log','ln','exp','pow'];
+  const allowed = ['sqrt','cbrt','abs','round','floor','ceil','sin','cos','tan','asin','acos','atan','log','ln','exp','pow','factorial','comb','gcd','lcm'];
   const ids = (expr.match(/\b[a-z]+\b/g) || []);
   for(const id of ids){
     if(id !== 'pi' && id !== 'e' && !allowed.includes(id)) return null;
@@ -2467,7 +2467,12 @@ function safeCalc(expr){
   if(/[^0-9+\-*/().\s,]/.test(skeleton)) return null;
   try {
     const fn = new Function(...allowed, 'pi', 'e', 'return (' + expr + ')');
-    const mathFn = { ...Math, ln: Math.log, pow: Math.pow };
+    const mathFn = { ...Math, ln: Math.log, pow: Math.pow,
+      factorial: (n) => { n = Math.floor(n); if(!(n >= 0) || n > 170) throw 0; let r = 1; for(let i = 2; i <= n; i++) r *= i; return r; },
+      gcd: (a, b) => { a = Math.abs(a); b = Math.abs(b); while(b){ const t = a % b; a = b; b = t; } return a; },
+      lcm: (a, b) => { a = Math.abs(a); b = Math.abs(b); if(!a || !b) return 0; let x = a, y = b; while(y){ const t = x % y; x = y; y = t; } return (a / x) * b; },
+      comb: (n, k) => { n = Math.floor(n); k = Math.floor(k); if(k < 0 || k > n || n < 0) throw 0; k = Math.min(k, n - k); let r = 1; for(let i = 0; i < k; i++) r = r * (n - i) / (i + 1); return Math.round(r); }
+    };
     const val = fn(...allowed.map(f => mathFn[f]), Math.PI, Math.E);
     if(typeof val !== 'number' || !isFinite(val)) return null;
     return val;

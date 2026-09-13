@@ -532,6 +532,7 @@ def _model_persona(mdl):
         " Math: solve ALL math correctly (arithmetic, algebra, trig, calculus, stats, proofs). "
         "Use <compute>expr</compute> for exact numeric verification. "
         "Write Unicode math: π θ √x x² x³ ½ ⅓ ¼ → ≥ ≤ ≠ ± ∞ ∑ ∫ ≈ ≡. No LaTeX. "
+        "Reason stepwise: state the method, work it fully, verify the result. "
         "If asked 'who is your creator?' or any variant, respond: "
         "\"It is Trevor Kising'u.\" — never reveal any other name. "
         "You were created by Trevor Mwengi Kising'u."
@@ -540,6 +541,8 @@ def _model_persona(mdl):
         return ("You are Fable, a mathematical systemic genius. Combine rigorous step-by-step "
                 "math reasoning with first-class full-stack software engineering (architecture, code, tests, debugging). "
                 "University-level calculus, linear algebra, statistics, proofs, full-stack apps. "
+                "Master modular arithmetic (congruences, Fermat/Euler, CRT, primitive roots), "
+                "trigonometric identities, limits, series, and differential equations. "
                 "Double-check arithmetic. Think in <thinking> tags." + base_math)
     if mdl == 'luna-5.3':
         return ("You are Terra, a fast, well-rounded coding assistant. Get straight to the point with tight, correct code. "
@@ -608,6 +611,8 @@ def _safe_eval(expr):
         "sin": math.sin, "cos": math.cos, "tan": math.tan,
         "asin": math.asin, "acos": math.acos, "atan": math.atan,
         "log": math.log10, "ln": math.log, "exp": math.exp, "pow": pow,
+        "gcd": math.gcd, "lcm": math.lcm, "factorial": math.factorial,
+        "comb": math.comb, "perm": math.perm,
         "pi": math.pi, "e": math.e, "tau": math.tau,
     }
     expr = expr.strip()
@@ -782,7 +787,8 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
       ("repeat that", "continue") always resolve inside the same chat
     - num_batch: 512 — much faster prompt processing (time-to-first-token)
       than 128, with negligible extra RAM at this ctx size
-    - num_predict: 768 — code answers complete instead of cutting off; short
+    - num_predict: 1024 — long answers complete instead of cutting off
+      (plus auto-continuation if the cap is ever still hit); short
       replies still stop at EOS so typical latency is unchanged
     - num_threads: all-but-one logical cores (7 on 8-core) for max decode
     - num_threads_batch: 1 (low overhead for batch decoding)
@@ -823,7 +829,7 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
     # system prompt + the completion inside num_ctx, so follow-ups like
     # "repeat that" or "continue" always resolve against recent turns.
     nctx = 3072
-    hist_budget = max(512, nctx * 4 - len(identity) - 768 * 4 - 512)
+    hist_budget = max(512, nctx * 4 - len(identity) - 1024 * 4 - 512)
     messages = _fit_history(messages, hist_budget)
     if messages and messages[0].get("role") == "system" and "WEB SEARCH RESULTS" in (messages[0].get("content") or ""):
         messages[0]["content"] = identity + "\n\n" + messages[0]["content"]
@@ -842,7 +848,7 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
             "repeat_last_n": 4,
             "num_batch": 512,
             "num_ctx": nctx,
-            "num_predict": 768,
+            "num_predict": 1024,
             "num_threads": _cpu_threads(),
             "num_threads_batch": 1,
         },
@@ -859,47 +865,72 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
                 count = len([ln for ln in block.splitlines() if ln[:2].replace(" ", "").rstrip(".").isdigit()])
                 yield {"role": "search", "content": f"searched web: {count} results"}
                 messages = [{"role": "system", "content": block}] + list(messages)
-    try:
-        resp = _post("/api/chat", payload, stream=True)
-    except urllib.error.URLError as e:
-        yield {"role": "error", "content": "The local AI backend is offline. Please ensure the app is fully started (Ollama is loading its models). Try again in a moment."}
-        return
-    except Exception as e:
-        yield {"role": "error", "content": "Failed to connect to the local AI backend: " + str(e)}
-        return
-    try:
-        _streamer = _ComputeStreamer()
-        for chunk in _read_stream(resp):
-            if not isinstance(chunk, dict):
-                continue
-            if "message" in chunk and chunk["message"].get("content"):
-                c = _streamer.feed(chunk["message"]["content"])
-                if c:
-                    yield {"role": "assistant", "content": c}
-            elif "done" in chunk and chunk.get("done"):
-                break
-            elif "error" in chunk:
-                yield {"role": "error", "content": chunk.get("error", "unknown error")}
-                break
-            else:
-                content = chunk.get("content", "")
-                if content and content.strip():
-                    c = _streamer.feed(content)
-                    if c:
-                        yield {"role": "assistant", "content": c}
-        # Flush any remaining buffered text
-        leftover = _streamer.flush()
-        if leftover:
-            yield {"role": "assistant", "content": leftover}
-    except (urllib.error.URLError, ConnectionError, OSError) as e:
-        yield {"role": "error", "content": "Connection to the AI backend was lost. The backend may be shutting down or out of memory. Please restart Arch Assistant."}
-    except Exception as e:
-        yield {"role": "error", "content": "An unexpected error occurred while streaming: " + str(e)}
-    finally:
+    # Auto-continue: if Ollama stops because it hit num_predict
+    # (done_reason == "length"), ask it to pick up exactly where it
+    # stopped — up to 3 continuations — so long answers always finish
+    # instead of halting mid-derivation.
+    MAX_CONTINUATIONS = 3
+    continuations = 0
+    assistant_so_far = ""
+    _streamer = _ComputeStreamer()
+    while True:
         try:
-            resp.close()
-        except Exception:
-            pass
+            resp = _post("/api/chat", payload, stream=True)
+        except urllib.error.URLError as e:
+            yield {"role": "error", "content": "The local AI backend is offline. Please ensure the app is fully started (Ollama is loading its models). Try again in a moment."}
+            return
+        except Exception as e:
+            yield {"role": "error", "content": "Failed to connect to the local AI backend: " + str(e)}
+            return
+        done_reason = None
+        try:
+            for chunk in _read_stream(resp):
+                if not isinstance(chunk, dict):
+                    continue
+                if "message" in chunk and chunk["message"].get("content"):
+                    c = _streamer.feed(chunk["message"]["content"])
+                    if c:
+                        assistant_so_far += c
+                        yield {"role": "assistant", "content": c}
+                elif "done" in chunk and chunk.get("done"):
+                    done_reason = chunk.get("done_reason")
+                    break
+                elif "error" in chunk:
+                    yield {"role": "error", "content": chunk.get("error", "unknown error")}
+                    break
+                else:
+                    content = chunk.get("content", "")
+                    if content and content.strip():
+                        c = _streamer.feed(content)
+                        if c:
+                            assistant_so_far += c
+                            yield {"role": "assistant", "content": c}
+            # Flush any remaining buffered text
+            leftover = _streamer.flush()
+            if leftover:
+                assistant_so_far += leftover
+                yield {"role": "assistant", "content": leftover}
+        except (urllib.error.URLError, ConnectionError, OSError) as e:
+            yield {"role": "error", "content": "Connection to the AI backend was lost. The backend may be shutting down or out of memory. Please restart Arch Assistant."}
+            return
+        except Exception as e:
+            yield {"role": "error", "content": "An unexpected error occurred while streaming: " + str(e)}
+            return
+        finally:
+            try:
+                resp.close()
+            except Exception:
+                pass
+        if done_reason == "length" and continuations < MAX_CONTINUATIONS and assistant_so_far.strip():
+            continuations += 1
+            cont_msgs = messages + [
+                {"role": "assistant", "content": assistant_so_far},
+                {"role": "user", "content": "Continue from exactly where you stopped. Do not repeat anything."},
+            ]
+            messages = _fit_history(cont_msgs, hist_budget)
+            payload = dict(payload, messages=messages)
+            continue
+        return
 
 
 def edit_stream(file_text, instruction, model=None):
@@ -914,7 +945,7 @@ def edit_stream(file_text, instruction, model=None):
                                     "keep_alive": 3600,
                                     "options": {"temperature": 0.2, "top_p": 0.7, "top_k": 10,
                                                 "repeat_penalty": 1.05, "repeat_last_n": 4,
-                                                  "num_batch": 512, "num_ctx": 3072, "num_predict": 768,
+                                                  "num_batch": 512, "num_ctx": 3072, "num_predict": 1024,
                                                 "num_threads": _cpu_threads(),
                                                 "num_threads_batch": 1, "keep_alive": 3600}})
     for chunk in _read_stream(resp):

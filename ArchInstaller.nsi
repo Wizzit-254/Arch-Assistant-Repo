@@ -86,8 +86,8 @@ Section "!Arch Assistant (required)" SecMain
     File "ArchDl.ps1"
     SetOutPath "$INSTDIR"
 
-    DetailPrint "Downloading app bundle (~1.85GB). Cancel anytime — re-run to the same folder to resume."
-    nsExec::ExecToLog 'powershell -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\ArchDl.ps1" "${APP_DOWNLOAD}" "$INSTDIR"'
+    DetailPrint "Downloading app bundle (~1.85GB). Bar + title show live %. Cancel anytime — re-run to the same folder to resume."
+    nsExec::ExecToLog 'powershell -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\ArchDl.ps1" "${APP_DOWNLOAD}" "$INSTDIR" $HWNDPARENT "${APP_NAME} ${APP_VERSION} Setup"'
     Pop $9
 
     ${If} $9 == 2
