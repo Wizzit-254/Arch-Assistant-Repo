@@ -2303,7 +2303,11 @@ const SYMBOLS = {
   hookrightarrow:'↪', leadsto:'↝',
   // misc symbols
   partial:'∂', nabla:'∇', forall:'∀', exists:'∃', nexists:'∄', empty:'∅',
-  in:'∈', ni:'∋', notin:'∉',
+  in:'∈', ni:'∋', notin:'∉', iff:'⇔',
+  sum:'∑', prod:'∏', int:'∫', iint:'∬', iiint:'∭', oint:'∮',
+  triangle:'△', square:'□', blacksquare:'■', diamond:'◇',
+  lfloor:'⌊', rfloor:'⌋', lceil:'⌈', rceil:'⌉',
+  langle:'⟨', rangle:'⟩', quad:' ', qquad:'  ',
   infty:'∞', aleph:'ℵ', hbar:'ℏ', ell:'ℓ', Re:'ℜ', Im:'ℑ',
   propto:'∝', sim:'∼', cong:'≅', simeq:'≃', ll:'≪', gg:'≫', doteq:'≐',
   subset:'⊂', supset:'⊃', cup:'∪', cap:'∩', perp:'⊥', angle:'∠',
@@ -2349,6 +2353,27 @@ function formatMath(s){
   // -> inner text (recursed so nested math inside still formats)
   s = s.replace(/\\(?:text|mathrm|mathit|mathbf|boldsymbol|mathsf|textrm|textit|textnormal|mathrm)\{((?:[^{}]|\{[^{}]*\})*)\}/g,
     (m, inner) => formatMath(inner));
+  // \mathbb{R} \mathbb{Z} ... -> blackboard bold (number sets)
+  s = s.replace(/\\(?:mathbb|Bbb)\{([A-Za-z])\}/g, (m, ch) =>
+    ({R:'ℝ',Z:'ℤ',N:'ℕ',Q:'ℚ',C:'ℂ',H:'ℍ',P:'ℙ',E:'𝔼',F:'𝔽',K:'𝕂',O:'𝕆'}[ch] || ch));
+  // \binom{n}{k} -> (n choose k)
+  s = s.replace(/\\(?:binom|tbinom|dbinom)\{((?:[^{}]|\{[^{}]*\})*)\}\{((?:[^{}]|\{[^{}]*\})*)\}/g,
+    (m, a, b) => '(' + formatMath(a) + ' choose ' + formatMath(b) + ')');
+  // accents: \vec \hat \bar \dot \ddot \tilde \overline \underline
+  s = s.replace(/\\vec\{((?:[^{}]|\{[^{}]*\})*)\}/g, (m, x) => formatMath(x) + '⃗');
+  s = s.replace(/\\hat\{((?:[^{}]|\{[^{}]*\})*)\}/g, (m, x) => formatMath(x) + '̂');
+  s = s.replace(/\\bar\{((?:[^{}]|\{[^{}]*\})*)\}/g, (m, x) => formatMath(x) + '̄');
+  s = s.replace(/\\tilde\{((?:[^{}]|\{[^{}]*\})*)\}/g, (m, x) => formatMath(x) + '̃');
+  s = s.replace(/\\dot\{((?:[^{}]|\{[^{}]*\})*)\}/g, (m, x) => formatMath(x) + '̇');
+  s = s.replace(/\\ddot\{((?:[^{}]|\{[^{}]*\})*)\}/g, (m, x) => formatMath(x) + '̈');
+  s = s.replace(/\\overline\{((?:[^{}]|\{[^{}]*\})*)\}/g, (m, x) => formatMath(x) + '̅');
+  s = s.replace(/\\underline\{((?:[^{}]|\{[^{}]*\})*)\}/g, (m, x) => formatMath(x) + '̲');
+  // \cbrt{x} -> ∛x ; matrix/cases environments -> line-broken rows
+  s = s.replace(/\\cbrt\{((?:[^{}]|\{[^{}]*\})*)\}/g, (m, x) => '∛' + formatMath(x));
+  s = s.replace(/\\begin\{(cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?|gather\*?|array)\}/g, '');
+  s = s.replace(/\\end\{(cases|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|aligned|align\*?|gather\*?)\}/g, ' ');
+  // LaTeX row break \\ -> line break (code spans are shielded upstream)
+  s = s.replace(/\\\\/g, '<br>');
   // \boxed{...} -> highlighted result box (recursed for the same reason)
   s = s.replace(/\\boxed\{((?:[^{}]|\{[^{}]*\})*)\}/g,
     (m, inner) => '<span class="math-box">' + formatMath(inner) + '</span>');
@@ -2372,6 +2397,11 @@ function formatMath(s){
   s = s.replace(/\\xrightarrow(?:\[[^\]]*\])?(?:\{[^}]*\})?/g, '→');
   s = s.replace(/\\xleftarrow(?:\[[^\]]*\])?(?:\{[^}]*\})?/g, '←');
   s = s.replace(/\\[A-Za-z]+/g, (m) => SYMBOLS[m.slice(1)] || SYMBOLS[m.slice(1).toLowerCase()] || m);
+  // big operators with limits: \sum_{i=1}^{n} -> ∑ with sub/superscript bounds
+  s = s.replace(/([∑∏∫∬∭∮])_\{([^}]*)\}(?:\^\{([^}]*)\})?/g,
+    (m, op, lo, hi) => op + '<sub>' + lo + '</sub>' + (hi != null ? '<sup>' + hi + '</sup>' : ''));
+  s = s.replace(/([∑∏∫∬∭∮])_([^\s{^])(?:\^([^\s{]))?/g,
+    (m, op, lo, hi) => op + '<sub>' + lo + '</sub>' + (hi != null ? '<sup>' + hi + '</sup>' : ''));
   // ---- chemistry & nuclear notation (context-sensitive: element symbols only,
   // so ordinary words and versions like Windows10 are never touched) ----
   const subDigits = (d) => d.split('').map(c => SUB_DIGITS[c] || c).join('');
@@ -2457,7 +2487,7 @@ function formatMath(s){
 function safeCalc(expr){
   // Only arithmetic + a whitelist of math function/constant names. No
   // property access, no statements, no letters except the tokens below.
-  const allowed = ['sqrt','cbrt','abs','round','floor','ceil','sin','cos','tan','asin','acos','atan','log','ln','exp','pow','factorial','comb','gcd','lcm'];
+  const allowed = ['sqrt','cbrt','abs','round','floor','ceil','sin','cos','tan','asin','acos','atan','log','ln','exp','pow','factorial','comb','gcd','lcm','isprime','phi'];
   const ids = (expr.match(/\b[a-z]+\b/g) || []);
   for(const id of ids){
     if(id !== 'pi' && id !== 'e' && !allowed.includes(id)) return null;
@@ -2471,7 +2501,9 @@ function safeCalc(expr){
       factorial: (n) => { n = Math.floor(n); if(!(n >= 0) || n > 170) throw 0; let r = 1; for(let i = 2; i <= n; i++) r *= i; return r; },
       gcd: (a, b) => { a = Math.abs(a); b = Math.abs(b); while(b){ const t = a % b; a = b; b = t; } return a; },
       lcm: (a, b) => { a = Math.abs(a); b = Math.abs(b); if(!a || !b) return 0; let x = a, y = b; while(y){ const t = x % y; x = y; y = t; } return (a / x) * b; },
-      comb: (n, k) => { n = Math.floor(n); k = Math.floor(k); if(k < 0 || k > n || n < 0) throw 0; k = Math.min(k, n - k); let r = 1; for(let i = 0; i < k; i++) r = r * (n - i) / (i + 1); return Math.round(r); }
+      comb: (n, k) => { n = Math.floor(n); k = Math.floor(k); if(k < 0 || k > n || n < 0) throw 0; k = Math.min(k, n - k); let r = 1; for(let i = 0; i < k; i++) r = r * (n - i) / (i + 1); return Math.round(r); },
+      isprime: (n) => { n = Math.floor(n); if(n < 2) return 0; for(let i = 2; i * i <= n; i++) if(n % i === 0) return 0; return 1; },
+      phi: (n) => { n = Math.floor(n); if(n < 1) throw 0; let c = 0; const g = mathFn.gcd; for(let k = 1; k <= n; k++) if(g(k, n) === 1) c++; return c; }
     };
     const val = fn(...allowed.map(f => mathFn[f]), Math.PI, Math.E);
     if(typeof val !== 'number' || !isFinite(val)) return null;
@@ -2529,7 +2561,14 @@ const SAY = {
   '≤':'less than or equal to','≠':'not equal to','±':'plus or minus','…':'etc','∞':'infinity',
   '∑':'sum','∏':'product','∫':'integral','≈':'approximately','≡':'equivalent to',
   '↔':'reversibly to','⇌':'in equilibrium with','·':' dot ',
-  'α':'alpha','β':'beta','γ':'gamma'
+  'α':'alpha','β':'beta','γ':'gamma',
+  '∬':'double integral','∭':'triple integral','∮':'contour integral',
+  'ℝ':'real numbers','ℤ':'integers','ℕ':'natural numbers','ℚ':'rational numbers',
+  'ℂ':'complex numbers','ℍ':'quaternions',
+  '÷':'divided by','∓':'minus or plus','⌊':'floor of','⌋':'end floor',
+  '⌈':'ceiling of','⌉':'end ceiling','⟨':'left angle','⟩':'right angle',
+  '△':'triangle','□':'square','◇':'diamond','‖':'parallel to','∣':'divides',
+  '∀':'for all','∃':'there exists','∈':'in','∂':'partial'
 };
 function mathSpeak(text){
   let t = String(text || '').replace(/<[^>]+>/g, ' ');
@@ -2550,7 +2589,7 @@ function mathSpeak(text){
     .replace(/²/g, ' squared').replace(/³/g, ' cubed')
     .replace(/[⁰¹⁴⁵⁶⁷⁸⁹⁺⁻]+/g, m => ' to the ' + m.split('').map(c => SUPER_DIGIT[c] || c).join(''))
     .replace(/[₀₁₂₃₄₅₆₇₈₉₊₋]+/g, m => ' sub ' + m.split('').map(c => SUB_DIGIT[c] || c).join(''))
-    .replace(/[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅐⅛⅜⅝⅞⅑⅒⁄πθ√×→≥≤≠±…∞∑∏∫≈≡↔⇌·αβγ]/g, m => SAY[m] || m);
+    .replace(/[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅐⅛⅜⅝⅞⅑⅒⁄πθ√×→≥≤≠±…∞∑∏∫≈≡↔⇌·αβγ∬∭∮ℝℤℕℚℂℍ÷∓⌊⌋⌈⌉⟨⟩△□◇‖∣∀∃∈∂]/g, m => SAY[m] || m);
   return t.replace(/\s+/g, ' ').trim();
 }
 

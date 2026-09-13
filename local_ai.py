@@ -543,6 +543,8 @@ def _model_persona(mdl):
                 "University-level calculus, linear algebra, statistics, proofs, full-stack apps. "
                 "Master modular arithmetic (congruences, Fermat/Euler, CRT, primitive roots), "
                 "trigonometric identities, limits, series, and differential equations. "
+                "Olympiad tactics: invariants, extremal principle, pigeonhole, induction, Vieta jumping. "
+                "Undergrad analysis: epsilon-delta, uniform convergence; algebra: groups, rings, fields. "
                 "Double-check arithmetic. Think in <thinking> tags." + base_math)
     if mdl == 'luna-5.3':
         return ("You are Terra, a fast, well-rounded coding assistant. Get straight to the point with tight, correct code. "
@@ -551,6 +553,8 @@ def _model_persona(mdl):
     if mdl == 'mushy-4.6':
         return ("You are Chen Instruct, a deep-reasoning coding assistant. Think extensively in <thinking> tags, "
                 "reason step by step. Excel at mathematical proofs and multi-step problem solving — algebra, geometry, calculus. "
+                "Contest methods: invariants, pigeonhole, induction, contradiction; analysis via epsilon-delta; "
+                "number theory via congruences and Fermat/Euler. "
                 "Thorough and correct." + base_math)
     return "You are Arch, a helpful, precise assistant. " + base_math
 
@@ -566,9 +570,16 @@ def _load_enabled_skills():
     manifest = os.path.join(skills_dir, "installed.json")
     prompts = []
     mcp_configs = {}  # Kept for backwards compat but always empty
-    try:
-        if os.path.exists(manifest):
-            with open(manifest, "r", encoding="utf-8") as f:
+    # Built-in reasoning pack (30 math/science/logic methods): always on,
+    # loaded first so user skills can still add on top.
+    for _manifest, _prefix in (
+        (os.path.join(skills_dir, "reasoning-pack.json"), "Reason"),
+        (manifest, "Skill"),
+    ):
+        try:
+            if not os.path.exists(_manifest):
+                continue
+            with open(_manifest, "r", encoding="utf-8") as f:
                 data = json.load(f)
             # Support both {"skills": [...]} and bare [...] layouts
             if isinstance(data, dict) and "skills" in data:
@@ -583,11 +594,11 @@ def _load_enabled_skills():
                 if not s.get("enabled", True):
                     continue
                 if s.get("system_prompt"):
-                    prompts.append(f"[Skill: {s.get('name', s.get('id', 'unnamed'))}] {s['system_prompt']}")
+                    prompts.append(f"[{_prefix}: {s.get('name', s.get('id', 'unnamed'))}] {s['system_prompt']}")
                 if s.get("mcp_servers"):
                     mcp_configs.update(s["mcp_servers"])
-    except Exception as e:
-        print(f"skill load error: {e}", flush=True)
+        except Exception as e:
+            print(f"skill load error: {e}", flush=True)
     return prompts, mcp_configs
 
 
@@ -613,6 +624,8 @@ def _safe_eval(expr):
         "log": math.log10, "ln": math.log, "exp": math.exp, "pow": pow,
         "gcd": math.gcd, "lcm": math.lcm, "factorial": math.factorial,
         "comb": math.comb, "perm": math.perm,
+        "isprime": lambda n: n > 1 and all(n % i for i in range(2, int(n ** 0.5) + 1)),
+        "phi": lambda n: sum(1 for k in range(1, n + 1) if math.gcd(k, n) == 1),
         "pi": math.pi, "e": math.e, "tau": math.tau,
     }
     expr = expr.strip()
@@ -782,12 +795,13 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
     """Yield {role, content} chunks from ollama /api/chat.
 
     Memory-optimised for low-end PCs (~4 GB free RAM):
-    - num_ctx: 3072 — fits system prompt + recent conversation turns + answer
+    - num_ctx: 6144 — fits the 30-skill system prompt + conversation turns
+      + full 2056-token answers with headroom to spare
     - history is trimmed newest-first to a token budget so follow-ups
       ("repeat that", "continue") always resolve inside the same chat
     - num_batch: 512 — much faster prompt processing (time-to-first-token)
       than 128, with negligible extra RAM at this ctx size
-    - num_predict: 1024 — long answers complete instead of cutting off
+    - num_predict: 2056 — long answers complete instead of cutting off
       (plus auto-continuation if the cap is ever still hit); short
       replies still stop at EOS so typical latency is unchanged
     - num_threads: all-but-one logical cores (7 on 8-core) for max decode
@@ -828,8 +842,8 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
     # Conversation memory: keep the newest turns that fit alongside the
     # system prompt + the completion inside num_ctx, so follow-ups like
     # "repeat that" or "continue" always resolve against recent turns.
-    nctx = 3072
-    hist_budget = max(512, nctx * 4 - len(identity) - 1024 * 4 - 512)
+    nctx = 6144
+    hist_budget = max(512, nctx * 4 - len(identity) - 2056 * 4 - 512)
     messages = _fit_history(messages, hist_budget)
     if messages and messages[0].get("role") == "system" and "WEB SEARCH RESULTS" in (messages[0].get("content") or ""):
         messages[0]["content"] = identity + "\n\n" + messages[0]["content"]
@@ -848,7 +862,7 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
             "repeat_last_n": 4,
             "num_batch": 512,
             "num_ctx": nctx,
-            "num_predict": 1024,
+            "num_predict": 2056,
             "num_threads": _cpu_threads(),
             "num_threads_batch": 1,
         },
@@ -945,7 +959,7 @@ def edit_stream(file_text, instruction, model=None):
                                     "keep_alive": 3600,
                                     "options": {"temperature": 0.2, "top_p": 0.7, "top_k": 10,
                                                 "repeat_penalty": 1.05, "repeat_last_n": 4,
-                                                  "num_batch": 512, "num_ctx": 3072, "num_predict": 1024,
+                                                  "num_batch": 512, "num_ctx": 6144, "num_predict": 2056,
                                                 "num_threads": _cpu_threads(),
                                                 "num_threads_batch": 1, "keep_alive": 3600}})
     for chunk in _read_stream(resp):
