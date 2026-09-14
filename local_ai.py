@@ -53,6 +53,23 @@ def _rate_limit_tts(key, cache_dir):
     except Exception:
         pass
 
+# Per-model runtime budgets. The 7B (Fable) gets a smaller context: its
+# weights already fill most of an 8GB machine, and a big KV cache there
+# means paging/OOM kills ("backend loads out"). 3072 still fits the full
+# system prompt; longer answers arrive via auto-continuation instead.
+MODEL_RUNTIME = {
+    "luna-5.3": {"ctx": 4096, "predict": 2056},
+    "mushy-4.6": {"ctx": 4096, "predict": 2056},
+    "wun-3.8": {"ctx": 3072, "predict": 1024},
+}
+_DEFAULT_RUNTIME = {"ctx": 4096, "predict": 2056}
+
+
+def runtime_for(mdl):
+    """Return {'ctx', 'predict'} for an internal model name."""
+    return MODEL_RUNTIME.get(mdl, _DEFAULT_RUNTIME)
+
+
 # Model name overrides for the backend. luna/mushy/wun are ollama "create"d
 # names; display names shown in the UI are mapped here.
 MODEL_OVERRIDES = {
@@ -795,21 +812,24 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
     """Yield {role, content} chunks from ollama /api/chat.
 
     Memory-optimised for low-end PCs (~4 GB free RAM):
-    - num_ctx: 6144 — fits the 30-skill system prompt + conversation turns
-      + full 2056-token answers with headroom to spare
+    - num_ctx: per-model (3B models: 4096, 7B Fable: 3072 — a big KV cache
+      on the 7B pages an 8GB box into OOM kills); longer answers arrive
+      via auto-continuation instead of giant contexts
     - history is trimmed newest-first to a token budget so follow-ups
       ("repeat that", "continue") always resolve inside the same chat
     - num_batch: 512 — much faster prompt processing (time-to-first-token)
       than 128, with negligible extra RAM at this ctx size
-    - num_predict: 2056 — long answers complete instead of cutting off
-      (plus auto-continuation if the cap is ever still hit); short
-      replies still stop at EOS so typical latency is unchanged
+    - num_predict: per-model (3B: 2056, Fable: 1024 + continuations) —
+      long answers complete instead of cutting off; short replies still
+      stop at EOS so typical latency is unchanged
     - num_threads: all-but-one logical cores (7 on 8-core) for max decode
     - num_threads_batch: 1 (low overhead for batch decoding)
     - temperature: 0.2 (deterministic)
     - top_p: 0.7, top_k: 10 (narrow sampling = faster)
     """
     mdl = resolve_model(model)
+    rt = runtime_for(mdl)
+    nctx, npredict = rt["ctx"], rt["predict"]
     lang_code = CTX.language if (CTX.language or "en") in SUPPORTED_LANGUAGES else "en"
     lang_name = SUPPORTED_LANGUAGES[lang_code]
     identity_lines = [
@@ -842,8 +862,7 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
     # Conversation memory: keep the newest turns that fit alongside the
     # system prompt + the completion inside num_ctx, so follow-ups like
     # "repeat that" or "continue" always resolve against recent turns.
-    nctx = 6144
-    hist_budget = max(512, nctx * 4 - len(identity) - 2056 * 4 - 512)
+    hist_budget = max(512, nctx * 4 - len(identity) - npredict * 4 - 512)
     messages = _fit_history(messages, hist_budget)
     if messages and messages[0].get("role") == "system" and "WEB SEARCH RESULTS" in (messages[0].get("content") or ""):
         messages[0]["content"] = identity + "\n\n" + messages[0]["content"]
@@ -853,7 +872,7 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
         "model": mdl,
         "messages": messages,
         "stream": True,
-        "keep_alive": 3600,
+        "keep_alive": "4h",
         "options": {
             "temperature": temperature,
             "top_p": top_p,
@@ -862,7 +881,7 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
             "repeat_last_n": 4,
             "num_batch": 512,
             "num_ctx": nctx,
-            "num_predict": 2056,
+            "num_predict": npredict,
             "num_threads": _cpu_threads(),
             "num_threads_batch": 1,
         },
@@ -950,18 +969,19 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
 def edit_stream(file_text, instruction, model=None):
     """Run a code edit against the chosen model (completion-style)."""
     mdl = resolve_model(model or CTX.model)
+    rt = runtime_for(mdl)
     prompt = (
         "// Code:\n" + file_text + "\n\n"
         "// Instruction:\n" + instruction + "\n\n"
         "// Return ONLY the full edited code, no explanation."
     )
     resp = _post("/api/generate", {"model": mdl, "prompt": prompt, "stream": True,
-                                    "keep_alive": 3600,
+                                    "keep_alive": "4h",
                                     "options": {"temperature": 0.2, "top_p": 0.7, "top_k": 10,
                                                 "repeat_penalty": 1.05, "repeat_last_n": 4,
-                                                  "num_batch": 512, "num_ctx": 6144, "num_predict": 2056,
+                                                  "num_batch": 512, "num_ctx": rt["ctx"], "num_predict": rt["predict"],
                                                 "num_threads": _cpu_threads(),
-                                                "num_threads_batch": 1, "keep_alive": 3600}})
+                                                "num_threads_batch": 1}})
     for chunk in _read_stream(resp):
         if "response" in chunk:
             yield {"role": "assistant", "content": chunk.get("response", "")}

@@ -232,12 +232,11 @@ def get_active_host():
     return SYSTEM_HOST
 
 
-# --- Idle-stop watchdog: stop Ollama after a configurable idle period ---
-# Saves RAM when the user walks away for a long time. Ollama is lazily
-# restarted on the next request via ensure_ollama(). Kept LONG (60 min) so
-# the model stays hot in RAM during a normal session — killing it is what
-# made every other question pay a full multi-GB model reload.
-IDLE_TIMEOUT_SECONDS = 3600  # 60 minutes idle -> stop Ollama
+# --- Idle-stop watchdog: DISABLED (0 = never stop a hot model) ---
+# Stopping Ollama to save RAM meant every later question paid a full
+# server boot + multi-GB model reload — the main "extremely slow" complaint.
+# The crash-watchdog in api_server still restarts Ollama if it actually dies.
+IDLE_TIMEOUT_SECONDS = 0  # 0 disables idle-stop entirely
 _tts_last_activity = 0.0
 _idle_watchdog_running = False
 
@@ -256,6 +255,9 @@ def _idle_watchdog():
     next chat request arrives — this is the lazy-restart side of the cycle.
     """
     global _idle_watchdog_running
+    if IDLE_TIMEOUT_SECONDS <= 0:
+        _wlog("idle-watchdog disabled (model stays hot)")
+        return
     _wlog("idle-watchdog started")
     while _idle_watchdog_running:
         time.sleep(30)
@@ -279,6 +281,8 @@ def start_idle_watchdog():
     global _idle_watchdog_running
     if _idle_watchdog_running:
         return
+    if IDLE_TIMEOUT_SECONDS <= 0:
+        return  # disabled: model stays hot, no thread needed
     _idle_watchdog_running = True
     import threading
     t = threading.Thread(target=_idle_watchdog, daemon=True)
