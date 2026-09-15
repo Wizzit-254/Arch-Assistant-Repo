@@ -106,6 +106,21 @@ async function commandExists(cmd){  try {
   } catch(e){ return false; }
 }
 
+// Full paths of a command on PATH, minus the Microsoft Store stub.
+// Executing the stub opens the Store instead of Python — never use it.
+async function whereReal(cmd){
+  try {
+    const probe = process.platform === "win32" ? "where" : "which";
+    const r = await runHidden(probe, [cmd], 8000);
+    if(r.code !== 0) return [];
+    return r.stdout.split(/\r?\n/).map(s => s.trim()).filter(s => {
+      if(!s) return false;
+      if(process.platform === "win32" && /windowsapps/i.test(s)) return false;
+      return true;
+    });
+  } catch(e){ return []; }
+}
+
 async function pythonWorks(cmd, preArgs){
   try {
     const r = await runHidden(cmd, [...(preArgs || []), "-c", "import sys"], 15000);
@@ -140,10 +155,11 @@ async function resolvePython(){
         if(v.code === 0) return ["python3", []];
       } catch(e){}
     }
-    if(await commandExists("python")){
+    // Bare "python" on PATH: resolve to a real install, never the Store stub.
+    for(const full of await whereReal("python")){
       try {
-        const v = await runHidden("python", ["-c", "import sys;sys.exit(0 if sys.version_info>=(3,9) else 1)"], 15000);
-        if(v.code === 0) return ["python", []];
+        const v = await runHidden(full, ["-c", "import sys;sys.exit(0 if sys.version_info>=(3,9) else 1)"], 15000);
+        if(v.code === 0) return [full, []];
       } catch(e){}
     }
     if(await commandExists("py")){
@@ -465,10 +481,13 @@ function startBackend(win){
   try {
     const root = resolveAppRoot();
     const script = path.join(root, "api_server.py");
+    // NOTE: bare "python" is deliberately LAST on Windows — on machines
+    // without real Python it resolves to the Microsoft Store stub, which
+    // opens the Store instead of running anything.
     const tries = process.platform === "win32" ? [
-      ["python",  ["-u", script]],
-      ["pythonw", ["-u", script]],
       ["py",      ["-3", "-u", script]],
+      ["pythonw", ["-u", script]],
+      ["python",  ["-u", script]],
     ] : [
       ["python3", ["-u", script]],
       ["python",  ["-u", script]],
@@ -489,6 +508,13 @@ function startBackend(win){
           await killProcessOnPort(API_PORT);
           await new Promise(r => setTimeout(r, 2000));
         }
+        // Resolve a verified interpreter FIRST (Store-stub-safe), so the
+        // very first spawn attempt already uses a real Python when one
+        // exists. Falls back to the tries list below (py launcher first).
+        try {
+          const rp0 = await resolvePython();
+          if(rp0){ runtimePython = rp0; tries.unshift([rp0[0], [...rp0[1], "-u", script]]); idx = 0; }
+        } catch(e){}
         // Start backend FIRST (so UI becomes responsive quickly), then run ensureRuntimes in parallel
         if(runtimePython){ tries.unshift([runtimePython[0], [...runtimePython[1], "-u", script]]); idx = 0; }
         setLoad(20, "Starting backend…");
