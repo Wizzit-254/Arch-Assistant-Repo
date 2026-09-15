@@ -5029,14 +5029,8 @@ loadChats();  // async — fetches from backend and renders when ready
    try {
      const lang = localStorage.getItem('arch.lang.v1');
      if(lang){ currentLang = lang; }
-     else {
-       // First run: honor the OS locale passed by the shell (?lang=).
-       // Any saved preference or backend profile still wins afterwards.
-       try {
-         const q = new URLSearchParams(location.search).get('lang') || '';
-         if(['en','sw','fr','zh','ja','ar'].includes(q)) currentLang = q;
-       } catch(e){}
-     }
+     // Otherwise English stays the default; the backend profile
+     // (the language saved on this device) still wins on load.
    } catch(e){}
    try {
       searchMode = localStorage.getItem('arch.search.v1') === '1';
@@ -5094,16 +5088,8 @@ loadChats();  // async — fetches from backend and renders when ready
       }
       // Show notification — app remains fully usable in background
       requestAnimationFrame(() => {
-        // Dynamically set intro text based on selected model
-        const introH1 = notify.querySelector('.intro-text h1');
-        const introSubtitle = notify.querySelector('.intro-subtitle');
-        const introBody = notify.querySelector('.intro-body');
-        if(introH1 && introSubtitle && introBody){
-          const m = models.find(x => x.name === selectedModel) || models[0];
-          introH1.textContent = m.name;
-          introSubtitle.textContent = m.desc.split(' — ')[0] || 'The best LLM of the Arch series';
-          introBody.textContent = (m.desc || '') + ' Created by Trevor Kising\'u. Arch is here to help with code, math, or any half-built idea.';
-        }
+        // The intro always spotlights Fable 5.1 (product announcement,
+        // not a status display — the model pill shows the active model).
         notify.classList.add('show');
         if(video){
           video.play().catch(() => {});

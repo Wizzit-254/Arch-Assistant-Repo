@@ -210,8 +210,71 @@ function setBootstrapStatus(msg, win){
   try {
     win.webContents.executeJavaScript(
       `window._bootstrapStatus && window._bootstrapStatus('${msg}')`
-    );
+    ).catch(()=>{});
   } catch(e){}
+  // Mirror onto the loading splash (shown before the main window opens).
+  try {
+    let pct = 50;
+    if(/runtimes/i.test(msg)) pct = 15;
+    else if(/python packages/i.test(msg)) pct = 35;
+    else if(/language packs/i.test(msg)) pct = 60;
+    else if(/VC\+\+/i.test(msg)) pct = 80;
+    else if(/ready/i.test(msg)) pct = 100;
+    else if(/offline/i.test(msg)) pct = 100;
+    setLoad(pct, msg);
+  } catch(e){}
+}
+
+// ---------- Loading splash: small progress window shown BEFORE the app.
+// Silent: no console, no dialogs. Closed the moment the main window shows.
+let loaderWin = null;
+function createLoader(){
+  try {
+    const icon = loadIcon();
+    loaderWin = new BrowserWindow({
+      width: 440, height: 210, resizable: false, minimizable: false,
+      maximizable: false, frame: false, center: true, alwaysOnTop: true,
+      backgroundColor: "#0a0a0c", icon,
+      autoHideMenuBar: true, show: false,
+      webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true },
+    });
+    hardenWebContents(loaderWin.webContents, loaderWin);
+    const html = "<!doctype html><html><head><meta charset='utf-8'><style>"
+      + "html,body{margin:0;height:100%;background:#0a0a0c;color:#f2f1ee;"
+      + "font-family:'Segoe UI',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;}"
+      + ".box{width:340px;text-align:center;}"
+      + ".t{font-size:17px;font-weight:600;letter-spacing:.01em;margin-bottom:6px;}"
+      + ".s{font-size:12px;color:#8d8d96;min-height:18px;margin-bottom:16px;}"
+      + ".bar{height:6px;border-radius:99px;background:#1c1c20;overflow:hidden;}"
+      + ".fill{height:100%;width:2%;border-radius:99px;background:linear-gradient(90deg,#5b6ee8,#8ea2ff);"
+      + "transition:width .3s ease;}"
+      + ".pct{font-size:11px;color:#57575f;margin-top:8px;}"
+      + "</style></head><body><div class='box'>"
+      + "<div class='t'>Arch Assistant</div>"
+      + "<div class='s' id='arch-load-msg'>Loading…</div>"
+      + "<div class='bar'><div class='fill' id='arch-load-fill'></div></div>"
+      + "<div class='pct' id='arch-load-pct'>2%</div>"
+      + "</div><scr" + "ipt>"
+      + "window.__setLoad=function(p,m){"
+      + "try{document.getElementById('arch-load-fill').style.width=p+'%';"
+      + "document.getElementById('arch-load-msg').textContent=m||'';"
+      + "document.getElementById('arch-load-pct').textContent=p+'%';}catch(e){}}"
+      + "</scr" + "ipt></body></html>";
+    loaderWin.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(html));
+    loaderWin.once("ready-to-show", () => { try { loaderWin.show(); } catch(e){} });
+  } catch(e){ loaderWin = null; }
+}
+function setLoad(pct, msg){
+  try {
+    if(!loaderWin || loaderWin.isDestroyed()) return;
+    loaderWin.webContents.executeJavaScript(
+      `window.__setLoad && window.__setLoad(${Math.max(0, Math.min(100, Math.round(pct)))}, ${JSON.stringify(String(msg || ""))})`
+    ).catch(()=>{});
+  } catch(e){}
+}
+function closeLoader(){
+  try { if(loaderWin && !loaderWin.isDestroyed()) loaderWin.close(); } catch(e){}
+  loaderWin = null;
 }
 
 async function ensureRuntimes(win){
@@ -420,7 +483,7 @@ function startBackend(win){
 
      (async () => {
         const pingResult = await pingBackend();
-        if(pingResult === true) return; // already running with our token
+        if(pingResult === true){ showMainWindow(); return; } // already running with our token
         if(pingResult === 'unauthorized'){
           // Stale backend with a different token — kill it and restart
           await killProcessOnPort(API_PORT);
@@ -428,6 +491,7 @@ function startBackend(win){
         }
         // Start backend FIRST (so UI becomes responsive quickly), then run ensureRuntimes in parallel
         if(runtimePython){ tries.unshift([runtimePython[0], [...runtimePython[1], "-u", script]]); idx = 0; }
+        setLoad(20, "Starting backend…");
         escalate();  // Start backend immediately
         // Silent first-run setup: fetch Python / pip packages / VC++ if the host lacks them.
         // Once runtimes resolve, prefer the resolved interpreter and retry if down.
@@ -443,14 +507,16 @@ function startBackend(win){
           } catch(e){}
           for(let i = 0; i < 50; i++){
             await new Promise(r => setTimeout(r, 200));
-            if(await pingBackend()) return;
+            if(await pingBackend()){ showMainWindow(); return; }
           }
         });
         for(let i = 0; i < 250; i++){  // 50s max wait
           await new Promise(r => setTimeout(r, 200));
-          if(await pingBackend()) return;
+          if(await pingBackend()){ showMainWindow(); return; }
+          if(i === 60) setLoad(70, "Warming up AI models…");
           if(!backendProc || backendProc.exitCode !== null) escalate();
         }
+        showMainWindow(); // wait loop exhausted — show app anyway (status reports state)
       })();
   } catch(e){}
 }
@@ -473,6 +539,7 @@ function createWindow() {
     icon,
     backgroundColor: "#0a0a0c",
     autoHideMenuBar: true,
+    show: false, // stays hidden behind the loading splash until ready
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -521,32 +588,33 @@ function createWindow() {
           forceIntro = true;
         }
       } catch(e){}
-      // System locale -> app language (first run only; the in-app
-      // switcher + saved preference always win afterwards).
-      let sysLang = "";
-      try {
-        const loc = (app.getLocale() || "").toLowerCase();
-        const base = loc.split(/[-_]/)[0];
-        const supported = ["en", "sw", "fr", "zh", "ja", "ar"];
-        if(supported.includes(base)) sysLang = base;
-        else if(base === "pt") sysLang = "en"; // no Portuguese UI yet
-        else if(loc.startsWith("zh")) sysLang = "zh";
-      } catch(e){}
       // Resolve index.html path — try ASAR first, then disk
       const indexPath = path.join(resolveAppRoot(), "index.html");
       const asarPath = path.join(process.resourcesPath || appRoot, "app.asar", "index.html");
       const indexFile = fs.existsSync(indexPath) ? indexPath : fs.existsSync(asarPath) ? asarPath : indexPath;
-      win.loadFile(indexFile, { query: { token: TOKEN, appRoot, intro: forceIntro ? "1" : "0", lang: sysLang } }).catch((err) => {
+      win.loadFile(indexFile, { query: { token: TOKEN, appRoot, intro: forceIntro ? "1" : "0" } }).catch((err) => {
         console.error("Failed to load index.html:", err.message);
       });
-    win.show();
+    // NOTE: no win.show() here — the main window appears via showMainWindow()
+    // once the backend answers (or via the safety timeout below).
     win.on("ready-to-show", () => {
-      win.show();
-      win.focus();
+      if(global._mainReady){ win.show(); win.focus(); }
     });
     win.on("unresponsive", () => {
       try { win.focus(); } catch(e){}
     });
+    return win;
+}
+
+// Reveal the main window exactly once, closing the loading splash.
+function showMainWindow(){
+  try {
+    global._mainReady = true;
+    setLoad(100, "Ready");
+    const w = global._mainWindow;
+    if(w && !w.isDestroyed()){ w.show(); w.focus(); }
+  } catch(e){}
+  closeLoader();
 }
 
 app.whenReady().then(() => {
@@ -556,14 +624,25 @@ app.whenReady().then(() => {
     return;
   }
   app.on("second-instance", () => {
+    showMainWindow();
     if(BrowserWindow.getAllWindows().length){
       const w = BrowserWindow.getAllWindows()[0];
       if(w.isMinimized()) w.restore();
       w.focus();
     }
   });
+   createLoader();
+   setLoad(3, "Loading Arch Assistant…");
    createWindow();
    startBackend(global._mainWindow);
+   // Safety net: never trap the user behind the splash. If the backend
+   // still hasn't answered after 3 minutes, show the app anyway — the
+   // in-app status pill reports offline instead of hanging.
+   setTimeout(() => {
+     try {
+       if(!global._mainReady) showMainWindow();
+     } catch(e){}
+   }, 180000);
 
   // IPC: Open URLs in default browser (only URLs, no local apps)
   ipcMain.handle('open-url', async (event, url) => {
@@ -590,7 +669,7 @@ app.whenReady().then(() => {
   });
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0){ createWindow(); showMainWindow(); }
   });
 });
 
