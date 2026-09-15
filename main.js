@@ -521,11 +521,22 @@ function createWindow() {
           forceIntro = true;
         }
       } catch(e){}
+      // System locale -> app language (first run only; the in-app
+      // switcher + saved preference always win afterwards).
+      let sysLang = "";
+      try {
+        const loc = (app.getLocale() || "").toLowerCase();
+        const base = loc.split(/[-_]/)[0];
+        const supported = ["en", "sw", "fr", "zh", "ja", "ar"];
+        if(supported.includes(base)) sysLang = base;
+        else if(base === "pt") sysLang = "en"; // no Portuguese UI yet
+        else if(loc.startsWith("zh")) sysLang = "zh";
+      } catch(e){}
       // Resolve index.html path — try ASAR first, then disk
       const indexPath = path.join(resolveAppRoot(), "index.html");
       const asarPath = path.join(process.resourcesPath || appRoot, "app.asar", "index.html");
       const indexFile = fs.existsSync(indexPath) ? indexPath : fs.existsSync(asarPath) ? asarPath : indexPath;
-      win.loadFile(indexFile, { query: { token: TOKEN, appRoot, intro: forceIntro ? "1" : "0" } }).catch((err) => {
+      win.loadFile(indexFile, { query: { token: TOKEN, appRoot, intro: forceIntro ? "1" : "0", lang: sysLang } }).catch((err) => {
         console.error("Failed to load index.html:", err.message);
       });
     win.show();

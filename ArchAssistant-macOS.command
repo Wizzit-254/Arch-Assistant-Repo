@@ -7,17 +7,18 @@
 # What it does (guided, ~7GB free needed during setup):
 #   1. Welcome + license acceptance
 #   2. Chooses install location (default ~/ArchAssistant)
-#   3. Downloads the mac app bundle (~1.9GB, resumes on bad wifi)
+#   3. Downloads the mac app files (~25MB, resumes on bad wifi)
 #   4. Downloads the matching Electron runtime + Ollama for your chip
-#   5. Assembles Arch.app, signs it ad-hoc, links it into Applications
-#   6. Launches Arch on first run (models load in background)
+#   5. Pulls AI models (~5GB, one-time, resumable) and creates Arch models
+#   6. Assembles Arch.app, signs it ad-hoc, links it into Applications
+#   7. Launches Arch (same UI, voices, skills, offline models as Windows)
 #
 set -u
 
 APP_VERSION="1.0.0"
 REPO="https://github.com/Wizzit-254/Arch-Assistant-Repo/releases/download/v1.0.0"
 PAYLOAD_URL="$REPO/Arch-Assistant-App-macOS.zip"
-ELECTRON_VER="v44.3.0"
+ELECTRON_VER="v31.7.7"  # must match the Windows build (Arch.exe = Electron 31)
 OLLAMA_URL="https://github.com/ollama/ollama/releases/download/v0.12.9/ollama-darwin.tgz"
 
 say()  { printf "\n\033[1m%s\033[0m\n" "$1"; }
@@ -65,7 +66,7 @@ info "Installing to: $DEST"
 cd "$DEST" || die "cannot enter $DEST"
 
 # ---------- 3. App bundle (resumable, retry forever) ----------
-say "Downloading Arch app files (~100MB)…"
+  say "Downloading Arch app files (~25MB)…"
 curl -L -C - --retry 999 --retry-delay 5 --retry-all-errors --retry-connrefused \
      -o "Arch-Assistant-App-macOS.zip" "$PAYLOAD_URL" \
   || die "download failed. Re-run this script to resume."
@@ -88,8 +89,15 @@ curl -L -C - --retry 999 --retry-delay 5 --retry-all-errors \
 # ---------- 5. Assemble Arch.app ----------
 say "Assembling Arch.app…"
 rm -rf "Arch.app" "Electron.app" __MACOSX
-python3 -c "import zipfile; zipfile.ZipFile('electron.zip').extractall('.')" \
-  || die "Electron unzip failed."
+# ditto preserves Electron.app symlinks (python zipfile would break them
+# into dead regular files and the app would never launch).
+if command -v ditto >/dev/null; then
+  ditto -x -k "electron.zip" "." || die "Electron unzip failed."
+elif command -v unzip >/dev/null; then
+  unzip -q "electron.zip" || die "Electron unzip failed."
+else
+  die "need ditto or unzip to unpack Electron."
+fi
 [ -d "Electron.app" ] || die "Electron.app missing after unzip."
 rm -rf "Arch.app"
 mv "Electron.app" "Arch.app"
@@ -115,14 +123,28 @@ export OLLAMA_HOST="127.0.0.1:11435"
 mkdir -p "$OLLAMA_MODELS"
 "$DEST/Arch.app/Contents/Resources/app/ollama/ollama" serve >/dev/null 2>&1 &
 OLLAMA_PID=$!
-for i in $(seq 1 20); do
+trap 'kill $OLLAMA_PID 2>/dev/null || true' EXIT
+i=0
+while [ $i -lt 20 ]; do
   curl -sf "http://127.0.0.1:11435/api/tags" >/dev/null 2>&1 && break
   sleep 1
+  i=$((i + 1))
 done
 OL="$DEST/Arch.app/Contents/Resources/app/ollama/ollama"
 MF="$DEST/Arch.app/Contents/Resources/app"
-"$OL" pull "qwen2.5-coder:3b-instruct-q4_K_S" || die "model pull failed (check internet)."
-"$OL" pull "qwen2.5-coder:7b-instruct-q3_K_S" || die "model pull failed (check internet)."
+pull_model() {
+  # $1 = model tag. Retries 3x (multi-GB pulls on bad wifi routinely drop).
+  attempt=1
+  while [ $attempt -le 3 ]; do
+    if "$OL" pull "$1"; then return 0; fi
+    info "pull of $1 dropped (attempt $attempt/3) — resuming…"
+    attempt=$((attempt + 1))
+    sleep 3
+  done
+  die "model pull failed after 3 attempts (check internet, then re-run)."
+}
+pull_model "qwen2.5-coder:3b-instruct-q4_K_S"
+pull_model "qwen2.5-coder:7b-instruct-q3_K_S"
 "$OL" create "luna-5.3"   -f "$MF/Luna.Modelfile"  || die "'create luna-5.3' failed."
 "$OL" create "mushy-4.6"  -f "$MF/Mushy.Modelfile" || die "'create mushy-4.6' failed."
 "$OL" create "wun-3.8"    -f "$MF/Wun.Modelfile"   || die "'create wun-3.8' failed."

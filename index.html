@@ -5026,10 +5026,18 @@ loadChats();  // async — fetches from backend and renders when ready
     const t = localStorage.getItem('arch.theme.v1');
     if(t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
   } catch(e){}
-  try {
+   try {
      const lang = localStorage.getItem('arch.lang.v1');
      if(lang){ currentLang = lang; }
-  } catch(e){}
+     else {
+       // First run: honor the OS locale passed by the shell (?lang=).
+       // Any saved preference or backend profile still wins afterwards.
+       try {
+         const q = new URLSearchParams(location.search).get('lang') || '';
+         if(['en','sw','fr','zh','ja','ar'].includes(q)) currentLang = q;
+       } catch(e){}
+     }
+   } catch(e){}
    try {
       searchMode = localStorage.getItem('arch.search.v1') === '1';
       applySearchMode();
