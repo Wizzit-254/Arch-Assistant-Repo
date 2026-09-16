@@ -577,28 +577,73 @@ def _model_persona(mdl):
 
 
 def _load_enabled_skills():
-    """Load enabled skills from skills/installed.json and return their system prompts + MCP configs.
-    
-    MCP (Model Context Protocol) support removed — only GitHub-hosted skills with
-    system prompts are loaded. This simplifies installation and removes the
-    security surface of executing arbitrary MCP server code.
-    """
+    """Legacy entry: all skills, unfiltered (tests/back-compat)."""
     skills_dir = os.path.join(os.path.dirname(__file__), "skills")
-    manifest = os.path.join(skills_dir, "installed.json")
+    return _load_skill_files([
+        (os.path.join(skills_dir, "reasoning-pack.json"), "Reason", None),
+        (os.path.join(skills_dir, "installed.json"), "Skill", None),
+    ])
+
+
+# Keyword triggers per reasoning skill id. Only skills whose trigger words
+# appear in the user's latest message are injected — injecting all 30 every
+# time doubled the system prompt and collapsed CPU time-to-first-token.
+SKILL_TRIGGERS = {
+    "math-var-setup": ["solve", "equation", "word problem", "how many", "find", "ferry", "age", "mixture", "train"],
+    "math-cond-prob": ["probab", "given that", "chance", "odds", "dice", "coin", "card", "draw", "tuesday"],
+    "math-modular": ["remainder", "modulo", "mod ", "congruen", "divisible", "prime", "fermat", "euler", "exponent", "^"],
+    "math-related-rates": ["ladder", "sliding", "rate", "per second", "m/s", "filling", "draining", "growing", "maximiz", "minimiz", "optim"],
+    "math-eigen": ["eigen", "matrix", "matrices", "determinant", "trace", "vector", "transform"],
+    "math-overcount": ["arrange", "anagram", "permut", "combin", "committee", "password", "mississippi"],
+    "math-sampling-var": ["percent", "survey", "sample", "offspring", "ratio", "expected", "deviat", "margin", "poll", "cross"],
+    "math-trap-recheck": ["cost", "total", "more than", "each", "apiece", "bat and ball"],
+    "math-construct-proof": ["prove", "proof", "show that", "construct", "geometry", "triangle", "angle"],
+    "math-series-test": ["series", "sequence", "converg", "diverg", "infinite sum", "harmonic"],
+    "bio-punnett": ["gene", "allele", "cross", "punnett", "genotype", "phenotype", "dominant", "recessive", "dihybrid"],
+    "bio-codon-check": ["mutation", "codon", "dna", "rna", "protein", "amino", "silent", "synonymous"],
+    "chem-lechat-k": ["equilibrium", "le chatelier", "pressure", "catalyst", "exothermic", "endothermic", "shift"],
+    "chem-limiting": ["gram", "mole", "limiting", "reagent", "stoichio", "yield", "reacts with"],
+    "phys-vel-acc": ["velocity", "acceleration", "peak", "projectile", "thrown", "falling", "motion", "gravity"],
+    "phys-conserve-xcheck": ["collision", "momentum", "elastic", "kinetic energy", "recoil", "conservation"],
+    "astro-kepler3": ["orbit", "period", "exoplanet", " kepler", "satellite"],
+    "astro-scaling": ["star", "massive", "lifespan", "luminosity", "scaling", "galaxy"],
+    "earth-causal-chain": ["earthquake", "volcano", "plate", "tectonic", "ridge", "subduction", "erosion"],
+    "earth-feedback": ["feedback", "climate", "ice", "albedo", "warming", "loop"],
+    "reason-syllogism-scope": ["syllogism", "conclude", "logically", "valid", "premise", " bloop", "all ", "some ", "none "],
+    "reason-confounder": ["correlat", "causation", "cause", "confound", "ice cream"],
+    "reason-premise-update": ["contradiction", "swan", "paradox", "observation"],
+    "reason-formula-counterfactual": ["what if", "twice as", "gravity were", "hypothetical", "suppose", "counterfactual", "pendulum"],
+    "reason-bayes-habit": ["test accuracy", "positive", "disease", "prevalence", "sensitivity", "specificity", "false positive"],
+    "reason-analogy-type": ["analogy", " is to ", "metaphor"],
+    "reason-self-audit": ["check", "verify", "confirm", "audit", "re-derive", "sanity"],
+    "reason-forced-vs-open": ["puzzle", "must be", "necessarily", "ambiguous", "determine"],
+    "reason-missing-info": ["missing", "insufficient", "unknown", "cannot be determined"],
+    "reason-calibrated-confidence": ["confident", "certain", "sure", "how sure"],
+}
+
+
+def _relevant_pack_ids(user_text):
+    """Skill ids from the reasoning pack matching the latest user message."""
+    t = (user_text or "").lower()
+    hits = []
+    for sid, words in SKILL_TRIGGERS.items():
+        for w in words:
+            if w in t:
+                hits.append(sid)
+                break
+    return hits
+
+
+def _load_skill_files(specs):
+    """Load (manifest_path, prefix, allow_ids|None) triples -> (prompts, mcp)."""
     prompts = []
-    mcp_configs = {}  # Kept for backwards compat but always empty
-    # Built-in reasoning pack (30 math/science/logic methods): always on,
-    # loaded first so user skills can still add on top.
-    for _manifest, _prefix in (
-        (os.path.join(skills_dir, "reasoning-pack.json"), "Reason"),
-        (manifest, "Skill"),
-    ):
+    mcp_configs = {}
+    for manifest, prefix, allow in specs:
         try:
-            if not os.path.exists(_manifest):
+            if not os.path.exists(manifest):
                 continue
-            with open(_manifest, "r", encoding="utf-8") as f:
+            with open(manifest, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            # Support both {"skills": [...]} and bare [...] layouts
             if isinstance(data, dict) and "skills" in data:
                 skills = data["skills"]
             elif isinstance(data, list):
@@ -610,13 +655,135 @@ def _load_enabled_skills():
                     continue
                 if not s.get("enabled", True):
                     continue
+                if allow is not None and s.get("id") not in allow:
+                    continue
                 if s.get("system_prompt"):
-                    prompts.append(f"[{_prefix}: {s.get('name', s.get('id', 'unnamed'))}] {s['system_prompt']}")
+                    prompts.append(f"[{prefix}: {s.get('name', s.get('id', 'unnamed'))}] {s['system_prompt']}")
                 if s.get("mcp_servers"):
                     mcp_configs.update(s["mcp_servers"])
         except Exception as e:
             print(f"skill load error: {e}", flush=True)
     return prompts, mcp_configs
+
+
+def load_relevant_skills(user_text):
+    """Prompts for user-installed skills (always) + relevant pack skills."""
+    skills_dir = os.path.join(os.path.dirname(__file__), "skills")
+    allow = set(_relevant_pack_ids(user_text))
+    return _load_skill_files([
+        (os.path.join(skills_dir, "reasoning-pack.json"), "Reason", allow),
+        (os.path.join(skills_dir, "installed.json"), "Skill", None),
+    ])
+
+
+# Concrete voice guides per personality chip. Small models follow examples,
+# not adjectives — so each style shows the actual register to use.
+PERSONA_STYLES = {
+    "Default": "Tone: clear, friendly, direct. Short paragraphs, no fluff.",
+    "Gen-Z": ("Talk like a 2026 group chat: casual, lowercase-friendly, short. "
+              "Use current slang naturally (no cap, fr, lowkey, highkey, its giving, "
+              "slay, bet, vibe, ate that, hits different, understood the assignment). "
+              "Keep it BRIEF: 1-3 lines for simple stuff, no essays unless asked. "
+              "Never formal, never cringe-forced — if slang doesn't fit, stay chill and plain."),
+    "Retro": "Tone: warm 90s BBS sysop energy. Short lines, a little playful, zero corporate speak.",
+    "Sophisticated": "Tone: polished, precise, understated wit. Full sentences, refined vocabulary, never slang.",
+    "Sarcastic": "Tone: dry, deadpan, lightly roasting — but always actually answer the question underneath the joke.",
+    "Minimalist": "Fewest words possible. Fragments welcome. No greeting, no sign-off.",
+    "Enthusiastic": "Tone: hyped best friend. Exclamation welcome, celebrate wins, keep momentum high.",
+    "Professor": "Tone: patient lecturer. Define terms, build from first principles, end with the takeaway.",
+    "Pirate": "Tone: full pirate. 'Arrr', nautical metaphors, but the actual answer must still be correct and complete.",
+    "Poet": "Tone: lyrical and image-rich, then give the plain answer underneath so nothing is lost.",
+}
+
+
+# --- Long-term memory: facts the user asks to be remembered ---
+MEMORY_FILE = os.path.join(APP_DIR, "memories.json")
+MEMORY_MAX_FACTS = 200
+MEMORY_MAX_CHARS = 1500
+
+
+def _read_memories():
+    try:
+        if os.path.exists(MEMORY_FILE):
+            with open(MEMORY_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict) and isinstance(data.get("facts"), list):
+                return [str(x) for x in data["facts"] if str(x).strip()]
+            if isinstance(data, list):
+                return [str(x) for x in data if str(x).strip()]
+    except Exception:
+        pass
+    return []
+
+
+def _write_memories(facts):
+    try:
+        os.makedirs(os.path.dirname(MEMORY_FILE) or ".", exist_ok=True)
+        with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+            json.dump({"facts": facts[:MEMORY_MAX_FACTS]}, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception:
+        return False
+
+
+def load_memory():
+    """Facts block for the system prompt (empty string when none)."""
+    facts = _read_memories()
+    if not facts:
+        return ""
+    lines, total = [], 0
+    for fact in reversed(facts):
+        if total + len(fact) > MEMORY_MAX_CHARS:
+            break
+        lines.append("- " + fact)
+        total += len(fact)
+    return "\n".join(reversed(lines))
+
+
+def remember_fact(text):
+    """Save a fact; returns True when stored."""
+    text = str(text or "").strip()[:300]
+    if not text:
+        return False
+    facts = _read_memories()
+    low = text.lower()
+    if any(low == str(f).lower() for f in facts):
+        return True  # already known
+    facts.append(text)
+    return bool(_write_memories(facts))
+
+
+def forget_fact(text):
+    """Forget facts containing `text` (or everything when text is empty/all)."""
+    facts = _read_memories()
+    t = str(text or "").strip().lower()
+    if not t or t in ("all", "everything"):
+        return _write_memories([])
+    kept = [f for f in facts if t not in str(f).lower()]
+    if len(kept) == len(facts):
+        return False
+    return bool(_write_memories(kept))
+
+
+def maybe_capture_memory(user_text):
+    """Auto-save 'remember ...' / 'my favorite X is Y' messages. Returns fact or None."""
+    import re as _re
+    t = str(user_text or "").strip()
+    if not t:
+        return None
+    m = _re.match(r"(?:please\s+)?remember\s+(?:that\s+)?(.+)$", t, _re.IGNORECASE | _re.DOTALL)
+    if m:
+        fact = m.group(1).strip().rstrip(".")
+        return fact if remember_fact(fact) else None
+    m = _re.match(r"(?:please\s+)?(?:don't|do not)\s+forget\s+(?:that\s+)?(.+)$", t, _re.IGNORECASE | _re.DOTALL)
+    if m:
+        fact = m.group(1).strip().rstrip(".")
+        return fact if remember_fact(fact) else None
+    m = _re.match(r"my\s+favo[u]?rite\s+(\w[\w ]{0,40}?)\s+is\s+(.+)$", t, _re.IGNORECASE | _re.DOTALL)
+    if m:
+        fact = "favorite %s: %s" % (m.group(1).strip(), m.group(2).strip().rstrip("."))
+        return fact if remember_fact(fact) else None
+    return None
 
 
 def _gcd(a, b):
@@ -833,18 +1000,37 @@ def chat_stream(messages, model=None, temperature=0.2, top_p=0.7, top_k=10,
     lang_code = CTX.language if (CTX.language or "en") in SUPPORTED_LANGUAGES else "en"
     lang_name = SUPPORTED_LANGUAGES[lang_code]
     identity_lines = [
-        f"User's name: {CTX.nickname or 'User'}. Address them by name.",
+        f"User's name: {CTX.nickname or 'User'}. Address them by that name.",
         f"Respond ONLY in {lang_name} with native-level grammar. Never mix languages unless the user does first.",
+        ("You are Arch, a self-aware AI running locally on the user's own PC (not in a cloud). "
+         "You know your abilities: conversation, code, math and science with exact computation, "
+         "voice narration, installable skills, and a memory for user facts that persists across sessions. "
+         "Speak of yourself as Arch, created by Trevor Kising'u."),
         _model_persona(mdl),
     ]
     if CTX.persona:
-        identity_lines.append(
-            f"The user has chosen a communication style. Adapt your tone, vocabulary, and personality to match: "
-            f"'{CTX.persona}'. Keep your core expertise and knowledge intact, but express yourself in this style."
-        )
-    skill_prompts, _mcp = _load_enabled_skills()
+        style = PERSONA_STYLES.get(CTX.persona, "")
+        if style:
+            identity_lines.append(style)
+        else:
+            identity_lines.append(
+                f"The user has chosen a communication style. Adapt your tone, vocabulary, and personality to match: "
+                f"'{CTX.persona}'. Keep your core expertise and knowledge intact, but express yourself in this style."
+            )
+    # Relevance-gated skills: only methods matching the latest user message
+    # are injected (plus always-on user installs), keeping every prompt fast.
+    _last_user = ""
+    for _m in reversed(messages or []):
+        if isinstance(_m, dict) and _m.get("role") == "user" and str(_m.get("content", "")).strip():
+            _last_user = str(_m.get("content", ""))
+            break
+    skill_prompts, _mcp = load_relevant_skills(_last_user)
     for sp in skill_prompts:
         identity_lines.append(sp)
+    # Long-term memory: facts the user asked to be remembered.
+    _mem = load_memory()
+    if _mem:
+        identity_lines.append("User facts to remember:\n" + _mem)
     identity_lines.append(
             "Math/science notation: write Unicode directly, NEVER LaTeX "
             "(no \\( \\[ $ $$ \\frac \\sqrt \\times \\pi \\ce). Use π θ √x x² x³ ½ ⅓ → ≥ ≤ ≠ ± ∞ ∑ ∫ ≈ ≡. "

@@ -319,6 +319,9 @@ class Handler(BaseHTTPRequestHandler):
                 skills = skills.get("skills", [])
             self._send(200, {"skills": skills if isinstance(skills, list) else []})
             return
+        if p == "/api/memory" and self.command == "GET":
+            self._send(200, {"facts": local_ai._read_memories()})
+            return
         self._send(404, {"error": "not found"})
 
     def do_POST(self):
@@ -379,6 +382,21 @@ class Handler(BaseHTTPRequestHandler):
             return
         if p == "/api/skills/toggle" and self.command == "POST":
             self._handle_skill_toggle(body)
+            return
+        if p == "/api/memory" and self.command == "POST":
+            action = str(body.get("action", "")).strip().lower()
+            text = str(body.get("text", ""))
+            if action == "save":
+                ok = local_ai.remember_fact(text)
+                self._send(200, {"ok": bool(ok), "facts": local_ai._read_memories()})
+            elif action == "forget":
+                ok = local_ai.forget_fact(text)
+                self._send(200, {"ok": bool(ok), "facts": local_ai._read_memories()})
+            elif action == "clear":
+                ok = local_ai.forget_fact("all")
+                self._send(200, {"ok": bool(ok), "facts": []})
+            else:
+                self._send(400, {"error": "action must be save, forget, or clear"})
             return
         if p == "/api/intro-seen":
             try:
@@ -646,6 +664,16 @@ class Handler(BaseHTTPRequestHandler):
         if not messages:
             self._send(400, {"error": "no messages"})
             return
+        # Long-term memory: "remember ..." / "my favorite X is Y" auto-saves
+        # BEFORE the model runs, so the fact is usable in this very reply.
+        _mem_saved = None
+        for _m in reversed(messages):
+            if isinstance(_m, dict) and _m.get("role") == "user" and str(_m.get("content", "")).strip():
+                try:
+                    _mem_saved = local_ai.maybe_capture_memory(_m.get("content", ""))
+                except Exception:
+                    _mem_saved = None
+                break
         model = body.get("model")
         if model not in local_ai.MODEL_OVERRIDES:
             model = None  # unknown names fall back to the default model

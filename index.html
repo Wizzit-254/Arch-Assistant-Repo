@@ -1816,8 +1816,18 @@
         <input type="text" id="skillUrlInput" placeholder="GitHub URL (e.g. https://github.com/user/skill-name)">
         <button class="skill-install-btn" id="skillInstallBtn">Install</button>
       </div>
-      <div class="skill-list" id="skillList"><div class="skills-empty">No skills installed yet.</div></div>
+       <div class="skill-list" id="skillList"><div class="skills-empty">No skills installed yet.</div></div>
       <div class="skills-status" id="skillStatus"></div>
+    </div>
+
+       <div class="skills-section">
+      <h3>Memory</h3>
+      <div class="skill-install-row">
+        <input type="text" id="memoryInput" placeholder="Remember this… (or just tell Arch 'remember …')">
+        <button class="skill-install-btn" id="memorySaveBtn">Save</button>
+      </div>
+      <div class="skill-list" id="memoryList"><div class="skills-empty">Nothing remembered yet.</div></div>
+      <div class="skills-status" id="memoryStatus"></div>
     </div>
 
      <div class="voice-modal-footer">
@@ -4771,8 +4781,9 @@ async function loadProfile(populateForm){
     buildVoiceIndex();
     // Load persona
     loadPersonaUI(p.persona || '');
-    // Load skills
+    // Load skills + memory
     loadSkills();
+    loadMemory();
     // Apply language translation and refresh greeting with the loaded nickname
       applyLanguage(currentLang);
       // applyLanguage already re-applies a translated greeting; no need for a second call
@@ -4949,6 +4960,72 @@ skillInstallBtn.addEventListener('click', async () => {
   skillInstallBtn.textContent = 'Install';
 });
 
+/* ===================== MEMORY ===================== */
+const memoryList = document.getElementById('memoryList');
+const memoryInput = document.getElementById('memoryInput');
+const memorySaveBtn = document.getElementById('memorySaveBtn');
+const memoryStatus = document.getElementById('memoryStatus');
+let memoryFacts = [];
+
+async function loadMemory() {
+  try {
+    const r = await apiFetch('/api/memory');
+    if (!r.ok) return;
+    const data = await r.json();
+    memoryFacts = data.facts || [];
+    renderMemory();
+  } catch(e) {}
+}
+
+function renderMemory() {
+  if (!memoryFacts.length) {
+    memoryList.innerHTML = '<div class="skills-empty">Nothing remembered yet.</div>';
+    return;
+  }
+  memoryList.innerHTML = '';
+  for (const fact of memoryFacts) {
+    const item = document.createElement('div');
+    item.className = 'skill-item';
+    item.innerHTML = `
+      <div class="skill-item-desc" title="${esc(fact)}">${esc(fact)}</div>
+      <button class="skill-remove" title="Forget">&times;</button>
+    `;
+    item.querySelector('.skill-remove').addEventListener('click', async function() {
+      item.style.opacity = '0.3';
+      item.style.pointerEvents = 'none';
+      await postApi('/api/memory', { action: 'forget', text: fact });
+      memoryFacts = memoryFacts.filter(f => f !== fact);
+      renderMemory();
+    });
+    memoryList.appendChild(item);
+  }
+}
+
+async function saveMemoryFact() {
+  const text = memoryInput.value.trim();
+  if (!text) return;
+  memorySaveBtn.disabled = true;
+  try {
+    const r = await postApi('/api/memory', { action: 'save', text });
+    if (r && r.ok) {
+      const data = await r.json();
+      memoryFacts = data.facts || memoryFacts.concat([text]);
+      memoryInput.value = '';
+      memoryStatus.textContent = 'Saved — Arch will remember this.';
+      renderMemory();
+    } else {
+      memoryStatus.textContent = 'Save failed.';
+    }
+  } catch(e) { memoryStatus.textContent = 'Save failed: ' + e.message; }
+  memorySaveBtn.disabled = false;
+  setTimeout(() => { memoryStatus.textContent = ''; }, 2500);
+}
+
+memorySaveBtn.addEventListener('click', saveMemoryFact);
+memoryInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); saveMemoryFact(); }
+});
+
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 const previewPlay = document.getElementById('previewPlay');
@@ -5109,7 +5186,7 @@ loadChats();  // async — fetches from backend and renders when ready
       });
     } catch(e){}
   })();
-  /* F//ck my life with the making of this Handmade code like holy f//ck sh//t i want to jump off a bridge and just die, omfg no one will ever know this code was handmade by a 15y.o in Kenya who is tryna make it out the mud gang, fuck everything I live for and Someone who will see this tag rant will either know I'm corny asf or this is just some serious dev crashout, Shoutout to TJ and Mutembezi for motivation and shi, the original source code made by Trevor Kising'u, I will never lowk get enough recognition for this small LLM project but its okay I guess, as long as I know that deep down someone will hopefully read this tag I guess. -2026 September 9/11 Crashout (Happy 25th Anniversary NYC!) */
+  /* F//ck my life with the making of this Handmade code like holy f//ck sh//t i want to jump off a bridge and just die, omfg no one will ever know this code was handmade by a 15y.o in Kenya who is tryna make it out the mud gang, fuck everything I live for and Someone who will see this tag rant will either know I'm corny asf or this is just some serious dev crashout, Shoutout to TJ and Mutembezi for motivation and shi, the original source code made by Trevor Kising'u, I will never lowk get enough recognition for this small LLM project but its okay I guess, as long as I know that deep down someone will hopefully read this tag I guess. -2026 September 9/11 Crashout (Happy 25th Anniversary NYC!), now because this code is open soruce, im hoping some people will never find this work, and my prayer to my Lord as a Christian is that for those who do find this, and end up still stealing the code for Arch and redesign it to their ideals are a bunch of f//ck-s//t holes that deserve punishable offenses, also I wanna lowk commit mass genocide in my school, the n//ggas (Im black I can use it) in my school are actually so dumb, We have group national assesments and n//ggas are just watching me do all the work, I have so many expectations in life and I feel so dumb and useless, being an asian-black hybrid creatures gpmo cuh, and lemme finish by saying: FUCK,POOP,SHIT,BITCH,LOL,LMAO,KYS */
 </script>
 </body>
 </html>
