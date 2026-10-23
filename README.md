@@ -2,42 +2,37 @@
 
 A portable offline AI desktop assistant with 3 persona models powered by Ollama.
 
-![Arch](ArchAssistantInstaller.exe)
-
 ## Quick Install
 
-### Option 1: Lightweight Installer (Recommended)
-1. Download `ArchAssistantInstaller.exe` from the [latest release](https://github.com/Wizzit-254/Arch-Assistant-Repo/releases/latest)
-2. Run the installer — it downloads the full app automatically (choose install location)
-3. Launch Arch Assistant from your desktop
+### Windows 10 / 11 (x64)
+1. Download `ArchAssistantSetup-x64.exe` from the [latest release](https://github.com/Wizzit-254/Arch-Assistant-Repo/releases/latest)
+2. Run it — the wizard opens instantly and lets you choose your models and install folder:
+   - Terra 5.3 / Chen-Instruct 3 (3B) — ~1.7 GB
+   - Fable 5.1 (7B) — ~3.3 GB
+3. The wizard downloads only the models you tick. Downloads are resumable: cancel at any time and run the installer again to the same folder to continue. Installs at copy speed.
+4. Launch Arch Assistant from your desktop.
 
-### Option 2: Direct ZIP Download
-When you visit the [releases page](https://github.com/Wizzit-254/Arch-Assistant-Repo/releases), the `Arch-Assistant-App.zip` is directly downloadable. Extract the folder and run `Arch.exe`.
-
-### Option 3: install.bat
-1. Download `install.bat` from this repo
-2. Run it — it downloads the full app automatically
-3. Launch Arch Assistant from your desktop
+### macOS 11+
+Download `ArchAssistant-macOS.command` from the [releases page](https://github.com/Wizzit-254/Arch-Assistant-Repo/releases) and run it — it builds `Arch.app` for Intel and Apple Silicon.
 
 That's it. No Python setup, no Ollama install — the installer handles everything.
 
 ## Requirements
 
-- Windows 10/11
-- Python 3.10+ (the installer downloads it automatically if missing)
-- ~3 GB free disk space (includes base model blob, ~1.8 GB)
-- Internet connection needed only for first launch model verification
+- Windows 10/11 (x64) or macOS 11+
+- ~6 GB free disk space with both models installed (5.3 GB), plus working space during setup
+- Internet connection for the model downloads during setup — fully offline after that
 
 ## AI Models
 
-| Model | Specialty | Speed |
-|-------|-----------|-------|
-| **Terra 5.3** | Fast, code-first assistant | Fast |
-| **Chen Instruct 3** | Deep reasoning, multi-step problems | Medium |
-| **Fable 5.1** | Large codebases, long-context refactors | Medium |
+| Model | Base | Size | Specialty |
+|-------|------|------|-----------|
+| **Terra 5.3** | 3B | ~1.7 GB (shared pack) | Fast, code-first assistant |
+| **Chen Instruct 3** | 3B | ~1.7 GB (shared pack) | Deep reasoning, multi-step problems |
+| **Fable 5.1** | 7B | ~3.3 GB | Large codebases, long-context refactors |
 
-All models share one base: **qwen2.5-coder:3b-instruct-q4_K_S**. The models are included
-in the release zip for fully offline operation.
+Terra 5.3 and Chen-Instruct 3 share one 3B base (qwen2.5-coder:3b-instruct-q4_K_S).
+Fable 5.1 is a separate 7B model (qwen2.5-coder:7b-instruct-q3_K_S).
 
 ## Features
 
